@@ -39,16 +39,14 @@ class UstaService:
         return [(row[0], int(row[1])) for row in rows.all()]
 
     async def get_pending_usta_orders(self, master_id: int) -> List[Order]:
-        """CONFIRMED orders by this master that still need usta and are within deadline."""
-        now = datetime.utcnow()
+        """CONFIRMED orders by this master that still need usta."""
         result = await self.session.execute(
             select(Order)
             .options(selectinload(Order.asphalt_type))
             .where(Order.master_id == master_id)
             .where(Order.status == OrderStatus.CONFIRMED)
             .where(Order.usta_id == None)
-            .where(Order.usta_assignment_deadline > now)
-            .order_by(Order.usta_assignment_deadline.asc())
+            .order_by(Order.usta_assignment_deadline.asc(), Order.id.asc())
         )
         return list(result.scalars().all())
 
@@ -76,6 +74,22 @@ class UstaService:
         )
         order = result.scalar_one_or_none()
         if not order:
+            return None
+        if order.status != OrderStatus.CONFIRMED:
+            return None
+        if order.usta_id is not None:
+            return None
+        usta_result = await self.session.execute(
+            select(User)
+            .where(User.id == usta_id)
+            .where(User.role == UserRole.USTA)
+            .where(User.is_active == True)
+        )
+        usta = usta_result.scalar_one_or_none()
+        if not usta:
+            return None
+        active_count = await self.get_active_order_count(usta_id)
+        if active_count >= MAX_ACTIVE_ORDERS:
             return None
         order.usta_id = usta_id
         await self.session.flush()
