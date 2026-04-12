@@ -88,6 +88,14 @@ class UserService:
         await self.session.flush()
         return user
 
+    async def update_language(self, user_id: int, language: str) -> Optional[User]:
+        user = await self.get_by_id(user_id)
+        if not user:
+            return None
+        user.language = language
+        await self.session.flush()
+        return user
+
     async def set_active(
         self,
         user_id: int,
@@ -145,6 +153,44 @@ class UserService:
             query = query.where(User.role == role)
         result = await self.session.execute(query)
         return result.scalar_one()
+
+    async def update_region(
+        self,
+        user_id: int,
+        region_id: int,
+        changed_by_id: Optional[int] = None,
+    ) -> Optional[User]:
+        user = await self.get_by_id(user_id)
+        if not user:
+            return None
+        old_region = str(user.region_id) if user.region_id else "none"
+        user.region_id = region_id
+        await self.session.flush()
+
+        if changed_by_id:
+            log = AuditLog(
+                user_id=changed_by_id,
+                action="region_change",
+                entity_type="user",
+                entity_id=user_id,
+                old_value=old_region,
+                new_value=str(region_id),
+            )
+            self.session.add(log)
+            await self.session.flush()
+        return user
+
+    async def get_by_role_and_region(
+        self,
+        role: UserRole,
+        region_id: int,
+        only_active: bool = True,
+    ) -> List[User]:
+        query = select(User).where(User.role == role, User.region_id == region_id)
+        if only_active:
+            query = query.where(User.is_active == True)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
 
     async def get_regions(self) -> List[Region]:
         result = await self.session.execute(

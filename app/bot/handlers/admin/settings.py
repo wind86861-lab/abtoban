@@ -74,7 +74,7 @@ async def handle_asphalt_name(message: Message, state: FSMContext) -> None:
 
 
 @router.message(AdminSettingsStates.entering_asphalt_price, RoleFilter(*ADMIN_ROLES))
-async def handle_asphalt_price(message: Message, state: FSMContext, user: User, session) -> None:
+async def handle_asphalt_price(message: Message, state: FSMContext, user: User, session, lang: str) -> None:
     raw = (message.text or "").strip().replace(" ", "").replace(",", "")
     try:
         price = Decimal(raw)
@@ -94,7 +94,7 @@ async def handle_asphalt_price(message: Message, state: FSMContext, user: User, 
         f"✅ Asfalt turi qo'shildi!\n\n"
         f"🏗 Nom: <b>{at.name}</b>\n"
         f"💰 Narx: <b>{float(at.price_per_m2):,.0f} so'm/m²</b>",
-        reply_markup=get_main_menu(user.role),
+        reply_markup=get_main_menu(user.role, lang),
     )
 
 
@@ -143,7 +143,7 @@ async def start_edit_price(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.message(AdminSettingsStates.updating_asphalt_price, RoleFilter(*ADMIN_ROLES))
-async def handle_price_update(message: Message, state: FSMContext, user: User, session) -> None:
+async def handle_price_update(message: Message, state: FSMContext, user: User, session, lang: str) -> None:
     raw = (message.text or "").strip().replace(" ", "").replace(",", "")
     try:
         price = Decimal(raw)
@@ -165,5 +165,5 @@ async def handle_price_update(message: Message, state: FSMContext, user: User, s
     await message.answer(
         f"✅ Narx yangilandi!\n\n"
         f"🏗 {at.name}: <b>{float(at.price_per_m2):,.0f} so'm/m²</b>",
-        reply_markup=get_main_menu(user.role),
+        reply_markup=get_main_menu(user.role, lang),
     )

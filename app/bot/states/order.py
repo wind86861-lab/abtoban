@@ -37,6 +37,18 @@ class AdminOrderCreateStates(StatesGroup):
     confirming = State()
 
 
+class MasterOrderCreateStates(StatesGroup):
+    entering_client_phone = State()
+    entering_client_name = State()
+    selecting_region = State()
+    entering_district = State()
+    entering_street = State()
+    entering_target = State()
+    entering_area = State()
+    selecting_asphalt = State()
+    confirming = State()
+
+
 class AdminSettingsStates(StatesGroup):
     entering_asphalt_name = State()
     entering_asphalt_price = State()

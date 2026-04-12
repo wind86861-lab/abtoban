@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Tuple
 
 from aiogram.types import InlineKeyboardMarkup
@@ -17,7 +17,7 @@ def get_usta_notification_keyboard(order_id: int) -> InlineKeyboardMarkup:
 
 def get_usta_assignment_orders_keyboard(orders: List[Order]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     for order in orders:
         if order.usta_assignment_deadline:
             secs = (order.usta_assignment_deadline - now).total_seconds()

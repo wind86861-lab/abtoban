@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
 
@@ -52,6 +52,46 @@ class OrderService:
         log = AuditLog(
             user_id=client.id,
             action="order_created",
+            entity_type="order",
+            entity_id=order.id,
+            new_value=order_number,
+        )
+        self.session.add(log)
+        await self.session.flush()
+        return order
+
+    async def create_by_master(
+        self,
+        master_id: int,
+        client_name: str,
+        client_phone: str,
+        address: str,
+        area_m2: Decimal,
+        region_id: Optional[int] = None,
+        asphalt_type_id: Optional[int] = None,
+    ) -> Order:
+        order_number = await self.generate_order_number()
+        # Use master as client_id placeholder
+        order = Order(
+            order_number=order_number,
+            client_id=master_id,
+            client_name=client_name,
+            client_phone=client_phone,
+            address=address,
+            area_m2=area_m2,
+            region_id=region_id,
+            asphalt_type_id=asphalt_type_id,
+            status=OrderStatus.NEW,
+            advance_paid=Decimal("0"),
+            discount=Decimal("0"),
+            debt=Decimal("0"),
+        )
+        self.session.add(order)
+        await self.session.flush()
+
+        log = AuditLog(
+            user_id=master_id,
+            action="order_created_by_master",
             entity_type="order",
             entity_id=order.id,
             new_value=order_number,
@@ -222,7 +262,7 @@ class OrderService:
         if not order or order.status != OrderStatus.NEW:
             return None
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         order.master_id = master_id
         order.area_m2 = area_m2
         order.total_price = total_price
@@ -264,7 +304,7 @@ class OrderService:
         old_status = order.status
         order.status = new_status
         if new_status == OrderStatus.DONE:
-            order.completed_at = datetime.utcnow()
+            order.completed_at = datetime.now(timezone.utc)
 
         await self.session.flush()
 

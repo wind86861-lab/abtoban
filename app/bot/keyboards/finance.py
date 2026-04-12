@@ -109,3 +109,26 @@ def get_skip_notes_keyboard() -> ReplyKeyboardMarkup:
     builder.add(KeyboardButton(text="❌ Bekor qilish"))
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def get_admin_material_requests_keyboard(requests: List[MaterialRequest]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for req in requests:
+        order_num = req.order.order_number if req.order else "?"
+        region_name = req.order.region.name if req.order and req.order.region else "—"
+        usta_name = req.usta.full_name or str(req.usta.telegram_id) if req.usta else "?"
+        builder.button(
+            text=f"📦 {order_num} | {region_name}\n{float(req.amount_tonnes)} t | {usta_name}",
+            callback_data=f"admin_view_material:{req.id}",
+        )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_admin_material_detail_keyboard(req_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Tasdiqlash", callback_data=f"admin_approve_material:{req_id}")
+    builder.button(text="❌ Rad etish", callback_data=f"admin_reject_material:{req_id}")
+    builder.button(text="⬅️ Orqaga", callback_data="back_admin_materials")
+    builder.adjust(2)
+    return builder.as_markup()

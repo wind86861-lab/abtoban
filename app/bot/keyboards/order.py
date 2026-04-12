@@ -43,9 +43,26 @@ def get_order_confirm_keyboard() -> InlineKeyboardMarkup:
 def get_orders_list_keyboard(orders: List[Order], prefix: str = "view_order") -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for order in orders:
-        status = ORDER_STATUS_LABELS.get(order.status, order.status.value)
+        status_icon = {
+            OrderStatus.NEW: "🆕",
+            OrderStatus.CONFIRMED: "✅",
+            OrderStatus.IN_WORK: "🔧",
+            OrderStatus.DONE: "🏁",
+            OrderStatus.CANCELLED: "❌",
+        }.get(order.status, "📋")
+        
+        status_label = ORDER_STATUS_LABELS.get(order.status, order.status.value)
+        area = f"{float(order.area_m2):.0f}" if order.area_m2 else "—"
+        debt = float(order.debt) if order.debt else 0
+        
+        # Multi-line button text with proper formatting
+        button_text = (
+            f"{status_icon} {order.order_number}\n"
+            f"📐 {area} m²  |  💰 Qarz: {debt:,.0f} so'm"
+        )
+        
         builder.button(
-            text=f"📋 {order.order_number} | {status}",
+            text=button_text,
             callback_data=f"{prefix}:{order.id}",
         )
     builder.adjust(1)

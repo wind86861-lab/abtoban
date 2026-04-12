@@ -15,6 +15,12 @@ class Base(DeclarativeBase):
     pass
 
 
+class Language(str, enum.Enum):
+    UZ_LAT = "uz_lat"
+    UZ_CYR = "uz_cyr"
+    RU = "ru"
+
+
 class UserRole(str, enum.Enum):
     SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
@@ -67,6 +73,7 @@ class ExpenseType(str, enum.Enum):
 
 
 class MaterialRequestStatus(str, enum.Enum):
+    ADMIN_PENDING = "admin_pending"
     PENDING = "pending"
     PRICED = "priced"
     DELIVERED = "delivered"
@@ -120,6 +127,9 @@ class User(Base):
     )
     region_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("regions.id"), nullable=True
+    )
+    language: Mapped[Optional[str]] = mapped_column(
+        String(10), nullable=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(

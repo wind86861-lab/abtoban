@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import MaterialRequest, MaterialRequestStatus
+from app.db.models import MaterialRequest, MaterialRequestStatus, Order
 
 
 class MaterialService:
@@ -23,7 +23,7 @@ class MaterialService:
             order_id=order_id,
             usta_id=usta_id,
             amount_tonnes=amount_tonnes,
-            status=MaterialRequestStatus.PENDING,
+            status=MaterialRequestStatus.ADMIN_PENDING,
             notes=notes,
         )
         self.session.add(req)
@@ -42,22 +42,51 @@ class MaterialService:
         )
         return result.scalar_one_or_none()
 
-    async def get_pending(self) -> List[MaterialRequest]:
-        result = await self.session.execute(
+    async def get_admin_pending(self, region_id: Optional[int] = None) -> List[MaterialRequest]:
+        """Get material requests waiting for admin approval, optionally filtered by region."""
+        query = (
             select(MaterialRequest)
-            .options(selectinload(MaterialRequest.order), selectinload(MaterialRequest.usta))
-            .where(MaterialRequest.status == MaterialRequestStatus.PENDING)
-            .order_by(MaterialRequest.created_at.asc())
+            .options(
+                selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.usta)
+            )
+            .where(MaterialRequest.status == MaterialRequestStatus.ADMIN_PENDING)
         )
+        if region_id:
+            query = query.join(Order).where(Order.region_id == region_id)
+        query = query.order_by(MaterialRequest.created_at.asc())
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
-    async def get_priced(self) -> List[MaterialRequest]:
-        result = await self.session.execute(
+    async def get_pending(self, region_id: Optional[int] = None) -> List[MaterialRequest]:
+        """Get material requests approved by admin and ready for zavod pricing."""
+        query = (
             select(MaterialRequest)
-            .options(selectinload(MaterialRequest.order), selectinload(MaterialRequest.usta))
-            .where(MaterialRequest.status == MaterialRequestStatus.PRICED)
-            .order_by(MaterialRequest.created_at.asc())
+            .options(
+                selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.usta),
+            )
+            .where(MaterialRequest.status == MaterialRequestStatus.PENDING)
         )
+        if region_id:
+            query = query.join(Order).where(Order.region_id == region_id)
+        query = query.order_by(MaterialRequest.created_at.asc())
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_priced(self, region_id: Optional[int] = None) -> List[MaterialRequest]:
+        query = (
+            select(MaterialRequest)
+            .options(
+                selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.usta),
+            )
+            .where(MaterialRequest.status == MaterialRequestStatus.PRICED)
+        )
+        if region_id:
+            query = query.join(Order).where(Order.region_id == region_id)
+        query = query.order_by(MaterialRequest.created_at.asc())
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
     async def get_by_usta(self, usta_id: int) -> List[MaterialRequest]:
@@ -97,6 +126,30 @@ class MaterialService:
         req.delivery_price = delivery_price
         req.extra_cost = extra_cost or Decimal("0")
         req.status = MaterialRequestStatus.PRICED
+        await self.session.flush()
+        return req
+
+    async def approve(self, req_id: int) -> Optional[MaterialRequest]:
+        """Admin approves material request, forwarding it to zavod."""
+        result = await self.session.execute(
+            select(MaterialRequest).where(MaterialRequest.id == req_id)
+        )
+        req = result.scalar_one_or_none()
+        if not req or req.status != MaterialRequestStatus.ADMIN_PENDING:
+            return None
+        req.status = MaterialRequestStatus.PENDING
+        await self.session.flush()
+        return req
+
+    async def reject(self, req_id: int) -> Optional[MaterialRequest]:
+        """Admin rejects material request."""
+        result = await self.session.execute(
+            select(MaterialRequest).where(MaterialRequest.id == req_id)
+        )
+        req = result.scalar_one_or_none()
+        if not req or req.status != MaterialRequestStatus.ADMIN_PENDING:
+            return None
+        await self.session.delete(req)
         await self.session.flush()
         return req
 

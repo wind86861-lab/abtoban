@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters import RoleFilter
+from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.keyboards.finance import (
     get_pending_requests_keyboard,
     get_priced_requests_keyboard,
@@ -23,52 +24,51 @@ router.message.filter(RoleFilter(UserRole.ZAVOD))
 
 # ── Pending requests ───────────────────────────────────────────────────────────
 
-@router.message(F.text.in_({"\ud83d\udce6 Material so'rovlar", "\u2705 Narx kiritish"}))
-async def material_requests(message: Message, session) -> None:
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_material_requests", set()) | ALL_BUTTON_TEXTS.get("btn_set_price", set())))
+async def material_requests(message: Message, user: User, session, lang: str) -> None:
     mat_svc = MaterialService(session)
-    pending = await mat_svc.get_pending()
+    pending = await mat_svc.get_pending(region_id=user.region_id)
     if not pending:
-        await message.answer(
-            "\ud83d\udce6 <b>Kelgan so'rovlar</b>\n\nHozircha yangi so'rov yo'q."
-        )
+        await message.answer(t("no_pending_requests", lang))
         return
     await message.answer(
-        f"\ud83d\udce6 <b>Kelgan so'rovlar</b> ({len(pending)} ta)\n\nTanlang:",
+        t("pending_requests_list", lang, count=len(pending)),
         reply_markup=get_pending_requests_keyboard(pending),
     )
 
 
 @router.callback_query(F.data == "zavod_pending_list")
-async def zavod_pending_list(callback: CallbackQuery, session) -> None:
+async def zavod_pending_list(callback: CallbackQuery, user: User, session, lang: str) -> None:
     mat_svc = MaterialService(session)
-    pending = await mat_svc.get_pending()
+    pending = await mat_svc.get_pending(region_id=user.region_id)
     if not pending:
-        await callback.message.edit_text("\ud83d\udce6 Yangi so'rov yo'q.")
+        await callback.message.edit_text(t("no_pending_requests", lang))
     else:
         await callback.message.edit_text(
-            f"\ud83d\udce6 <b>Kelgan so'rovlar</b> ({len(pending)} ta):",
+            t("pending_requests_list", lang, count=len(pending)),
             reply_markup=get_pending_requests_keyboard(pending),
         )
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("zavod_view_req:"))
-async def view_request(callback: CallbackQuery, session) -> None:
+async def view_request(callback: CallbackQuery, session, lang: str) -> None:
     req_id = int(callback.data.split(":")[1])
     mat_svc = MaterialService(session)
     req = await mat_svc.get_by_id(req_id)
     if not req:
-        await callback.answer("\u274c So'rov topilmadi", show_alert=True)
+        await callback.answer(t("request_not_found", lang), show_alert=True)
         return
     order_num = req.order.order_number if req.order else "?"
     usta_name = req.usta.full_name or str(req.usta.telegram_id) if req.usta else "?"
     await callback.message.edit_text(
-        f"\ud83d\udce6 <b>Material so'rov #{req.id}</b>\n\n"
-        f"\ud83d\udd22 Zakaz: {order_num}\n"
-        f"\ud83d\udc77 Usta: {usta_name}\n"
-        f"\ud83d\udce6 Miqdor: <b>{req.amount_tonnes} tonna</b>\n"
-        f"\ud83d\udcdd Izoh: {req.notes or '\u2014'}\n"
-        f"\ud83d\udcc5 Sana: {req.created_at.strftime('%d.%m.%Y %H:%M')}",
+        t("material_request_detail", lang,
+          id=req.id,
+          order=order_num,
+          usta=usta_name,
+          amount=req.amount_tonnes,
+          notes=req.notes or '—',
+          date=req.created_at.strftime('%d.%m.%Y %H:%M')),
         reply_markup=get_zavod_request_detail_keyboard(req_id),
     )
     await callback.answer()
@@ -77,61 +77,59 @@ async def view_request(callback: CallbackQuery, session) -> None:
 # ── Price setting FSM ─────────────────────────────────────────────────────────
 
 @router.callback_query(F.data.startswith("zavod_price:"))
-async def start_price_fsm(callback: CallbackQuery, state: FSMContext) -> None:
+async def start_price_fsm(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     req_id = int(callback.data.split(":")[1])
     await state.update_data(req_id=req_id)
     await state.set_state(ZavodPriceStates.entering_material_price)
-    await callback.message.edit_text(
-        "1/3 \u2014 Material narxini kiriting (so'm):\nMisol: <code>8500000</code>"
-    )
+    await callback.message.edit_text(t("price_step_material", lang))
     await callback.answer()
 
 
 @router.message(ZavodPriceStates.entering_material_price)
-async def price_material(message: Message, state: FSMContext) -> None:
+async def price_material(message: Message, state: FSMContext, lang: str) -> None:
     raw = (message.text or "").strip().replace(" ", "").replace(",", "")
     try:
         price = Decimal(raw)
         if price <= 0:
             raise ValueError
     except (InvalidOperation, ValueError):
-        await message.answer("\u274c Noto'g'ri narx. Raqam kiriting:")
+        await message.answer(t("invalid_price", lang))
         return
     await state.update_data(material_price=str(price))
     await state.set_state(ZavodPriceStates.entering_delivery_price)
     await message.answer(
-        "2/3 \u2014 Dostavka narxini kiriting (so'm):\nMisol: <code>500000</code>",
-        reply_markup=get_cancel_keyboard(),
+        t("price_step_delivery", lang),
+        reply_markup=get_cancel_keyboard(lang),
     )
 
 
 @router.message(ZavodPriceStates.entering_delivery_price)
-async def price_delivery(message: Message, state: FSMContext) -> None:
+async def price_delivery(message: Message, state: FSMContext, lang: str) -> None:
     raw = (message.text or "").strip().replace(" ", "").replace(",", "")
     try:
         price = Decimal(raw)
         if price < 0:
             raise ValueError
     except (InvalidOperation, ValueError):
-        await message.answer("\u274c Noto'g'ri narx. Raqam kiriting (0 bo'lishi mumkin):")
+        await message.answer(t("invalid_number", lang))
         return
     await state.update_data(delivery_price=str(price))
     await state.set_state(ZavodPriceStates.entering_extra_cost)
     await message.answer(
-        "3/3 \u2014 Qo'shimcha xarajat (so'm). Yo'q bo'lsa 0 kiriting:",
-        reply_markup=get_cancel_keyboard(),
+        t("price_step_extra", lang),
+        reply_markup=get_cancel_keyboard(lang),
     )
 
 
 @router.message(ZavodPriceStates.entering_extra_cost)
-async def price_extra(message: Message, state: FSMContext) -> None:
+async def price_extra(message: Message, state: FSMContext, lang: str) -> None:
     raw = (message.text or "").strip().replace(" ", "").replace(",", "")
     try:
         extra = Decimal(raw)
         if extra < 0:
             raise ValueError
     except (InvalidOperation, ValueError):
-        await message.answer("\u274c Noto'g'ri. Raqam kiriting (0 bo'lishi mumkin):")
+        await message.answer(t("invalid_number", lang))
         return
     await state.update_data(extra_cost=str(extra))
     await state.set_state(ZavodPriceStates.confirming)
@@ -140,19 +138,17 @@ async def price_extra(message: Message, state: FSMContext) -> None:
     del_price = float(Decimal(data["delivery_price"]))
     total = mat_price + del_price + float(extra)
     await message.answer(
-        f"\ud83d\udcb0 <b>Narx xulosasi</b>\n\n"
-        f"\ud83c\udfd7 Material: <b>{mat_price:,.0f} so'm</b>\n"
-        f"\ud83d\ude9a Dostavka: <b>{del_price:,.0f} so'm</b>\n"
-        f"\u2795 Qo'shimcha: <b>{float(extra):,.0f} so'm</b>\n"
-        f"\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"
-        f"\ud83d\udcb0 Jami: <b>{total:,.0f} so'm</b>\n\n"
-        f"Tasdiqlaysizmi?",
+        t("price_summary", lang,
+          material=f"{mat_price:,.0f}",
+          delivery=f"{del_price:,.0f}",
+          extra=f"{float(extra):,.0f}",
+          total=f"{total:,.0f}"),
         reply_markup=get_zavod_confirm_keyboard(),
     )
 
 
 @router.callback_query(ZavodPriceStates.confirming, F.data == "zavod_price_confirm")
-async def price_submit(callback: CallbackQuery, state: FSMContext, user: User, session) -> None:
+async def price_submit(callback: CallbackQuery, state: FSMContext, user: User, session, lang: str) -> None:
     data = await state.get_data()
     await state.clear()
 
@@ -165,9 +161,7 @@ async def price_submit(callback: CallbackQuery, state: FSMContext, user: User, s
         extra_cost=Decimal(data["extra_cost"]),
     )
     if not req:
-        await callback.message.edit_text(
-            "\u274c Xatolik: so'rov allaqachon narxlangan yoki topilmadi."
-        )
+        await callback.message.edit_text(t("price_error", lang))
         await callback.answer()
         return
 
@@ -183,76 +177,73 @@ async def price_submit(callback: CallbackQuery, state: FSMContext, user: User, s
     user_svc = UserService(session)
     if req_full and req_full.usta:
         try:
+            ul = _gl(req_full.usta)
             await bot.send_message(
                 req_full.usta.telegram_id,
-                f"\ud83d\udcb0 <b>Material narxi belgilandi!</b>\n\n"
-                f"\ud83d\udce6 {req.amount_tonnes} tonna\n"
-                f"\ud83c\udfd7 Material: {float(req.material_price or 0):,.0f} so'm\n"
-                f"\ud83d\ude9a Dostavka: {float(req.delivery_price or 0):,.0f} so'm\n"
-                f"\u2795 Qo'shimcha: {float(req.extra_cost or 0):,.0f} so'm\n"
-                f"\ud83d\udcb0 Jami: {total:,.0f} so'm\n\n"
-                f"Yetkazib berish tashkil etilmoqda.",
+                t("material_price_set_notify", ul,
+                  amount=req.amount_tonnes,
+                  material=f"{float(req.material_price or 0):,.0f}",
+                  delivery=f"{float(req.delivery_price or 0):,.0f}",
+                  extra=f"{float(req.extra_cost or 0):,.0f}",
+                  total=f"{total:,.0f}"),
             )
         except Exception:
             pass
 
     # Notify shofers
     shofers = await user_svc.get_all(role=UserRole.SHOFER)
-    from app.bot.keyboards.finance import get_shofer_delivery_keyboard
     for shofer in shofers:
         try:
+            sl = _gl(shofer)
             await bot.send_message(
                 shofer.telegram_id,
-                f"\ud83d\ude9a <b>Yetkazish topshirig'i!</b>\n\n"
-                f"\ud83d\udce6 {req.amount_tonnes} tonna material\n"
-                f"\ud83d\udcdd Zakaz: {req_full.order.order_number if req_full and req_full.order else '?'}\n\n"
-                f"Yetkazib berdingizmi?",
+                t("delivery_task_notify", sl,
+                  amount=req.amount_tonnes,
+                  order=req_full.order.order_number if req_full and req_full.order else '?'),
                 reply_markup=get_shofer_delivery_keyboard(req.id),
             )
         except Exception:
             pass
 
     await callback.message.edit_text(
-        f"\u2705 <b>Narx belgilandi!</b>\n\n"
-        f"\ud83d\udce6 {req.amount_tonnes} tonna \u2014 {total:,.0f} so'm\n"
-        f"Usta va shoferlar xabardor qilindi."
+        t("price_set_success", lang,
+          amount=req.amount_tonnes,
+          total=f"{total:,.0f}"),
     )
-    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(UserRole.ZAVOD))
+    await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.ZAVOD, lang))
     await callback.answer()
 
 
 @router.callback_query(ZavodPriceStates.confirming, F.data == "zavod_price_cancel")
-async def price_cancel(callback: CallbackQuery, state: FSMContext) -> None:
+async def price_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     await state.clear()
-    await callback.message.edit_text("\u274c Bekor qilindi.")
-    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(UserRole.ZAVOD))
+    await callback.message.edit_text(t("action_cancelled", lang))
+    await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.ZAVOD, lang))
     await callback.answer()
 
 
 # ── Delivery confirm (by zavod) ────────────────────────────────────────────────
 
-@router.message(F.text == "\ud83d\udccb Tarixi")
-async def history(message: Message, session) -> None:
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_zavod_history", set())))
+async def history(message: Message, user: User, session, lang: str) -> None:
     mat_svc = MaterialService(session)
-    priced = await mat_svc.get_priced()
+    priced = await mat_svc.get_priced(region_id=user.region_id)
     if not priced:
-        await message.answer("\ud83d\udccb Yetkazish kutilayotgan so'rovlar yo'q.")
+        await message.answer(t("no_priced_requests", lang))
         return
     await message.answer(
-        f"\ud83d\ude9a <b>Yetkazish kutilayotganlar</b> ({len(priced)} ta):",
+        t("priced_requests_list", lang, count=len(priced)),
         reply_markup=get_priced_requests_keyboard(priced),
     )
 
 
 @router.callback_query(F.data.startswith("zavod_deliver:"))
-async def zavod_deliver(callback: CallbackQuery, user: User, session) -> None:
+async def zavod_deliver(callback: CallbackQuery, user: User, session, lang: str) -> None:
     req_id = int(callback.data.split(":")[1])
     mat_svc = MaterialService(session)
     req = await mat_svc.deliver(req_id)
     if not req:
-        await callback.answer(
-            "\u274c So'rov topilmadi yoki allaqachon yetkazilgan.", show_alert=True
-        )
+        await callback.answer(t("deliver_error", lang), show_alert=True)
         return
 
     req_full = await mat_svc.get_by_id(req_id)
@@ -261,18 +252,15 @@ async def zavod_deliver(callback: CallbackQuery, user: User, session) -> None:
     from app.bot.loader import bot
     if req_full and req_full.usta:
         try:
+            ul = _gl(req_full.usta)
             await bot.send_message(
                 req_full.usta.telegram_id,
-                f"\ud83d\udce6 <b>Material yetkazildi!</b>\n\n"
-                f"\ud83d\udce6 {req.amount_tonnes} tonna\n"
-                f"Ish boshlashingiz mumkin!",
+                t("material_delivered_notify", ul, amount=req.amount_tonnes),
             )
         except Exception:
             pass
 
-    await callback.answer("\u2705 Yetkazildi deb belgilandi!")
+    await callback.answer(t("delivered_marked", lang))
     await callback.message.edit_text(
-        f"\u2705 <b>Yetkazildi!</b>\n\n"
-        f"\ud83d\udce6 {req.amount_tonnes} tonna\n"
-        f"Usta xabardor qilindi."
+        t("delivered_success", lang, amount=req.amount_tonnes)
     )

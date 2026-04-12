@@ -355,7 +355,7 @@ async def admin_order_asphalt(callback: CallbackQuery, state: FSMContext, sessio
 
 
 @router.callback_query(AdminOrderCreateStates.confirming, F.data == "confirm_order")
-async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: User, session) -> None:
+async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: User, session, lang: str) -> None:
     data = await state.get_data()
     await state.clear()
 
@@ -393,15 +393,15 @@ async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: U
         f"👤 Klient: {data['client_name']}\n"
         f"📍 Manzil: {order.address}"
     )
-    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(user.role))
+    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(user.role, lang))
     await callback.answer()
 
 
 @router.callback_query(AdminOrderCreateStates.confirming, F.data == "cancel_order")
-async def admin_order_cancel(callback: CallbackQuery, state: FSMContext, user: User) -> None:
+async def admin_order_cancel(callback: CallbackQuery, state: FSMContext, user: User, lang: str) -> None:
     await state.clear()
     await callback.message.edit_text("❌ Bekor qilindi.")
-    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(user.role))
+    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(user.role, lang))
     await callback.answer()
 
 
@@ -455,7 +455,7 @@ async def payment_enter_start(callback: CallbackQuery, state: FSMContext) -> Non
 
 
 @router.message(PaymentUpdateStates.entering_amount, RoleFilter(*MANAGEMENT_ROLES))
-async def payment_amount(message: Message, state: FSMContext, user: User, session) -> None:
+async def payment_amount(message: Message, state: FSMContext, user: User, session, lang: str) -> None:
     raw = (message.text or "").strip().replace(" ", "").replace(",", "")
     try:
         amount = Decimal(raw)
@@ -486,12 +486,12 @@ async def payment_amount(message: Message, state: FSMContext, user: User, sessio
         f"💵 Qo'shildi: {float(amount):,.0f} so'm\n"
         f"💰 Jami to'langan: {float(order.advance_paid):,.0f} so'm\n"
         f"💳 Qarz: {float(order.debt):,.0f} so'm",
-        reply_markup=get_main_menu(user.role),
+        reply_markup=get_main_menu(user.role, lang),
     )
 
 
 @router.callback_query(F.data.startswith("payment_full:"), RoleFilter(*MANAGEMENT_ROLES))
-async def payment_full(callback: CallbackQuery, user: User, session) -> None:
+async def payment_full(callback: CallbackQuery, user: User, session, lang: str) -> None:
     order_id = int(callback.data.split(":")[1])
     order_svc = OrderService(session)
     order = await order_svc.get_by_id_full(order_id)
@@ -507,5 +507,5 @@ async def payment_full(callback: CallbackQuery, user: User, session) -> None:
         f"Zakaz: #{order.order_number}\n"
         f"💰 {float(order.total_price or 0):,.0f} so'm to'liq qabul qilindi."
     )
-    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(user.role))
+    await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(user.role, lang))
     await callback.answer("✅ Yakunlandi!")

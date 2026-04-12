@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy import func, select
@@ -39,12 +39,12 @@ class UstaService:
         return [(row[0], int(row[1])) for row in rows.all()]
 
     async def get_pending_usta_orders(self, master_id: int) -> List[Order]:
-        """CONFIRMED orders by this master that still need usta."""
+        """CONFIRMED or IN_WORK orders by this master that still need usta."""
         result = await self.session.execute(
             select(Order)
             .options(selectinload(Order.asphalt_type))
             .where(Order.master_id == master_id)
-            .where(Order.status == OrderStatus.CONFIRMED)
+            .where(Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.IN_WORK]))
             .where(Order.usta_id == None)
             .order_by(Order.usta_assignment_deadline.asc(), Order.id.asc())
         )
@@ -52,7 +52,7 @@ class UstaService:
 
     async def get_all_pending_usta_orders(self) -> List[Order]:
         """All CONFIRMED orders without usta (for admin/auto-assign view)."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         result = await self.session.execute(
             select(Order)
             .options(selectinload(Order.master), selectinload(Order.asphalt_type))
@@ -75,7 +75,7 @@ class UstaService:
         order = result.scalar_one_or_none()
         if not order:
             return None
-        if order.status != OrderStatus.CONFIRMED:
+        if order.status not in [OrderStatus.CONFIRMED, OrderStatus.IN_WORK]:
             return None
         if order.usta_id is not None:
             return None

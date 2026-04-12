@@ -4,6 +4,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, User as TGUser
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.i18n import get_lang
 from app.config import settings
 from app.db.models import UserRole
 from app.services.user_service import UserService
@@ -40,4 +41,6 @@ class AuthMiddleware(BaseMiddleware):
             )
 
         data["user"] = user
+        data["lang"] = get_lang(user)
+
         return await handler(event, data)
