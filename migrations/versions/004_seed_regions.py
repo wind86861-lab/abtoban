@@ -34,15 +34,15 @@ REGIONS = [
 
 
 def upgrade() -> None:
-    regions_table = sa.table(
-        "regions",
-        sa.column("name", sa.String),
-        sa.column("is_active", sa.Boolean),
-    )
-    op.bulk_insert(
-        regions_table,
-        [{"name": name, "is_active": True} for name in REGIONS],
-    )
+    conn = op.get_bind()
+    for name in REGIONS:
+        conn.execute(
+            sa.text(
+                "INSERT INTO regions (name, is_active) "
+                "VALUES (:name, true) ON CONFLICT (name) DO NOTHING"
+            ),
+            {"name": name},
+        )
 
 
 def downgrade() -> None:
