@@ -25,15 +25,15 @@ router = Router()
     RoleFilter(*MANAGEMENT_ROLES),
 )
 async def web_panel_link(message: Message, user: User, lang: str) -> None:
+    from aiogram.types import WebAppInfo
     url = f"{settings.WEB_URL}/admin"
     builder = InlineKeyboardBuilder()
-    builder.button(text="🌐 Admin panelni ochish", url=url)
+    builder.button(text="🌐 Admin Panel", web_app=WebAppInfo(url=url))
     await message.answer(
         f"🌐 <b>Web Admin Panel</b>\n\n"
-        f"🔗 {url}\n\n"
-        f"👤 Login: <code>{settings.ADMIN_USERNAME}</code>\n"
+        f" Login: <code>{settings.ADMIN_USERNAME}</code>\n"
         f"🔑 Parol: <code>{settings.ADMIN_PASSWORD}</code>\n\n"
-        f"ℹ️ Brauzerda oching yoki quyidagi tugmani bosing.",
+        f"ℹ️ Quyidagi tugmani bosing — Telegram ichida ochiladi.",
         reply_markup=builder.as_markup(),
     )
 
