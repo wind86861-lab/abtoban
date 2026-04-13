@@ -1,18 +1,18 @@
-"""Simple API routes for Telegram Mini App admin dashboard."""
+"""TMA admin API routes — Hududlar, Zavodlar, Orders, Users, Materials."""
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import selectinload
 from starlette.requests import Request
 
 from app.db.models import (
     ROLE_LABELS, MaterialRequest, MaterialRequestStatus, Order, OrderStatus,
-    Region, User, UserRole,
+    Region, User, UserRole, Zavod, zavod_hududlar,
 )
 from app.db.session import async_session_maker
 
@@ -94,12 +94,12 @@ async def update_order_status(order_id: int, body: UpdateStatusRequest):
 
 
 @router.get("/tma-api/users")
-async def tma_users(limit: int = 50, role: Optional[str] = None):
+async def tma_users(limit: int = 100, role: Optional[str] = None):
     """Get users with optional role filter."""
     async with async_session_maker() as session:
         q = (
             select(User)
-            .options(selectinload(User.region))
+            .options(selectinload(User.region), selectinload(User.zavod))
             .order_by(User.created_at.desc())
             .limit(limit)
         )
@@ -118,6 +118,8 @@ async def tma_users(limit: int = 50, role: Optional[str] = None):
             "role_label": ROLE_LABELS.get(u.role, u.role.value),
             "region": u.region.name if u.region else None,
             "region_id": u.region_id,
+            "zavod_id": u.zavod_id,
+            "zavod_name": u.zavod.name if u.zavod else None,
             "is_active": u.is_active,
         }
         for u in users
@@ -230,18 +232,209 @@ async def reject_material(req_id: int):
     return {"ok": True}
 
 
-@router.get("/tma-api/regions")
-async def tma_regions():
-    """Get all active regions."""
-    async with async_session_maker() as session:
-        result = await session.execute(
-            select(Region).where(Region.is_active == True).order_by(Region.name)
-        )
-        regions = result.scalars().all()
-    return [{"id": r.id, "name": r.name} for r in regions]
-
-
 @router.get("/tma-api/roles")
 async def tma_roles():
     """Get all user roles."""
     return [{"value": r.value, "label": ROLE_LABELS[r]} for r in UserRole]
+
+
+# ─────────────────────────────────────────────────────────────
+# HUDUDLAR (Regions) CRUD
+# ─────────────────────────────────────────────────────────────
+
+class HududCreateRequest(BaseModel):
+    viloyat: str
+    tuman: str
+    tafsif: Optional[str] = None
+
+
+@router.get("/tma-api/hududlar")
+async def list_hududlar():
+    async with async_session_maker() as session:
+        result = await session.execute(select(Region).order_by(Region.viloyat, Region.tuman))
+        hududlar = result.scalars().all()
+    return [
+        {
+            "id": h.id,
+            "name": h.name,
+            "viloyat": h.viloyat or h.name,
+            "tuman": h.tuman or "",
+            "tafsif": h.tafsif or "",
+            "is_active": h.is_active,
+        }
+        for h in hududlar
+    ]
+
+
+@router.post("/tma-api/hududlar")
+async def create_hudud(body: HududCreateRequest):
+    name = f"{body.viloyat} — {body.tuman}"
+    async with async_session_maker() as session:
+        existing = (await session.execute(
+            select(Region).where(Region.name == name)
+        )).scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=400, detail="Bu hudud allaqachon mavjud")
+        hudud = Region(name=name, viloyat=body.viloyat, tuman=body.tuman, tafsif=body.tafsif)
+        session.add(hudud)
+        await session.commit()
+        await session.refresh(hudud)
+    return {"ok": True, "id": hudud.id, "name": hudud.name}
+
+
+@router.patch("/tma-api/hududlar/{hudud_id}")
+async def update_hudud(hudud_id: int, body: HududCreateRequest):
+    async with async_session_maker() as session:
+        hudud = (await session.execute(
+            select(Region).where(Region.id == hudud_id)
+        )).scalar_one_or_none()
+        if not hudud:
+            raise HTTPException(status_code=404, detail="Hudud topilmadi")
+        hudud.viloyat = body.viloyat
+        hudud.tuman = body.tuman
+        hudud.tafsif = body.tafsif
+        hudud.name = f"{body.viloyat} — {body.tuman}"
+        await session.commit()
+    return {"ok": True}
+
+
+@router.patch("/tma-api/hududlar/{hudud_id}/toggle")
+async def toggle_hudud(hudud_id: int):
+    async with async_session_maker() as session:
+        hudud = (await session.execute(
+            select(Region).where(Region.id == hudud_id)
+        )).scalar_one_or_none()
+        if not hudud:
+            raise HTTPException(status_code=404, detail="Hudud topilmadi")
+        hudud.is_active = not hudud.is_active
+        await session.commit()
+        return {"ok": True, "is_active": hudud.is_active}
+
+
+@router.delete("/tma-api/hududlar/{hudud_id}")
+async def delete_hudud(hudud_id: int):
+    async with async_session_maker() as session:
+        await session.execute(delete(Region).where(Region.id == hudud_id))
+        await session.commit()
+    return {"ok": True}
+
+
+# ─────────────────────────────────────────────────────────────
+# ZAVODLAR CRUD
+# ─────────────────────────────────────────────────────────────
+
+class ZavodCreateRequest(BaseModel):
+    name: str
+    tafsif: Optional[str] = None
+
+
+@router.get("/tma-api/zavodlar")
+async def list_zavodlar():
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(Zavod).options(selectinload(Zavod.hududlar)).order_by(Zavod.name)
+        )
+        zavodlar = result.scalars().all()
+    return [
+        {
+            "id": z.id,
+            "name": z.name,
+            "tafsif": z.tafsif or "",
+            "is_active": z.is_active,
+            "hududlar": [
+                {"id": h.id, "name": h.name, "viloyat": h.viloyat, "tuman": h.tuman}
+                for h in z.hududlar
+            ],
+            "user_count": len(z.users) if z.users else 0,
+        }
+        for z in zavodlar
+    ]
+
+
+@router.post("/tma-api/zavodlar")
+async def create_zavod(body: ZavodCreateRequest):
+    async with async_session_maker() as session:
+        existing = (await session.execute(
+            select(Zavod).where(Zavod.name == body.name)
+        )).scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=400, detail="Bu nomli zavod allaqachon mavjud")
+        zavod = Zavod(name=body.name, tafsif=body.tafsif)
+        session.add(zavod)
+        await session.commit()
+        await session.refresh(zavod)
+    return {"ok": True, "id": zavod.id}
+
+
+@router.patch("/tma-api/zavodlar/{zavod_id}")
+async def update_zavod(zavod_id: int, body: ZavodCreateRequest):
+    async with async_session_maker() as session:
+        zavod = (await session.execute(
+            select(Zavod).where(Zavod.id == zavod_id)
+        )).scalar_one_or_none()
+        if not zavod:
+            raise HTTPException(status_code=404, detail="Zavod topilmadi")
+        zavod.name = body.name
+        zavod.tafsif = body.tafsif
+        await session.commit()
+    return {"ok": True}
+
+
+@router.patch("/tma-api/zavodlar/{zavod_id}/toggle")
+async def toggle_zavod(zavod_id: int):
+    async with async_session_maker() as session:
+        zavod = (await session.execute(
+            select(Zavod).where(Zavod.id == zavod_id)
+        )).scalar_one_or_none()
+        if not zavod:
+            raise HTTPException(status_code=404, detail="Zavod topilmadi")
+        zavod.is_active = not zavod.is_active
+        await session.commit()
+        return {"ok": True, "is_active": zavod.is_active}
+
+
+class ZavodHududRequest(BaseModel):
+    hudud_ids: List[int]
+
+
+@router.put("/tma-api/zavodlar/{zavod_id}/hududlar")
+async def set_zavod_hududlar(zavod_id: int, body: ZavodHududRequest):
+    """Replace all hudud assignments for a zavod."""
+    async with async_session_maker() as session:
+        zavod = (await session.execute(
+            select(Zavod).options(selectinload(Zavod.hududlar)).where(Zavod.id == zavod_id)
+        )).scalar_one_or_none()
+        if not zavod:
+            raise HTTPException(status_code=404, detail="Zavod topilmadi")
+        # Remove existing assignments
+        await session.execute(
+            delete(zavod_hududlar).where(zavod_hududlar.c.zavod_id == zavod_id)
+        )
+        # Add new ones
+        if body.hudud_ids:
+            hududlar = (await session.execute(
+                select(Region).where(Region.id.in_(body.hudud_ids))
+            )).scalars().all()
+            zavod.hududlar = hududlar
+        else:
+            zavod.hududlar = []
+        await session.commit()
+    return {"ok": True}
+
+
+class UpdateZavodRequest(BaseModel):
+    zavod_id: Optional[int]
+
+
+@router.patch("/tma-api/users/{user_id}/zavod")
+async def update_user_zavod(user_id: int, body: UpdateZavodRequest):
+    zavod_id = body.zavod_id
+    async with async_session_maker() as session:
+        user = (await session.execute(
+            select(User).where(User.id == user_id)
+        )).scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+        user.zavod_id = zavod_id
+        await session.commit()
+    return {"ok": True}

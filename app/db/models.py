@@ -4,8 +4,8 @@ from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import (
-    BigInteger, Boolean, DateTime, Enum as SAEnum,
-    ForeignKey, Integer, Numeric, String, Text,
+    BigInteger, Boolean, Column, DateTime, Enum as SAEnum,
+    ForeignKey, Integer, Numeric, String, Table, Text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -79,11 +79,24 @@ class MaterialRequestStatus(str, enum.Enum):
     DELIVERED = "delivered"
 
 
+# Many-to-many join table: Zavod ↔ Hudud (Region)
+zavod_hududlar = Table(
+    "zavod_hududlar",
+    Base.metadata,
+    Column("zavod_id", Integer, ForeignKey("zavods.id", ondelete="CASCADE"), primary_key=True),
+    Column("hudud_id", Integer, ForeignKey("regions.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
 class Region(Base):
+    """Hudud (location): viloyat + tuman + tafsif."""
     __tablename__ = "regions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    viloyat: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    tuman: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    tafsif: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -91,6 +104,9 @@ class Region(Base):
 
     users: Mapped[List["User"]] = relationship("User", back_populates="region")
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="region")
+    zavods: Mapped[List["Zavod"]] = relationship(
+        "Zavod", secondary=zavod_hududlar, back_populates="hududlar"
+    )
 
 
 class AsphaltType(Base):
@@ -108,6 +124,28 @@ class AsphaltType(Base):
     )
 
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="asphalt_type")
+
+
+class Zavod(Base):
+    """Zavod (factory/plant) entity that can serve multiple locations."""
+    
+    __tablename__ = "zavods"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    tafsif: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+    
+    users: Mapped[List["User"]] = relationship("User", back_populates="zavod")
+    hududlar: Mapped[List["Region"]] = relationship(
+        "Region", secondary=zavod_hududlar, back_populates="zavods"
+    )
 
 
 class User(Base):
@@ -128,6 +166,9 @@ class User(Base):
     region_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("regions.id"), nullable=True
     )
+    zavod_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("zavods.id"), nullable=True
+    )
     language: Mapped[Optional[str]] = mapped_column(
         String(10), nullable=True
     )
@@ -140,6 +181,7 @@ class User(Base):
     )
 
     region: Mapped[Optional["Region"]] = relationship("Region", back_populates="users")
+    zavod: Mapped[Optional["Zavod"]] = relationship("Zavod", back_populates="users")
     audit_logs: Mapped[List["AuditLog"]] = relationship(
         "AuditLog", back_populates="user", foreign_keys="AuditLog.user_id"
     )
