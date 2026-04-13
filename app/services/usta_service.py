@@ -14,8 +14,15 @@ class UstaService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_available_ustas(self) -> List[Tuple[User, int]]:
-        """Returns (usta, active_order_count) sorted by lowest workload first."""
+    async def get_available_ustas(
+        self,
+        region_id: Optional[int] = None,
+    ) -> List[Tuple[User, int]]:
+        """Returns (usta, active_order_count) sorted by lowest workload first.
+
+        If region_id is given, only returns ustas assigned to that region.
+        If no ustas found in the region, falls back to ustas with no region set.
+        """
         active_sq = (
             select(Order.usta_id, func.count(Order.id).label("cnt"))
             .where(Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.IN_WORK]))
@@ -23,7 +30,8 @@ class UstaService:
             .group_by(Order.usta_id)
             .subquery()
         )
-        rows = await self.session.execute(
+
+        base_query = (
             select(User, func.coalesce(active_sq.c.cnt, 0).label("active_cnt"))
             .outerjoin(active_sq, User.id == active_sq.c.usta_id)
             .where(User.role == UserRole.USTA)
@@ -36,6 +44,19 @@ class UstaService:
                 User.id.asc(),
             )
         )
+
+        if region_id:
+            region_query = base_query.where(User.region_id == region_id)
+            rows = await self.session.execute(region_query)
+            results = [(row[0], int(row[1])) for row in rows.all()]
+            if results:
+                return results
+            # fallback: ustas with no region assigned
+            fallback_query = base_query.where(User.region_id == None)
+            rows = await self.session.execute(fallback_query)
+            return [(row[0], int(row[1])) for row in rows.all()]
+
+        rows = await self.session.execute(base_query)
         return [(row[0], int(row[1])) for row in rows.all()]
 
     async def get_pending_usta_orders(self, master_id: int) -> List[Order]:

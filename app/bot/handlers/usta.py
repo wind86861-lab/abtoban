@@ -219,19 +219,30 @@ async def material_submit(callback: CallbackQuery, state: FSMContext, user: User
         notes=data.get("notes"),
     )
 
-    # Notify all admins
+    # Notify admins — region-filtered: SUPER_ADMIN always, ADMIN only if same region
     from app.bot.loader import bot
     from app.bot.i18n import get_lang as _gl
     from app.services.user_service import UserService
     user_svc = UserService(session)
     order_svc = OrderService(session)
     order = await order_svc.get_by_id_full(data["order_id"])
-    
-    admins = await user_svc.get_all(role=UserRole.ADMIN)
-    admins += await user_svc.get_all(role=UserRole.SUPER_ADMIN)
-    
+
     region_name = order.region.name if order and order.region else "—"
-    for admin in admins:
+    order_region_id = order.region_id if order else None
+
+    super_admins = await user_svc.get_all(role=UserRole.SUPER_ADMIN)
+    if order_region_id:
+        region_admins = await user_svc.get_by_role_and_region(UserRole.ADMIN, order_region_id)
+        region_admins += await user_svc.get_by_role_and_region(UserRole.HELPER_ADMIN, order_region_id)
+        if not region_admins:
+            # fallback: all admins if no one assigned to this region
+            region_admins = await user_svc.get_all(role=UserRole.ADMIN)
+    else:
+        region_admins = await user_svc.get_all(role=UserRole.ADMIN)
+
+    notify_targets = {u.id: u for u in super_admins + region_admins}.values()
+
+    for admin in notify_targets:
         try:
             al = _gl(admin)
             await bot.send_message(

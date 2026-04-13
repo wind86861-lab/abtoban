@@ -659,7 +659,7 @@ async def pick_order_for_usta(callback: CallbackQuery, session, lang: str) -> No
         return
 
     usta_svc = UstaService(session)
-    ustas_with_count = await usta_svc.get_available_ustas()
+    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id)
     if not ustas_with_count:
         await callback.message.edit_text(t("no_ustas_available", lang))
         await callback.answer()

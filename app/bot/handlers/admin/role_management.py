@@ -20,6 +20,9 @@ router = Router()
 
 PER_PAGE = 10
 
+# Roles that require a region/viloyat to be set
+REGION_ROLES = {UserRole.USTA, UserRole.MASTER, UserRole.ZAVOD, UserRole.SHOFER}
+
 
 @router.message(
     F.text == "👥 Foydalanuvchilar",
@@ -145,13 +148,40 @@ async def assign_role(
         changed_by_id=user.id,
     )
 
-    await state.clear()
-
     if not updated:
+        await state.clear()
         await callback.answer("❌ Foydalanuvchi topilmadi.", show_alert=True)
         return
 
     role_label = ROLE_LABELS.get(new_role, new_role.value)
+
+    # For field roles, chain directly into region selection
+    if new_role in REGION_ROLES:
+        regions = await user_service.get_regions()
+        if regions:
+            await state.update_data(
+                new_role=new_role.value,
+                role_label=role_label,
+            )
+            await state.set_state(AdminRoleStates.selecting_region)
+            builder = InlineKeyboardBuilder()
+            for region in regions:
+                builder.button(
+                    text=f"📍 {region.name}",
+                    callback_data=f"region:{region.id}",
+                )
+            builder.button(text="⏩ O'tkazib yuborish", callback_data="skip_region_assign")
+            builder.adjust(2)
+            await callback.message.edit_text(
+                f"✅ Rol o'zgartirildi: <b>{role_label}</b>\n\n"
+                f"📍 Endi <b>{updated.full_name or 'Foydalanuvchi'}</b>ning viloyatini tanlang:",
+                reply_markup=builder.as_markup(),
+            )
+            await callback.answer()
+            return
+
+    # No region needed (admin/klient roles) — finish immediately
+    await state.clear()
     await callback.message.edit_text(
         f"✅ Rol muvaffaqiyatli o'zgartirildi!\n\n"
         f"👤 <b>{updated.full_name or 'Nomsiz'}</b>\n"
@@ -160,7 +190,6 @@ async def assign_role(
     )
     await callback.answer()
 
-    # Notify the user about their role change
     from app.bot.loader import bot
     from app.bot.keyboards.menus import get_main_menu
     from app.bot.i18n import get_lang as _gl
@@ -215,6 +244,9 @@ async def assign_region(
         return
 
     region_id = int(callback.data.split(":")[1])
+    new_role_str = data.get("new_role")       # set only when chained from assign_role
+    role_label = data.get("role_label", "")
+
     user_svc = UserService(session)
     updated = await user_svc.update_region(
         user_id=target_user_id,
@@ -227,10 +259,88 @@ async def assign_region(
         await callback.answer("❌ Foydalanuvchi topilmadi.", show_alert=True)
         return
 
-    # Reload user with region relationship
     updated = await user_svc.get_by_id(target_user_id)
-    await _show_user_detail(callback, updated)
+    region_name = updated.region.name if updated and updated.region else "—"
+
+    if new_role_str:
+        # Came from role-assign chain → show combined success + notify user
+        new_role = UserRole(new_role_str)
+        await callback.message.edit_text(
+            f"✅ <b>Rol va viloyat belgilandi!</b>\n\n"
+            f"👤 <b>{updated.full_name or 'Nomsiz'}</b>\n"
+            f"👥 Rol: <b>{role_label}</b>\n"
+            f"📍 Viloyat: <b>{region_name}</b>",
+            reply_markup=get_back_keyboard("user_list:0"),
+        )
+        from app.bot.loader import bot
+        from app.bot.keyboards.menus import get_main_menu
+        from app.bot.i18n import get_lang as _gl
+        try:
+            target_lang = _gl(updated)
+            await bot.send_message(
+                updated.telegram_id,
+                f"🔔 <b>Rolingiz va viloyatingiz belgilandi!</b>\n\n"
+                f"👥 Rol: <b>{role_label}</b>\n"
+                f"📍 Viloyat: <b>{region_name}</b>\n\n"
+                f"Yangi menyu yuklandi.",
+                reply_markup=get_main_menu(new_role, target_lang),
+            )
+        except Exception:
+            pass
+    else:
+        # Standalone region change
+        await _show_user_detail(callback, updated)
+
     await callback.answer("✅ Viloyat o'zgartirildi!")
+
+
+@router.callback_query(F.data == "skip_region_assign", AdminRoleStates.selecting_region)
+async def skip_region_assign(
+    callback: CallbackQuery,
+    state: FSMContext,
+    session,
+) -> None:
+    data = await state.get_data()
+    target_user_id = data.get("target_user_id")
+    new_role_str = data.get("new_role")
+    role_label = data.get("role_label", "")
+    await state.clear()
+
+    if not target_user_id:
+        await callback.answer()
+        return
+
+    user_svc = UserService(session)
+    updated = await user_svc.get_by_id(target_user_id)
+    if not updated:
+        await callback.answer("❌ Foydalanuvchi topilmadi.", show_alert=True)
+        return
+
+    await callback.message.edit_text(
+        f"✅ Rol o'zgartirildi: <b>{role_label}</b>\n"
+        f"📍 Viloyat keyinroq o'rnatiladi.\n\n"
+        f"👤 <b>{updated.full_name or 'Nomsiz'}</b>",
+        reply_markup=get_back_keyboard("user_list:0"),
+    )
+
+    if new_role_str:
+        new_role = UserRole(new_role_str)
+        from app.bot.loader import bot
+        from app.bot.keyboards.menus import get_main_menu
+        from app.bot.i18n import get_lang as _gl
+        try:
+            target_lang = _gl(updated)
+            await bot.send_message(
+                updated.telegram_id,
+                f"🔔 <b>Rolingiz o'zgartirildi!</b>\n\n"
+                f"👥 Yangi rol: <b>{role_label}</b>\n\n"
+                f"Yangi menyu yuklandi.",
+                reply_markup=get_main_menu(new_role, target_lang),
+            )
+        except Exception:
+            pass
+
+    await callback.answer("⏩ Viloyat keyinroq o'rnatiladi")
 
 
 @router.callback_query(F.data.startswith("toggle_active:"), RoleFilter(*MANAGEMENT_ROLES))
