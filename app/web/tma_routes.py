@@ -332,7 +332,9 @@ class ZavodCreateRequest(BaseModel):
 async def list_zavodlar():
     async with async_session_maker() as session:
         result = await session.execute(
-            select(Zavod).options(selectinload(Zavod.hududlar)).order_by(Zavod.name)
+            select(Zavod)
+            .options(selectinload(Zavod.hududlar), selectinload(Zavod.users))
+            .order_by(Zavod.name)
         )
         zavodlar = result.scalars().all()
     return [
@@ -342,10 +344,10 @@ async def list_zavodlar():
             "tafsif": z.tafsif or "",
             "is_active": z.is_active,
             "hududlar": [
-                {"id": h.id, "name": h.name, "viloyat": h.viloyat, "tuman": h.tuman}
+                {"id": h.id, "name": h.name, "viloyat": h.viloyat or "", "tuman": h.tuman or ""}
                 for h in z.hududlar
             ],
-            "user_count": len(z.users) if z.users else 0,
+            "user_count": len(z.users),
         }
         for z in zavodlar
     ]

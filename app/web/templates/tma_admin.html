@@ -203,6 +203,10 @@ textarea.form-input{resize:none;min-height:80px}
       <label class="form-label">Tafsif (ixtiyoriy)</label>
       <textarea class="form-input" id="zm-tafsif" placeholder="Qo'shimcha ma'lumot..."></textarea>
     </div>
+    <div class="form-group">
+      <label class="form-label">📍 Hududlar (birdan ko'p tanlash mumkin)</label>
+      <div class="hudud-grid" id="zm-hudud-chips" style="max-height:220px;overflow-y:auto"></div>
+    </div>
     <button class="btn btn-primary btn-block" onclick="saveZavod()">💾 Saqlash</button>
   </div>
 </div>
@@ -495,12 +499,31 @@ async function loadZavodlar(){
   }catch(e){console.error(e);}
 }
 
-function openZavodForm(){
+async function openZavodForm(){
   S.editZavodId = null;
+  S.editZavodHududIds = [];
   document.getElementById('zm-title').textContent = 'Yangi zavod qo\'shish';
   document.getElementById('zm-name').value = '';
   document.getElementById('zm-tafsif').value = '';
+  if(!S.hududlar.length) S.hududlar = await fetch('/tma-api/hududlar').then(r=>r.json());
+  renderZavodFormChips();
   openModal('zavod-modal');
+}
+
+function renderZavodFormChips(){
+  document.getElementById('zm-hudud-chips').innerHTML = S.hududlar.length
+    ? S.hududlar.map(h=>`
+      <div class="hudud-chip${S.editZavodHududIds.includes(h.id)?' selected':''}" onclick="toggleFormHudud(${h.id},this)">
+        <strong>${h.viloyat}</strong><br><small>${h.tuman}</small>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:var(--tg-theme-hint-color,#999)">Avval hudud qo\'shing</div>';
+}
+
+function toggleFormHudud(id, el){
+  haptic();
+  const idx = S.editZavodHududIds.indexOf(id);
+  if(idx===-1){S.editZavodHududIds.push(id);el.classList.add('selected');}
+  else{S.editZavodHududIds.splice(idx,1);el.classList.remove('selected');}
 }
 
 async function saveZavod(){
@@ -511,8 +534,22 @@ async function saveZavod(){
   const url  = S.editZavodId ? `/tma-api/zavodlar/${S.editZavodId}` : '/tma-api/zavodlar';
   const method = S.editZavodId ? 'PATCH' : 'POST';
   const res = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(res.ok){notify('success');closeModal('zavod-modal');S.editZavodId=null;loadZavodlar();}
-  else{const d=await res.json().catch(()=>({}));alert(d.detail||'Xatolik yuz berdi');}
+  if(!res.ok){const d=await res.json().catch(()=>({}));alert(d.detail||'Xatolik yuz berdi');return;}
+  const data = await res.json();
+  const zavodId = S.editZavodId || data.id;
+  // Assign selected hududlar
+  if(S.editZavodHududIds.length > 0 || S.editZavodId){
+    await fetch(`/tma-api/zavodlar/${zavodId}/hududlar`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({hudud_ids: S.editZavodHududIds})
+    });
+  }
+  notify('success');
+  closeModal('zavod-modal');
+  S.editZavodId = null;
+  S.editZavodHududIds = [];
+  loadZavodlar();
 }
 
 function showZavodDetail(id){
@@ -558,12 +595,15 @@ async function saveZavodHududlar(zavodId){
   else notify('error');
 }
 
-function editZavodInfo(id){
+async function editZavodInfo(id){
   const z = S.zavodlar.find(x=>x.id===id); if(!z) return;
   S.editZavodId = id;
+  S.editZavodHududIds = z.hududlar.map(h=>h.id);
   document.getElementById('zm-title').textContent = 'Zavod tahrirlash';
   document.getElementById('zm-name').value = z.name;
   document.getElementById('zm-tafsif').value = z.tafsif||'';
+  if(!S.hududlar.length) S.hududlar = await fetch('/tma-api/hududlar').then(r=>r.json());
+  renderZavodFormChips();
   closeModal('zavod-detail-modal');
   openModal('zavod-modal');
 }
