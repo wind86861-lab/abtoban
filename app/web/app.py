@@ -6,6 +6,7 @@ from starlette.responses import RedirectResponse
 from app.config import settings
 from app.db.session import engine
 from app.web.auth import AdminAuth
+from app.web.tma_routes import router as tma_router
 from app.web.views import (
     AsphaltTypeAdmin,
     ExpenseAdmin,
@@ -16,6 +17,8 @@ from app.web.views import (
 )
 
 app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
+
+app.include_router(tma_router)
 
 
 @app.get("/")

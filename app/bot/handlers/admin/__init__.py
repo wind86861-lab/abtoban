@@ -26,14 +26,12 @@ router = Router()
 )
 async def web_panel_link(message: Message, user: User, lang: str) -> None:
     from aiogram.types import WebAppInfo
-    url = f"{config.WEB_URL}/admin"
+    url = config.WEB_URL
     builder = InlineKeyboardBuilder()
     builder.button(text="🌐 Admin Panel", web_app=WebAppInfo(url=url))
     await message.answer(
-        f"🌐 <b>Web Admin Panel</b>\n\n"
-        f"👤 Login: <code>{config.ADMIN_USERNAME}</code>\n"
-        f"🔑 Parol: <code>{config.ADMIN_PASSWORD}</code>\n\n"
-        f"ℹ️ Quyidagi tugmani bosing — Telegram ichida ochiladi.",
+        f"🌐 <b>Admin Panel</b>\n\n"
+        f"Quyidagi tugmani bosing — Telegram ichida ochiladi.",
         reply_markup=builder.as_markup(),
     )
 
