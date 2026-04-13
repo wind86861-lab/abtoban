@@ -7,681 +7,603 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--tg-theme-bg-color,#f5f5f5);color:var(--tg-theme-text-color,#000);padding-bottom:68px;font-size:14px}
-.container{padding:12px}
-/* TABS */
-.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--tg-theme-bg-color,#fff);border-top:1px solid rgba(0,0,0,.1);z-index:100;height:56px}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--tg-theme-hint-color,#999);border:none;background:none;cursor:pointer;padding:4px 2px;transition:color .2s}
-.tab.active{color:var(--tg-theme-button-color,#2481cc);font-weight:600}
-.tab-icon{font-size:18px}
-/* CARDS */
-.card{background:var(--tg-theme-secondary-bg-color,#fff);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;transition:transform .1s,opacity .1s}
-.card:active{transform:scale(.98);opacity:.85}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.card-title{font-weight:600;font-size:14px}
-.card-sub{font-size:12px;color:var(--tg-theme-hint-color,#888);line-height:1.5}
-/* BADGES */
-.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;color:#fff;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+:root{
+  --bg:var(--tg-theme-bg-color,#f0f2f5);
+  --card:var(--tg-theme-secondary-bg-color,#ffffff);
+  --text:var(--tg-theme-text-color,#1a1a2e);
+  --hint:var(--tg-theme-hint-color,#8a94a6);
+  --accent:var(--tg-theme-button-color,#2481cc);
+  --accent-fg:var(--tg-theme-button-text-color,#ffffff);
+  --border:rgba(0,0,0,.08);
+  --sidebar:220px;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+#loading{display:flex;align-items:center;justify-content:center;height:100vh;font-size:16px;color:var(--hint);gap:10px}
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;overflow-y:auto}
+.sidebar-logo{padding:20px;font-size:15px;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:13px 20px;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:13px;color:var(--hint);font-weight:500;transition:all .15s}
+.nav-btn:hover{background:rgba(36,129,204,.07);color:var(--text)}
+.nav-btn.active{background:rgba(36,129,204,.1);color:var(--accent);font-weight:700;border-left:3px solid var(--accent)}
+.nav-icon{font-size:17px;width:22px;text-align:center;flex-shrink:0}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:14px 24px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.content{flex:1;overflow-y:auto;padding:24px}
+.inner{max-width:1100px;margin:0 auto}
+
+/* ── TABS (mobile only) ── */
+.tabs{display:none}
+
+/* ── STATS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--card);border-radius:12px;padding:18px;text-align:center;border:1px solid var(--border)}
+.stat-val{font-size:30px;font-weight:800;color:var(--accent);margin:6px 0}
+.stat-lbl{font-size:11px;color:var(--hint);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+
+/* ── CARDS ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.card{background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border);cursor:pointer;transition:box-shadow .15s,transform .1s}
+.card:hover{box-shadow:0 4px 18px rgba(0,0,0,.1);transform:translateY(-1px)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.card-title{font-weight:700;font-size:14px}
+.card-sub{font-size:12px;color:var(--hint);line-height:1.6}
+
+/* ── SECTION ── */
+.sec-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.sec{font-size:15px;font-weight:700;color:var(--text)}
+.sub-sec{font-size:13px;font-weight:700;color:var(--text);margin:14px 0 8px}
+
+/* ── BADGES ── */
+.badge{display:inline-block;font-size:10px;padding:3px 9px;border-radius:8px;color:#fff;font-weight:700;letter-spacing:.3px;white-space:nowrap}
 .badge-new{background:#ef4444}.badge-confirmed{background:#22c55e}.badge-in_work{background:#f59e0b}.badge-done{background:#6b7280}.badge-cancelled{background:#374151}
-.badge-active{background:#22c55e}.badge-inactive{background:#9ca3af}
-/* STATS */
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.stat{background:var(--tg-theme-secondary-bg-color,#fff);border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.stat-val{font-size:26px;font-weight:700;margin:4px 0}
-.stat-lbl{font-size:11px;color:var(--tg-theme-hint-color,#999)}
-/* FILTER PILLS */
-.pills{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;-webkit-overflow-scrolling:touch}
-.pill{padding:5px 12px;border-radius:14px;border:1px solid var(--tg-theme-hint-color,#ddd);background:var(--tg-theme-secondary-bg-color,#fff);font-size:11px;white-space:nowrap;cursor:pointer;flex-shrink:0}
-.pill.active{background:var(--tg-theme-button-color,#2481cc);color:#fff;border-color:transparent}
-/* SECTION TITLE */
-.sec{font-size:15px;font-weight:600;margin-bottom:10px;margin-top:4px}
-/* EMPTY */
-.empty{text-align:center;padding:40px 20px;color:var(--tg-theme-hint-color,#999)}
-.empty-ico{font-size:44px;margin-bottom:10px}
-/* LOADING */
-#loading{text-align:center;padding:60px 20px;font-size:16px;color:var(--tg-theme-hint-color,#999)}
-/* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:200}
-.modal.show{display:flex}
-.modal-box{background:var(--tg-theme-bg-color,#fff);border-radius:18px 18px 0 0;padding:20px;max-height:88vh;overflow-y:auto;width:100%;animation:slideUp .2s ease}
-@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.modal-title{font-size:17px;font-weight:700}
-.close-btn{background:none;border:none;font-size:26px;cursor:pointer;color:var(--tg-theme-hint-color,#aaa);line-height:1}
-/* INFO ROWS */
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:13px}
-.info-row:last-child{border:none}
-.info-lbl{color:var(--tg-theme-hint-color,#888)}
-.info-val{font-weight:500;text-align:right;max-width:60%}
-/* BUTTONS */
-.btn{padding:11px 16px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.btn:active{transform:scale(.96)}
-.btn-primary{background:var(--tg-theme-button-color,#2481cc);color:#fff}
+.badge-active{background:#22c55e}.badge-inactive{background:#9ca3af}.badge-role{background:#8b5cf6}
+
+/* ── PILLS ── */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.pill{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;font-weight:500}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.active{background:var(--accent);color:#fff;border-color:transparent}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:60px 20px;color:var(--hint)}
+.empty-ico{font-size:48px;margin-bottom:12px}
+
+/* ── MODAL ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal-ov.show{display:flex}
+.modal-box{background:var(--card);border-radius:16px;padding:24px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;animation:popIn .18s ease}
+@keyframes popIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:18px;font-weight:700}
+.close-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.06);border:none;border-radius:8px;font-size:18px;cursor:pointer;color:var(--hint)}
+.close-btn:hover{background:rgba(0,0,0,.12)}
+
+/* ── INFO TABLE ── */
+.info-tbl{width:100%;border-collapse:collapse}
+.info-tbl td{padding:9px 4px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top}
+.info-tbl td:first-child{color:var(--hint);font-weight:600;width:35%;padding-right:12px}
+.info-tbl tr:last-child td{border:none}
+.divider{height:1px;background:var(--border);margin:18px 0}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 18px;border-radius:9px;border:none;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;white-space:nowrap}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:var(--accent-fg)}
 .btn-success{background:#22c55e;color:#fff}
 .btn-danger{background:#ef4444;color:#fff}
-.btn-ghost{background:var(--tg-theme-secondary-bg-color,#f0f0f0);color:var(--tg-theme-text-color,#000)}
+.btn-ghost{background:rgba(0,0,0,.06);color:var(--text)}
+.btn-ghost:hover{background:rgba(0,0,0,.1)}
+.btn-sm{padding:7px 12px;font-size:12px;border-radius:7px}
 .btn-block{width:100%;margin-top:8px}
-.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.btn-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
-/* FAB */
-.fab{position:fixed;right:16px;bottom:72px;width:52px;height:52px;border-radius:50%;background:var(--tg-theme-button-color,#2481cc);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;z-index:99}
-/* FORM */
-.form-group{margin-bottom:14px}
-.form-label{font-size:12px;color:var(--tg-theme-hint-color,#888);margin-bottom:5px;display:block;font-weight:500}
-.form-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);background:var(--tg-theme-secondary-bg-color,#f8f8f8);font-size:14px;color:var(--tg-theme-text-color,#000);outline:none;font-family:inherit}
-.form-input:focus{border-color:var(--tg-theme-button-color,#2481cc)}
-textarea.form-input{resize:none;min-height:80px}
-/* HUDUD SELECT GRID */
-.hudud-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;max-height:200px;overflow-y:auto}
-.hudud-chip{padding:7px 10px;border-radius:8px;border:1.5px solid rgba(0,0,0,.1);background:var(--tg-theme-secondary-bg-color,#f8f8f8);font-size:11px;cursor:pointer;text-align:center;transition:all .15s;line-height:1.3}
-.hudud-chip.selected{background:var(--tg-theme-button-color,#2481cc);color:#fff;border-color:transparent}
-/* ZAVOD LOCATIONS */
-.locations-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.loc-tag{background:rgba(36,129,204,.12);color:var(--tg-theme-button-color,#2481cc);padding:3px 8px;border-radius:8px;font-size:11px}
+.add-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.add-btn:hover{opacity:.88}
+
+/* ── FORM ── */
+.form-group{margin-bottom:16px}
+.form-label{font-size:11px;color:var(--hint);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.form-input{width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;color:var(--text);outline:none;font-family:inherit;transition:border-color .15s}
+.form-input:focus{border-color:var(--accent)}
+textarea.form-input{resize:vertical;min-height:80px}
+
+/* ── HUDUD CHIPS ── */
+.hudud-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:8px}
+.hchip{padding:9px 10px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;cursor:pointer;text-align:center;transition:all .15s;line-height:1.4;user-select:none}
+.hchip:hover{border-color:var(--accent)}
+.hchip.sel{background:var(--accent);color:#fff;border-color:transparent}
+
+/* ── LOC TAGS ── */
+.loc-tag{background:rgba(36,129,204,.1);color:var(--accent);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;display:inline-block}
+
+/* ── HIGHLIGHT BOX ── */
+.highlight-box{border:2px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:14px}
+.info-box{background:var(--bg);border-radius:10px;padding:14px;border:1.5px solid var(--border);margin-bottom:14px}
+
+/* ══════════════════════════════════════
+   MOBILE  (≤ 768px)
+══════════════════════════════════════ */
+@media(max-width:768px){
+  body{padding-bottom:60px}
+  #app{flex-direction:column;height:auto;min-height:100vh;overflow:visible}
+  .sidebar{display:none}
+  .topbar{padding:12px 16px;font-size:14px;position:sticky;top:0;z-index:50}
+  .content{padding:12px;overflow:visible}
+  .inner{max-width:100%}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .stat-val{font-size:26px}
+  .cards{grid-template-columns:1fr}
+  .hudud-grid{grid-template-columns:1fr 1fr}
+  .pills{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .pill{flex-shrink:0}
+  .sec-row{flex-direction:row}
+  .tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--border);z-index:100;height:56px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--hint);border:none;background:none;cursor:pointer;padding:4px 2px}
+  .tab.active{color:var(--accent);font-weight:700}
+  .tab-ico{font-size:18px}
+  .modal-ov{align-items:flex-end;padding:0}
+  .modal-box{border-radius:18px 18px 0 0;max-width:100%;animation:slideUp .2s ease}
+  @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .main{overflow:visible;flex:none}
+}
 </style>
 </head>
 <body>
+
 <div id="loading">⏳ Yuklanmoqda...</div>
 
 <div id="app" style="display:none">
 
-  <!-- DASHBOARD -->
-  <div id="tab-dashboard" class="tab-content">
-    <div class="container">
-      <div class="stat-grid">
-        <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Jami zakazlar</div></div>
-        <div class="stat"><div class="stat-val" id="s-new">0</div><div class="stat-lbl">Yangi</div></div>
-        <div class="stat"><div class="stat-val" id="s-work">0</div><div class="stat-lbl">Ishda</div></div>
-        <div class="stat"><div class="stat-val" id="s-users">0</div><div class="stat-lbl">Foydalanuvchilar</div></div>
+  <!-- SIDEBAR (desktop) -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">🏗 Avtoban Admin</div>
+    <button class="nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard',this)"><span class="nav-icon">📊</span>Dashboard</button>
+    <button class="nav-btn" data-tab="orders" onclick="switchTab('orders',this)"><span class="nav-icon">📋</span>Zakazlar</button>
+    <button class="nav-btn" data-tab="users" onclick="switchTab('users',this)"><span class="nav-icon">👥</span>Foydalanuvchilar</button>
+    <button class="nav-btn" data-tab="hududlar" onclick="switchTab('hududlar',this)"><span class="nav-icon">📍</span>Hududlar</button>
+    <button class="nav-btn" data-tab="zavodlar" onclick="switchTab('zavodlar',this)"><span class="nav-icon">🏭</span>Zavodlar</button>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <span id="topbar-title">📊 Dashboard</span>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="content tab-content" id="tab-dashboard">
+      <div class="inner">
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-val" id="s-total">—</div><div class="stat-lbl">Jami zakazlar</div></div>
+          <div class="stat"><div class="stat-val" id="s-new">—</div><div class="stat-lbl">Yangi</div></div>
+          <div class="stat"><div class="stat-val" id="s-work">—</div><div class="stat-lbl">Ishda</div></div>
+          <div class="stat"><div class="stat-val" id="s-users">—</div><div class="stat-lbl">Foydalanuvchilar</div></div>
+        </div>
+        <div class="sec-row"><div class="sec">📋 So'nggi zakazlar</div></div>
+        <div class="cards" id="d-orders"></div>
       </div>
-      <div class="sec">📋 So'nggi zakazlar</div>
-      <div id="d-orders"></div>
     </div>
-  </div>
 
-  <!-- ORDERS -->
-  <div id="tab-orders" class="tab-content" style="display:none">
-    <div class="container">
-      <div class="pills" id="order-pills"></div>
-      <div id="orders-list"></div>
+    <!-- ORDERS -->
+    <div class="content tab-content" id="tab-orders" style="display:none">
+      <div class="inner">
+        <div class="sec-row"><div class="sec">📋 Zakazlar</div></div>
+        <div class="pills" id="order-pills"></div>
+        <div class="cards" id="orders-list"></div>
+      </div>
     </div>
-  </div>
 
-  <!-- USERS -->
-  <div id="tab-users" class="tab-content" style="display:none">
-    <div class="container">
-      <div class="pills" id="user-pills"></div>
-      <div id="users-list"></div>
+    <!-- USERS -->
+    <div class="content tab-content" id="tab-users" style="display:none">
+      <div class="inner">
+        <div class="sec-row"><div class="sec">👥 Foydalanuvchilar</div></div>
+        <div class="pills" id="user-pills"></div>
+        <div class="cards" id="users-list"></div>
+      </div>
     </div>
-  </div>
 
-  <!-- HUDUDLAR -->
-  <div id="tab-hududlar" class="tab-content" style="display:none">
-    <div class="container">
-      <div class="sec">📍 Hududlar (Joylashuvlar)</div>
-      <div id="hududlar-list"></div>
+    <!-- HUDUDLAR -->
+    <div class="content tab-content" id="tab-hududlar" style="display:none">
+      <div class="inner">
+        <div class="sec-row">
+          <div class="sec">📍 Hududlar (Joylashuvlar)</div>
+          <button class="add-btn" onclick="openHududForm()">＋ Yangi hudud</button>
+        </div>
+        <div class="cards" id="hududlar-list"></div>
+      </div>
     </div>
-    <button class="fab" onclick="openHududForm()">＋</button>
-  </div>
 
-  <!-- ZAVODLAR -->
-  <div id="tab-zavodlar" class="tab-content" style="display:none">
-    <div class="container">
-      <div class="sec">🏭 Zavodlar</div>
-      <div id="zavodlar-list"></div>
+    <!-- ZAVODLAR -->
+    <div class="content tab-content" id="tab-zavodlar" style="display:none">
+      <div class="inner">
+        <div class="sec-row">
+          <div class="sec">🏭 Zavodlar</div>
+          <button class="add-btn" onclick="openZavodForm()">＋ Yangi zavod</button>
+        </div>
+        <div class="cards" id="zavodlar-list"></div>
+      </div>
     </div>
-    <button class="fab" onclick="openZavodForm()">＋</button>
-  </div>
 
-  <!-- BOTTOM TABS -->
+  </div><!-- /main -->
+
+  <!-- MOBILE BOTTOM TABS -->
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('dashboard',this)"><span class="tab-icon">📊</span>Asosiy</button>
-    <button class="tab" onclick="switchTab('orders',this)"><span class="tab-icon">📋</span>Zakazlar</button>
-    <button class="tab" onclick="switchTab('users',this)"><span class="tab-icon">👥</span>Users</button>
-    <button class="tab" onclick="switchTab('hududlar',this)"><span class="tab-icon">📍</span>Hudud</button>
-    <button class="tab" onclick="switchTab('zavodlar',this)"><span class="tab-icon">🏭</span>Zavod</button>
+    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard',this)"><span class="tab-ico">📊</span>Asosiy</button>
+    <button class="tab" data-tab="orders" onclick="switchTab('orders',this)"><span class="tab-ico">📋</span>Zakazlar</button>
+    <button class="tab" data-tab="users" onclick="switchTab('users',this)"><span class="tab-ico">👥</span>Users</button>
+    <button class="tab" data-tab="hududlar" onclick="switchTab('hududlar',this)"><span class="tab-ico">📍</span>Hudud</button>
+    <button class="tab" data-tab="zavodlar" onclick="switchTab('zavodlar',this)"><span class="tab-ico">🏭</span>Zavod</button>
   </div>
-</div>
+
+</div><!-- /app -->
 
 <!-- ORDER MODAL -->
-<div class="modal" id="order-modal" onclick="bgClose(event,'order-modal')">
+<div class="modal-ov" id="order-modal" onclick="bgClose(event,'order-modal')">
   <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title" id="om-title"></div>
-      <button class="close-btn" onclick="closeModal('order-modal')">×</button>
-    </div>
+    <div class="modal-head"><div class="modal-title" id="om-title"></div><button class="close-btn" onclick="closeModal('order-modal')">✕</button></div>
     <div id="om-body"></div>
   </div>
 </div>
 
 <!-- USER MODAL -->
-<div class="modal" id="user-modal" onclick="bgClose(event,'user-modal')">
+<div class="modal-ov" id="user-modal" onclick="bgClose(event,'user-modal')">
   <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title" id="um-title"></div>
-      <button class="close-btn" onclick="closeModal('user-modal')">×</button>
-    </div>
+    <div class="modal-head"><div class="modal-title" id="um-title"></div><button class="close-btn" onclick="closeModal('user-modal')">✕</button></div>
     <div id="um-body"></div>
   </div>
 </div>
 
-<!-- HUDUD FORM MODAL -->
-<div class="modal" id="hudud-modal" onclick="bgClose(event,'hudud-modal')">
+<!-- HUDUD FORM -->
+<div class="modal-ov" id="hudud-modal" onclick="bgClose(event,'hudud-modal')">
   <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title" id="hm-title">Yangi hudud</div>
-      <button class="close-btn" onclick="closeModal('hudud-modal')">×</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Viloyat nomi *</label>
-      <input class="form-input" id="hm-viloyat" placeholder="Masalan: Toshkent" />
-    </div>
-    <div class="form-group">
-      <label class="form-label">Tuman nomi *</label>
-      <input class="form-input" id="hm-tuman" placeholder="Masalan: Yunusobod tumani" />
-    </div>
-    <div class="form-group">
-      <label class="form-label">Tafsif (ixtiyoriy)</label>
-      <textarea class="form-input" id="hm-tafsif" placeholder="Qo'shimcha ma'lumot..."></textarea>
-    </div>
+    <div class="modal-head"><div class="modal-title" id="hm-title">Yangi hudud</div><button class="close-btn" onclick="closeModal('hudud-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Viloyat nomi *</label><input class="form-input" id="hm-viloyat" placeholder="Masalan: Toshkent viloyati"/></div>
+    <div class="form-group"><label class="form-label">Tuman nomi *</label><input class="form-input" id="hm-tuman" placeholder="Masalan: Yunusobod tumani"/></div>
+    <div class="form-group"><label class="form-label">Tafsif</label><textarea class="form-input" id="hm-tafsif" placeholder="Qo'shimcha ma'lumot..."></textarea></div>
     <button class="btn btn-primary btn-block" onclick="saveHudud()">💾 Saqlash</button>
   </div>
 </div>
 
-<!-- ZAVOD FORM MODAL -->
-<div class="modal" id="zavod-modal" onclick="bgClose(event,'zavod-modal')">
+<!-- ZAVOD FORM -->
+<div class="modal-ov" id="zavod-modal" onclick="bgClose(event,'zavod-modal')">
   <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title" id="zm-title">Yangi zavod</div>
-      <button class="close-btn" onclick="closeModal('zavod-modal')">×</button>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Zavod nomi *</label>
-      <input class="form-input" id="zm-name" placeholder="Masalan: Toshkent Asfalt Zavodi" />
-    </div>
-    <div class="form-group">
-      <label class="form-label">Tafsif (ixtiyoriy)</label>
-      <textarea class="form-input" id="zm-tafsif" placeholder="Qo'shimcha ma'lumot..."></textarea>
-    </div>
+    <div class="modal-head"><div class="modal-title" id="zm-title">Yangi zavod</div><button class="close-btn" onclick="closeModal('zavod-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Zavod nomi *</label><input class="form-input" id="zm-name" placeholder="Masalan: Toshkent Asfalt Zavodi"/></div>
+    <div class="form-group"><label class="form-label">Tafsif</label><textarea class="form-input" id="zm-tafsif" placeholder="Qo'shimcha ma'lumot..."></textarea></div>
     <div class="form-group">
       <label class="form-label">📍 Hududlar (birdan ko'p tanlash mumkin)</label>
-      <div class="hudud-grid" id="zm-hudud-chips" style="max-height:220px;overflow-y:auto"></div>
+      <div class="hudud-grid" id="zm-hudud-chips"></div>
     </div>
     <button class="btn btn-primary btn-block" onclick="saveZavod()">💾 Saqlash</button>
   </div>
 </div>
 
-<!-- ZAVOD DETAIL MODAL -->
-<div class="modal" id="zavod-detail-modal" onclick="bgClose(event,'zavod-detail-modal')">
+<!-- ZAVOD DETAIL -->
+<div class="modal-ov" id="zavod-det-modal" onclick="bgClose(event,'zavod-det-modal')">
   <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title" id="zdm-title"></div>
-      <button class="close-btn" onclick="closeModal('zavod-detail-modal')">×</button>
-    </div>
+    <div class="modal-head"><div class="modal-title" id="zdm-title"></div><button class="close-btn" onclick="closeModal('zavod-det-modal')">✕</button></div>
     <div id="zdm-body"></div>
   </div>
 </div>
 
 <script>
-const tg = window.Telegram?.WebApp;
+const tg=window.Telegram?.WebApp;
 if(tg){tg.ready();tg.expand();}
 
-const S = {
-  tab:'dashboard', orderFilter:'', userFilter:'',
-  orders:[], users:[], hududlar:[], zavodlar:[], roles:[],
-  editHududId:null, editZavodId:null, editZavodHududIds:[], editUserHududIds:[],
+const S={
+  tab:'dashboard',orderFilter:'',userFilter:'',
+  orders:[],users:[],hududlar:[],zavodlar:[],roles:[],
+  editHududId:null,editZavodId:null,
+  editZavodHIds:[],editUserHIds:[],
 };
+const TITLES={dashboard:'📊 Dashboard',orders:'📋 Zakazlar',users:'👥 Foydalanuvchilar',hududlar:'📍 Hududlar',zavodlar:'🏭 Zavodlar'};
 
 function fmt(n){if(!n)return'0';return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
+function esc(s){return(s||'').replace(/'/g,"\\'");}
+function empty(i,t){return`<div class="empty"><div class="empty-ico">${i}</div>${t}</div>`;}
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
-function bgClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+function bgClose(e,id){if(e.target.id===id)closeModal(id);}
 function haptic(t='light'){tg?.HapticFeedback?.impactOccurred(t);}
 function notify(t='success'){tg?.HapticFeedback?.notificationOccurred(t);}
 
-function switchTab(tab, btn){
-  S.tab = tab;
+function switchTab(tab,btn){
+  S.tab=tab;
   document.querySelectorAll('.tab-content').forEach(el=>el.style.display='none');
-  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('[data-tab]').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+tab).style.display='block';
-  btn.classList.add('active');
-  if(tab==='dashboard') loadDashboard();
-  else if(tab==='orders') loadOrders();
-  else if(tab==='users') loadUsers();
-  else if(tab==='hududlar') loadHududlar();
-  else if(tab==='zavodlar') loadZavodlar();
+  document.querySelectorAll(`[data-tab="${tab}"]`).forEach(el=>el.classList.add('active'));
+  document.getElementById('topbar-title').textContent=TITLES[tab]||tab;
+  if(tab==='dashboard')loadDashboard();
+  else if(tab==='orders')loadOrders();
+  else if(tab==='users')loadUsers();
+  else if(tab==='hududlar')loadHududlar();
+  else if(tab==='zavodlar')loadZavodlar();
 }
 
-/* ═══════════════ DASHBOARD ═══════════════ */
+/* ══ DASHBOARD ══ */
 async function loadDashboard(){
   try{
-    const [stats, orders] = await Promise.all([
+    const[stats,orders]=await Promise.all([
       fetch('/tma-api/stats').then(r=>r.json()),
-      fetch('/tma-api/orders?limit=5').then(r=>r.json()),
+      fetch('/tma-api/orders?limit=8').then(r=>r.json()),
     ]);
-    document.getElementById('s-total').textContent = stats.total_orders;
-    document.getElementById('s-new').textContent   = stats.new_orders;
-    document.getElementById('s-work').textContent  = stats.in_work;
-    document.getElementById('s-users').textContent = stats.total_users;
-    S.orders = orders;
-    document.getElementById('d-orders').innerHTML = orders.length
-      ? orders.map(o=>orderCard(o)).join('')
-      : empty('📋','Zakazlar yo\'q');
+    document.getElementById('s-total').textContent=stats.total_orders;
+    document.getElementById('s-new').textContent=stats.new_orders;
+    document.getElementById('s-work').textContent=stats.in_work;
+    document.getElementById('s-users').textContent=stats.total_users;
+    S.orders=orders;
+    document.getElementById('d-orders').innerHTML=orders.length?orders.map(orderCard).join(''):empty('📋','Zakazlar yo\'q');
   }catch(e){console.error(e);}
 }
 
-/* ═══════════════ ORDERS ═══════════════ */
+/* ══ ORDERS ══ */
+const STATUS_LABELS={new:'Yangi',confirmed:'Tasdiqlangan',in_work:'Ishda',done:'Tugagan',cancelled:'Bekor'};
+const STATUS_FULL={new:'🆕 Yangi',confirmed:'✅ Tasdiqlangan',in_work:'🔧 Ishda',done:'🏁 Tugagan',cancelled:'❌ Bekor'};
+
 function orderCard(o){
-  return `<div class="card" onclick="showOrder(${o.id})">
-    <div class="card-header">
-      <div class="card-title">${o.number}</div>
-      <span class="badge badge-${o.status}">${o.status}</span>
-    </div>
+  return`<div class="card" onclick="showOrder(${o.id})">
+    <div class="card-head"><div class="card-title">${o.number}</div><span class="badge badge-${o.status}">${STATUS_LABELS[o.status]||o.status}</span></div>
     <div class="card-sub">👤 ${o.client}${o.phone?' · 📱'+o.phone:''}<br>📍 ${o.address||'—'}<br>📐 ${o.area||'—'} m² · 💰 ${fmt(o.total)} so'm</div>
   </div>`;
 }
 
 async function loadOrders(){
-  const filters=[
-    {v:'',l:'Barchasi'},{v:'new',l:'🆕 Yangi'},{v:'confirmed',l:'✅ Tasdiqlangan'},
-    {v:'in_work',l:'🔧 Ishda'},{v:'done',l:'🏁 Tugagan'},
-  ];
-  document.getElementById('order-pills').innerHTML = filters.map(f=>
-    `<button class="pill${S.orderFilter===f.v?' active':''}" onclick="filterOrders('${f.v}')">${f.l}</button>`
-  ).join('');
+  const fs=[{v:'',l:'Barchasi'},{v:'new',l:'🆕 Yangi'},{v:'confirmed',l:'✅ Tasdiqlangan'},{v:'in_work',l:'🔧 Ishda'},{v:'done',l:'🏁 Tugagan'}];
+  document.getElementById('order-pills').innerHTML=fs.map(f=>`<button class="pill${S.orderFilter===f.v?' active':''}" onclick="filterOrders('${f.v}')">${f.l}</button>`).join('');
   try{
-    const url = '/tma-api/orders?limit=100'+(S.orderFilter?'&status='+S.orderFilter:'');
-    S.orders = await fetch(url).then(r=>r.json());
-    document.getElementById('orders-list').innerHTML = S.orders.length
-      ? S.orders.map(o=>orderCard(o)).join('')
-      : empty('📋','Zakazlar topilmadi');
+    S.orders=await fetch('/tma-api/orders?limit=100'+(S.orderFilter?'&status='+S.orderFilter:'')).then(r=>r.json());
+    document.getElementById('orders-list').innerHTML=S.orders.length?S.orders.map(orderCard).join(''):empty('📋','Zakazlar topilmadi');
   }catch(e){console.error(e);}
 }
-
 function filterOrders(v){S.orderFilter=v;loadOrders();}
 
 function showOrder(id){
-  const o = S.orders.find(x=>x.id===id); if(!o) return;
-  document.getElementById('om-title').textContent = o.number;
-  const statuses = ['new','confirmed','in_work','done','cancelled'];
-  document.getElementById('om-body').innerHTML = `
-    <div class="info-row"><span class="info-lbl">Mijoz</span><span class="info-val">${o.client}</span></div>
-    <div class="info-row"><span class="info-lbl">Telefon</span><span class="info-val">${o.phone||'—'}</span></div>
-    <div class="info-row"><span class="info-lbl">Manzil</span><span class="info-val">${o.address||'—'}</span></div>
-    <div class="info-row"><span class="info-lbl">Maydon</span><span class="info-val">${o.area||'—'} m²</span></div>
-    <div class="info-row"><span class="info-lbl">Jami</span><span class="info-val">${fmt(o.total)} so'm</span></div>
-    <div class="info-row"><span class="info-lbl">Status</span><span class="info-val"><span class="badge badge-${o.status}">${o.status}</span></span></div>
-    <div class="sec" style="margin-top:14px">Status o'zgartirish</div>
-    <div class="btn-grid">
-      ${statuses.map(s=>`<button class="btn ${o.status===s?'btn-primary':'btn-ghost'}" onclick="setOrderStatus(${id},'${s}')">${statusLabel(s)}</button>`).join('')}
-    </div>
-  `;
+  const o=S.orders.find(x=>x.id===id);if(!o)return;
+  document.getElementById('om-title').textContent=o.number;
+  document.getElementById('om-body').innerHTML=`
+    <table class="info-tbl">
+      <tr><td>Mijoz</td><td>${o.client}</td></tr>
+      <tr><td>Telefon</td><td>${o.phone||'—'}</td></tr>
+      <tr><td>Manzil</td><td>${o.address||'—'}</td></tr>
+      <tr><td>Maydon</td><td>${o.area||'—'} m²</td></tr>
+      <tr><td>Jami narx</td><td><strong>${fmt(o.total)} so'm</strong></td></tr>
+      <tr><td>Status</td><td><span class="badge badge-${o.status}">${STATUS_FULL[o.status]||o.status}</span></td></tr>
+    </table>
+    <div class="divider"></div>
+    <div class="sub-sec">Status o'zgartirish</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${['new','confirmed','in_work','done','cancelled'].map(s=>`<button class="btn ${o.status===s?'btn-primary':'btn-ghost'} btn-sm" onclick="setOrderStatus(${id},'${s}')">${STATUS_FULL[s]}</button>`).join('')}
+    </div>`;
   openModal('order-modal');
 }
-
-function statusLabel(s){
-  return {new:'🆕 Yangi',confirmed:'✅ Tasdiqlangan',in_work:'🔧 Ishda',done:'🏁 Tugagan',cancelled:'❌ Bekor'}[s]||s;
+async function setOrderStatus(id,status){
+  const r=await fetch(`/tma-api/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+  if(r.ok){notify();closeModal('order-modal');loadOrders();if(S.tab==='dashboard')loadDashboard();}else notify('error');
 }
 
-async function setOrderStatus(id, status){
-  const res = await fetch(`/tma-api/orders/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
-  if(res.ok){notify('success');closeModal('order-modal');loadOrders();if(S.tab==='dashboard')loadDashboard();}
-  else notify('error');
-}
-
-/* ═══════════════ USERS ═══════════════ */
+/* ══ USERS ══ */
 function userCard(u){
-  return `<div class="card" onclick="showUser(${u.id})">
-    <div class="card-header">
-      <div class="card-title">${u.name}</div>
-      <span>${u.is_active?'🟢':'🔴'}</span>
+  const hs=u.hududlar||[];
+  return`<div class="card" onclick="showUser(${u.id})">
+    <div class="card-head">
+      <div><div class="card-title">${u.name}</div><div style="font-size:11px;color:var(--hint);margin-top:2px">${u.role_label}</div></div>
+      <div style="display:flex;align-items:center;gap:6px">${u.zavod_name?`<span class="badge badge-role">🏭 ${u.zavod_name}</span>`:''}${u.is_active?'🟢':'🔴'}</div>
     </div>
-    <div class="card-sub">👥 ${u.role_label}${u.region?' · 📍'+u.region:''}<br>📱 ${u.phone||'—'}${u.zavod_name?' · 🏭'+u.zavod_name:''}</div>
+    <div class="card-sub">
+      📱 ${u.phone||'—'}<br>
+      📍 ${hs.length?hs.map(h=>h.viloyat).join(', '):(u.region||'Hudud biriktirilmagan')}${hs.length>1?` <span class="badge badge-active" style="font-size:9px">${hs.length} hudud</span>`:''}
+    </div>
   </div>`;
 }
 
 async function loadUsers(){
-  const filters=[
-    {v:'',l:'Barchasi'},{v:'master',l:'Master'},{v:'usta',l:'Usta'},
-    {v:'zavod',l:'Zavod'},{v:'admin',l:'Admin'},{v:'shofer',l:'Shofer'},
-  ];
-  document.getElementById('user-pills').innerHTML = filters.map(f=>
-    `<button class="pill${S.userFilter===f.v?' active':''}" onclick="filterUsers('${f.v}')">${f.l}</button>`
-  ).join('');
+  const fs=[{v:'',l:'Barchasi'},{v:'master',l:'Master'},{v:'usta',l:'Usta'},{v:'zavod',l:'Zavod'},{v:'shofer',l:'Shofer'},{v:'admin',l:'Admin'}];
+  document.getElementById('user-pills').innerHTML=fs.map(f=>`<button class="pill${S.userFilter===f.v?' active':''}" onclick="filterUsers('${f.v}')">${f.l}</button>`).join('');
   try{
-    const url='/tma-api/users?limit=100'+(S.userFilter?'&role='+S.userFilter:'');
-    S.users = await fetch(url).then(r=>r.json());
-    document.getElementById('users-list').innerHTML = S.users.length
-      ? S.users.map(u=>userCard(u)).join('')
-      : empty('👥','Foydalanuvchilar topilmadi');
+    S.users=await fetch('/tma-api/users?limit=100'+(S.userFilter?'&role='+S.userFilter:'')).then(r=>r.json());
+    document.getElementById('users-list').innerHTML=S.users.length?S.users.map(userCard).join(''):empty('👥','Foydalanuvchilar topilmadi');
   }catch(e){console.error(e);}
 }
-
 function filterUsers(v){S.userFilter=v;loadUsers();}
 
 async function showUser(id){
-  const u = S.users.find(x=>x.id===id); if(!u) return;
-  if(!S.roles.length) S.roles = await fetch('/tma-api/roles').then(r=>r.json());
-  if(!S.hududlar.length) S.hududlar = await fetch('/tma-api/hududlar').then(r=>r.json());
-  if(!S.zavodlar.length) S.zavodlar = await fetch('/tma-api/zavodlar').then(r=>r.json());
-
-  // Track selected hududlar for this user
-  S.editUserHududIds = (u.hududlar || []).map(h=>h.id);
-
-  document.getElementById('um-title').textContent = u.name;
+  const u=S.users.find(x=>x.id===id);if(!u)return;
+  if(!S.roles.length)S.roles=await fetch('/tma-api/roles').then(r=>r.json());
+  if(!S.hududlar.length)S.hududlar=await fetch('/tma-api/hududlar').then(r=>r.json());
+  if(!S.zavodlar.length)S.zavodlar=await fetch('/tma-api/zavodlar').then(r=>r.json());
+  S.editUserHIds=(u.hududlar||[]).map(h=>h.id);
+  document.getElementById('um-title').textContent=u.name;
   renderUserModal(u);
   openModal('user-modal');
 }
 
 function renderUserModal(u){
-  const id = u.id;
-  const roleButtons = S.roles.map(r=>
-    `<button class="btn ${u.role===r.value?'btn-primary':'btn-ghost'} btn-sm" onclick="setUserRole(${id},'${r.value}')">${r.label}</button>`
-  ).join('');
-
-  // Multi-select hudud chips
-  const hududChips = S.hududlar.map(h=>{
-    const sel = S.editUserHududIds.includes(h.id);
-    return `<div class="hudud-chip${sel?' selected':''}" onclick="toggleUserHudud(${h.id},this)">
-      <strong>${h.viloyat}</strong><br><small>${h.tuman}</small>
-    </div>`;
-  }).join('');
-
-  // Zavod section — always visible, highlighted for ZAVOD/SHOFER roles
-  const zavodHighlight = (u.role==='zavod'||u.role==='shofer') ? 'border:2px solid var(--tg-theme-button-color,#2481cc);border-radius:10px;padding:10px;' : '';
-  const zavodLabel = u.role==='shofer' ? '🚛 Haydovchi zavodi *' : u.role==='zavod' ? '🏭 Zavod (majburiy) *' : '🏭 Zavod';
-  const zavodButtons = [
+  const id=u.id;
+  const isZS=u.role==='zavod'||u.role==='shofer';
+  const roleBtns=S.roles.map(r=>`<button class="btn ${u.role===r.value?'btn-primary':'btn-ghost'} btn-sm" onclick="setUserRole(${id},'${r.value}')">${r.label}</button>`).join('');
+  const zavodBtns=[
     `<button class="pill${!u.zavod_id?' active':''}" onclick="setUserZavod(${id},null)">— Yo'q</button>`,
     ...S.zavodlar.map(z=>`<button class="pill${u.zavod_id===z.id?' active':''}" onclick="setUserZavod(${id},${z.id})">${z.name}</button>`)
   ].join('');
+  const hChips=S.hududlar.map(h=>`<div class="hchip${S.editUserHIds.includes(h.id)?' sel':''}" onclick="toggleUH(${h.id},this)"><strong>${h.viloyat}</strong><br><small>${h.tuman}</small></div>`).join('');
 
-  document.getElementById('um-body').innerHTML = `
-    <div class="info-row"><span class="info-lbl">Telegram ID</span><span class="info-val">${u.telegram_id}</span></div>
-    <div class="info-row"><span class="info-lbl">Telefon</span><span class="info-val">${u.phone||'—'}</span></div>
-    <div class="info-row"><span class="info-lbl">Rol</span><span class="info-val">${u.role_label}</span></div>
-    <div class="info-row"><span class="info-lbl">Asosiy hudud</span><span class="info-val">${u.region||'—'}</span></div>
-    <div class="info-row"><span class="info-lbl">Zavod</span><span class="info-val">${u.zavod_name||'—'}</span></div>
-    <div class="info-row"><span class="info-lbl">Holat</span><span class="info-val">${u.is_active?'🟢 Faol':'🔴 Bloklangan'}</span></div>
+  document.getElementById('um-body').innerHTML=`
+    <table class="info-tbl">
+      <tr><td>Telegram ID</td><td><code>${u.telegram_id}</code></td></tr>
+      <tr><td>Telefon</td><td>${u.phone||'—'}</td></tr>
+      <tr><td>Rol</td><td><span class="badge badge-role">${u.role_label}</span></td></tr>
+      <tr><td>Zavod</td><td>${u.zavod_name||'—'}</td></tr>
+      <tr><td>Holat</td><td>${u.is_active?'🟢 Faol':'🔴 Bloklangan'}</td></tr>
+    </table>
+    <div class="divider"></div>
 
-    <div class="sec" style="margin-top:16px">👤 Rolni o'zgartirish</div>
-    <div class="btn-grid">${roleButtons}</div>
+    <div class="sub-sec">👤 Rolni o'zgartirish</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">${roleBtns}</div>
 
-    <div style="margin-top:16px;${zavodHighlight}">
-      <div class="sec">${zavodLabel}</div>
-      ${(u.role==='zavod'||u.role==='shofer')?'<p style="font-size:11px;color:var(--tg-theme-hint-color,#888);margin-bottom:8px">Bu rol uchun zavod biriktirish majburiy</p>':''}
-      <div class="pills" style="flex-wrap:wrap">${zavodButtons}</div>
+    <div class="${isZS?'highlight-box':'info-box'}">
+      <div class="sub-sec" style="margin-top:0">${u.role==='shofer'?'🚛 Haydovchi zavodi (majburiy)':u.role==='zavod'?'🏭 Zavod (majburiy)':'🏭 Zavod'}</div>
+      ${isZS?'<p style="font-size:11px;color:var(--hint);margin-bottom:10px">⚠️ Bu rol uchun zavod biriktirish majburiy</p>':''}
+      <div class="pills">${zavodBtns}</div>
     </div>
 
-    <div style="margin-top:16px;border:1.5px solid rgba(0,0,0,.08);border-radius:10px;padding:10px">
-      <div class="sec">📍 Hududlar (birdan ko'p tanlash mumkin)</div>
-      <p style="font-size:11px;color:var(--tg-theme-hint-color,#888);margin-bottom:8px">Tanlangan: <strong id="um-h-count">${S.editUserHududIds.length}</strong> ta</p>
-      <div class="hudud-grid" id="um-hudud-chips">${hududChips}</div>
-      <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="saveUserHududlar(${id})">💾 Hududlarni saqlash</button>
+    <div class="info-box">
+      <div class="sub-sec" style="margin-top:0">📍 Hududlar &nbsp;<span style="font-size:11px;font-weight:400;color:var(--hint)">(birdan ko'p tanlash mumkin)</span></div>
+      <p style="font-size:12px;color:var(--hint);margin-bottom:10px">Tanlangan: <strong id="uh-count">${S.editUserHIds.length}</strong> ta</p>
+      <div class="hudud-grid">${hChips}</div>
+      <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="saveUH(${id})">💾 Hududlarni saqlash</button>
     </div>
 
-    <button class="btn ${u.is_active?'btn-danger':'btn-success'} btn-block" style="margin-top:14px" onclick="toggleUser(${id})">${u.is_active?'🔴 Bloklash':'🟢 Faollashtirish'}</button>
-  `;
+    <button class="btn ${u.is_active?'btn-danger':'btn-success'} btn-block" onclick="toggleUser(${id})">${u.is_active?'🔴 Bloklash':'🟢 Faollashtirish'}</button>`;
 }
 
-function toggleUserHudud(hududId, el){
+function toggleUH(hId,el){
   haptic();
-  const idx = S.editUserHududIds.indexOf(hududId);
-  if(idx===-1){ S.editUserHududIds.push(hududId); el.classList.add('selected'); }
-  else{ S.editUserHududIds.splice(idx,1); el.classList.remove('selected'); }
-  const cnt = document.getElementById('um-h-count');
-  if(cnt) cnt.textContent = S.editUserHududIds.length;
+  const i=S.editUserHIds.indexOf(hId);
+  if(i===-1){S.editUserHIds.push(hId);el.classList.add('sel');}
+  else{S.editUserHIds.splice(i,1);el.classList.remove('sel');}
+  const c=document.getElementById('uh-count');if(c)c.textContent=S.editUserHIds.length;
 }
-
-async function saveUserHududlar(userId){
-  const res = await fetch(`/tma-api/users/${userId}/hududlar`,{
-    method:'PUT',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({hudud_ids: S.editUserHududIds})
-  });
-  if(res.ok){
-    notify('success');
-    const u = S.users.find(x=>x.id===userId);
-    if(u){
-      u.hududlar = S.hududlar.filter(h=>S.editUserHududIds.includes(h.id));
-      u.region_id = S.editUserHududIds[0] || null;
-      u.region = u.hududlar[0] ? `${u.hududlar[0].viloyat} — ${u.hududlar[0].tuman}` : null;
-    }
-    tg?.HapticFeedback?.notificationOccurred('success');
-    // Show brief success feedback
-    const btn = document.querySelector('#um-body .btn-primary[onclick*="saveUserHududlar"]');
-    if(btn){ btn.textContent='✅ Saqlandi!'; setTimeout(()=>btn.textContent='💾 Hududlarni saqlash',1500); }
-  } else { notify('error'); }
+async function saveUH(userId){
+  const r=await fetch(`/tma-api/users/${userId}/hududlar`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({hudud_ids:S.editUserHIds})});
+  if(r.ok){
+    notify();
+    const u=S.users.find(x=>x.id===userId);
+    if(u){u.hududlar=S.hududlar.filter(h=>S.editUserHIds.includes(h.id));u.region_id=S.editUserHIds[0]||null;}
+    const b=document.querySelector('#um-body button[onclick*="saveUH"]');
+    if(b){b.textContent='✅ Saqlandi!';setTimeout(()=>b.textContent='💾 Hududlarni saqlash',1500);}
+  }else notify('error');
 }
-
-async function setUserRole(id, role){
-  const res = await fetch(`/tma-api/users/${id}/role`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role})});
-  if(res.ok){notify('success');const u=S.users.find(x=>x.id===id);if(u){u.role=role;u.role_label=S.roles.find(r=>r.value===role)?.label||role;}closeModal('user-modal');loadUsers();}
-  else notify('error');
+async function setUserRole(id,role){
+  const r=await fetch(`/tma-api/users/${id}/role`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role})});
+  if(r.ok){notify();const u=S.users.find(x=>x.id===id);if(u){u.role=role;u.role_label=S.roles.find(x=>x.value===role)?.label||role;}closeModal('user-modal');loadUsers();}else notify('error');
 }
-async function setUserRegion(id, region_id){
-  const res = await fetch(`/tma-api/users/${id}/region`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({region_id})});
-  if(res.ok){notify('success');const u=S.users.find(x=>x.id===id);if(u){u.region_id=region_id;u.region=S.hududlar.find(h=>h.id===region_id)?.name||'';}closeModal('user-modal');loadUsers();}
-  else notify('error');
-}
-async function setUserZavod(id, zavod_id){
-  const res = await fetch(`/tma-api/users/${id}/zavod`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({zavod_id})});
-  if(res.ok){notify('success');const u=S.users.find(x=>x.id===id);if(u){u.zavod_id=zavod_id;u.zavod_name=zavod_id?S.zavodlar.find(z=>z.id===zavod_id)?.name:null;}closeModal('user-modal');loadUsers();}
-  else notify('error');
+async function setUserZavod(id,zavod_id){
+  const r=await fetch(`/tma-api/users/${id}/zavod`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({zavod_id})});
+  if(r.ok){notify();const u=S.users.find(x=>x.id===id);if(u){u.zavod_id=zavod_id;u.zavod_name=zavod_id?S.zavodlar.find(z=>z.id===zavod_id)?.name:null;}closeModal('user-modal');loadUsers();}else notify('error');
 }
 async function toggleUser(id){
-  const res = await fetch(`/tma-api/users/${id}/toggle`,{method:'PATCH'});
-  if(res.ok){notify('success');const d=await res.json();const u=S.users.find(x=>x.id===id);if(u)u.is_active=d.is_active;closeModal('user-modal');loadUsers();}
-  else notify('error');
+  const r=await fetch(`/tma-api/users/${id}/toggle`,{method:'PATCH'});
+  if(r.ok){notify();const d=await r.json();const u=S.users.find(x=>x.id===id);if(u)u.is_active=d.is_active;closeModal('user-modal');loadUsers();}else notify('error');
 }
 
-/* ═══════════════ HUDUDLAR ═══════════════ */
+/* ══ HUDUDLAR ══ */
 async function loadHududlar(){
   try{
-    S.hududlar = await fetch('/tma-api/hududlar').then(r=>r.json());
-    document.getElementById('hududlar-list').innerHTML = S.hududlar.length
-      ? S.hududlar.map(h=>`
+    S.hududlar=await fetch('/tma-api/hududlar').then(r=>r.json());
+    document.getElementById('hududlar-list').innerHTML=S.hududlar.length
+      ?S.hududlar.map(h=>`
         <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">📍 ${h.viloyat}</div>
-              <div style="font-size:12px;color:var(--tg-theme-hint-color,#888)">${h.tuman}</div>
-            </div>
+          <div class="card-head">
+            <div><div class="card-title">📍 ${h.viloyat}</div><div style="font-size:12px;color:var(--hint);margin-top:3px">${h.tuman}</div></div>
             <span class="badge ${h.is_active?'badge-active':'badge-inactive'}">${h.is_active?'Faol':'Nofaol'}</span>
           </div>
-          ${h.tafsif?`<div class="card-sub" style="margin-bottom:10px">${h.tafsif}</div>`:''}
-          <div class="btn-grid">
-            <button class="btn btn-ghost" onclick="editHudud(${h.id},'${esc(h.viloyat)}','${esc(h.tuman)}','${esc(h.tafsif)}')">✏️ Tahrirlash</button>
-            <button class="btn btn-ghost" onclick="toggleHudud(${h.id})">${h.is_active?'🔴 O\'chirish':'🟢 Yoqish'}</button>
+          ${h.tafsif?`<div class="card-sub" style="margin:8px 0">${h.tafsif}</div>`:''}
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-ghost btn-sm" onclick="editHudud(${h.id},'${esc(h.viloyat)}','${esc(h.tuman)}','${esc(h.tafsif)}')">✏️ Tahrirlash</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleHudud(${h.id})">${h.is_active?'🔴 O\'chirish':'🟢 Yoqish'}</button>
           </div>
         </div>`).join('')
-      : empty('📍','Hududlar yo\'q. ＋ tugmasini bosing');
+      :empty('📍','Hududlar yo\'q — "Yangi hudud" tugmasini bosing');
   }catch(e){console.error(e);}
 }
-
-function esc(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
-
-function openHududForm(){
-  S.editHududId = null;
-  document.getElementById('hm-title').textContent = 'Yangi hudud qo\'shish';
-  document.getElementById('hm-viloyat').value = '';
-  document.getElementById('hm-tuman').value = '';
-  document.getElementById('hm-tafsif').value = '';
-  openModal('hudud-modal');
-}
-
-function editHudud(id, viloyat, tuman, tafsif){
-  S.editHududId = id;
-  document.getElementById('hm-title').textContent = 'Hudud tahrirlash';
-  document.getElementById('hm-viloyat').value = viloyat;
-  document.getElementById('hm-tuman').value = tuman;
-  document.getElementById('hm-tafsif').value = tafsif||'';
-  openModal('hudud-modal');
-}
-
+function openHududForm(){S.editHududId=null;document.getElementById('hm-title').textContent="Yangi hudud qo'shish";['hm-viloyat','hm-tuman','hm-tafsif'].forEach(id=>document.getElementById(id).value='');openModal('hudud-modal');}
+function editHudud(id,v,t,d){S.editHududId=id;document.getElementById('hm-title').textContent='Tahrirlash';document.getElementById('hm-viloyat').value=v;document.getElementById('hm-tuman').value=t;document.getElementById('hm-tafsif').value=d||'';openModal('hudud-modal');}
 async function saveHudud(){
-  const viloyat = document.getElementById('hm-viloyat').value.trim();
-  const tuman   = document.getElementById('hm-tuman').value.trim();
-  const tafsif  = document.getElementById('hm-tafsif').value.trim();
-  if(!viloyat||!tuman){alert('Viloyat va tuman nomlarini kiriting!');return;}
-  const body = {viloyat, tuman, tafsif: tafsif||null};
-  const url  = S.editHududId ? `/tma-api/hududlar/${S.editHududId}` : '/tma-api/hududlar';
-  const method = S.editHududId ? 'PATCH' : 'POST';
-  const res = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(res.ok){notify('success');closeModal('hudud-modal');loadHududlar();}
-  else{const d=await res.json().catch(()=>({}));alert(d.detail||'Xatolik yuz berdi');}
+  const v=document.getElementById('hm-viloyat').value.trim(),t=document.getElementById('hm-tuman').value.trim(),d=document.getElementById('hm-tafsif').value.trim();
+  if(!v||!t){alert('Viloyat va tuman nomlarini kiriting!');return;}
+  const url=S.editHududId?`/tma-api/hududlar/${S.editHududId}`:'/tma-api/hududlar';
+  const r=await fetch(url,{method:S.editHududId?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({viloyat:v,tuman:t,tafsif:d||null})});
+  if(r.ok){notify();closeModal('hudud-modal');loadHududlar();}else{const d2=await r.json().catch(()=>({}));alert(d2.detail||'Xatolik');}
 }
+async function toggleHudud(id){const r=await fetch(`/tma-api/hududlar/${id}/toggle`,{method:'PATCH'});if(r.ok){notify();loadHududlar();}else notify('error');}
 
-async function toggleHudud(id){
-  const res = await fetch(`/tma-api/hududlar/${id}/toggle`,{method:'PATCH'});
-  if(res.ok){notify('success');loadHududlar();}else notify('error');
-}
-
-/* ═══════════════ ZAVODLAR ═══════════════ */
+/* ══ ZAVODLAR ══ */
 async function loadZavodlar(){
   try{
-    [S.zavodlar, S.hududlar] = await Promise.all([
-      fetch('/tma-api/zavodlar').then(r=>r.json()),
-      fetch('/tma-api/hududlar').then(r=>r.json()),
-    ]);
-    document.getElementById('zavodlar-list').innerHTML = S.zavodlar.length
-      ? S.zavodlar.map(z=>`
-        <div class="card" onclick="showZavodDetail(${z.id})">
-          <div class="card-header">
-            <div class="card-title">🏭 ${z.name}</div>
-            <span class="badge ${z.is_active?'badge-active':'badge-inactive'}">${z.is_active?'Faol':'Nofaol'}</span>
+    [S.zavodlar,S.hududlar]=await Promise.all([fetch('/tma-api/zavodlar').then(r=>r.json()),fetch('/tma-api/hududlar').then(r=>r.json())]);
+    document.getElementById('zavodlar-list').innerHTML=S.zavodlar.length
+      ?S.zavodlar.map(z=>`
+        <div class="card" onclick="showZavodDet(${z.id})">
+          <div class="card-head"><div class="card-title">🏭 ${z.name}</div><span class="badge ${z.is_active?'badge-active':'badge-inactive'}">${z.is_active?'Faol':'Nofaol'}</span></div>
+          ${z.tafsif?`<div class="card-sub" style="margin-bottom:8px">${z.tafsif}</div>`:''}
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+            ${z.hududlar.length?z.hududlar.map(h=>`<span class="loc-tag">📍 ${h.viloyat} – ${h.tuman}</span>`).join(''):'<span style="font-size:12px;color:var(--hint)">Hudud biriktirilmagan</span>'}
           </div>
-          ${z.tafsif?`<div class="card-sub">${z.tafsif}</div>`:''}
-          ${z.hududlar.length?`<div class="locations-list">${z.hududlar.map(h=>`<span class="loc-tag">📍 ${h.viloyat} – ${h.tuman}</span>`).join('')}</div>`:'<div class="card-sub" style="margin-top:4px">📍 Hudud biriktirilmagan</div>'}
+          <div style="margin-top:8px;font-size:12px;color:var(--hint)">👤 ${z.user_count} foydalanuvchi</div>
         </div>`).join('')
-      : empty('🏭','Zavodlar yo\'q. ＋ tugmasini bosing');
+      :empty('🏭','Zavodlar yo\'q — "Yangi zavod" tugmasini bosing');
   }catch(e){console.error(e);}
 }
-
 async function openZavodForm(){
-  S.editZavodId = null;
-  S.editZavodHududIds = [];
-  document.getElementById('zm-title').textContent = 'Yangi zavod qo\'shish';
-  document.getElementById('zm-name').value = '';
-  document.getElementById('zm-tafsif').value = '';
-  if(!S.hududlar.length) S.hududlar = await fetch('/tma-api/hududlar').then(r=>r.json());
-  renderZavodFormChips();
-  openModal('zavod-modal');
+  S.editZavodId=null;S.editZavodHIds=[];
+  document.getElementById('zm-title').textContent="Yangi zavod qo'shish";
+  document.getElementById('zm-name').value='';document.getElementById('zm-tafsif').value='';
+  if(!S.hududlar.length)S.hududlar=await fetch('/tma-api/hududlar').then(r=>r.json());
+  renderZChips();openModal('zavod-modal');
 }
-
-function renderZavodFormChips(){
-  document.getElementById('zm-hudud-chips').innerHTML = S.hududlar.length
-    ? S.hududlar.map(h=>`
-      <div class="hudud-chip${S.editZavodHududIds.includes(h.id)?' selected':''}" onclick="toggleFormHudud(${h.id},this)">
-        <strong>${h.viloyat}</strong><br><small>${h.tuman}</small>
-      </div>`).join('')
-    : '<div style="font-size:12px;color:var(--tg-theme-hint-color,#999)">Avval hudud qo\'shing</div>';
+function renderZChips(){
+  document.getElementById('zm-hudud-chips').innerHTML=S.hududlar.length
+    ?S.hududlar.map(h=>`<div class="hchip${S.editZavodHIds.includes(h.id)?' sel':''}" onclick="toggleZH(${h.id},this)"><strong>${h.viloyat}</strong><br><small>${h.tuman}</small></div>`).join('')
+    :'<div style="font-size:12px;color:var(--hint)">Avval hudud qo\'shing</div>';
 }
-
-function toggleFormHudud(id, el){
-  haptic();
-  const idx = S.editZavodHududIds.indexOf(id);
-  if(idx===-1){S.editZavodHududIds.push(id);el.classList.add('selected');}
-  else{S.editZavodHududIds.splice(idx,1);el.classList.remove('selected');}
-}
-
+function toggleZH(id,el){haptic();const i=S.editZavodHIds.indexOf(id);if(i===-1){S.editZavodHIds.push(id);el.classList.add('sel');}else{S.editZavodHIds.splice(i,1);el.classList.remove('sel');}}
 async function saveZavod(){
-  const name   = document.getElementById('zm-name').value.trim();
-  const tafsif = document.getElementById('zm-tafsif').value.trim();
+  const name=document.getElementById('zm-name').value.trim(),tafsif=document.getElementById('zm-tafsif').value.trim();
   if(!name){alert('Zavod nomini kiriting!');return;}
-  const body = {name, tafsif: tafsif||null};
-  const url  = S.editZavodId ? `/tma-api/zavodlar/${S.editZavodId}` : '/tma-api/zavodlar';
-  const method = S.editZavodId ? 'PATCH' : 'POST';
-  const res = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!res.ok){const d=await res.json().catch(()=>({}));alert(d.detail||'Xatolik yuz berdi');return;}
-  const data = await res.json();
-  const zavodId = S.editZavodId || data.id;
-  // Assign selected hududlar
-  if(S.editZavodHududIds.length > 0 || S.editZavodId){
-    await fetch(`/tma-api/zavodlar/${zavodId}/hududlar`,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({hudud_ids: S.editZavodHududIds})
-    });
-  }
-  notify('success');
-  closeModal('zavod-modal');
-  S.editZavodId = null;
-  S.editZavodHududIds = [];
-  loadZavodlar();
+  const url=S.editZavodId?`/tma-api/zavodlar/${S.editZavodId}`:'/tma-api/zavodlar';
+  const r=await fetch(url,{method:S.editZavodId?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,tafsif:tafsif||null})});
+  if(!r.ok){const d=await r.json().catch(()=>({}));alert(d.detail||'Xatolik');return;}
+  const data=await r.json();const zId=S.editZavodId||data.id;
+  await fetch(`/tma-api/zavodlar/${zId}/hududlar`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({hudud_ids:S.editZavodHIds})});
+  notify();closeModal('zavod-modal');S.editZavodId=null;S.editZavodHIds=[];loadZavodlar();
 }
-
-function showZavodDetail(id){
-  const z = S.zavodlar.find(x=>x.id===id); if(!z) return;
-  S.editZavodId = id;
-  S.editZavodHududIds = z.hududlar.map(h=>h.id);
-  document.getElementById('zdm-title').textContent = z.name;
-  renderZavodDetail(z);
-  openModal('zavod-detail-modal');
-}
-
-function renderZavodDetail(z){
-  const hChips = S.hududlar.map(h=>{
-    const sel = S.editZavodHududIds.includes(h.id);
-    return `<div class="hudud-chip${sel?' selected':''}" onclick="toggleZavodHudud(${z.id},${h.id},this)">
-      <strong>${h.viloyat}</strong><br>${h.tuman}
+function showZavodDet(id){
+  const z=S.zavodlar.find(x=>x.id===id);if(!z)return;
+  S.editZavodId=id;S.editZavodHIds=z.hududlar.map(h=>h.id);
+  document.getElementById('zdm-title').textContent=z.name;
+  const hc=S.hududlar.map(h=>`<div class="hchip${S.editZavodHIds.includes(h.id)?' sel':''}" onclick="toggleZDetH(${z.id},${h.id},this)"><strong>${h.viloyat}</strong><br><small>${h.tuman}</small></div>`).join('');
+  document.getElementById('zdm-body').innerHTML=`
+    <table class="info-tbl">
+      <tr><td>Nomi</td><td>${z.name}</td></tr>
+      <tr><td>Tafsif</td><td>${z.tafsif||'—'}</td></tr>
+      <tr><td>Foydalanuvchilar</td><td>${z.user_count} ta</td></tr>
+      <tr><td>Holat</td><td><span class="badge ${z.is_active?'badge-active':'badge-inactive'}">${z.is_active?'Faol':'Nofaol'}</span></td></tr>
+    </table>
+    <div class="divider"></div>
+    <div class="sub-sec">📍 Hududlar</div>
+    <div class="hudud-grid">${hc}</div>
+    <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="saveZDetH(${z.id})">💾 Hududlarni saqlash</button>
+    <div class="divider"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="editZInfo(${z.id})">✏️ Tahrirlash</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="toggleZavod(${z.id})">${z.is_active?'🔴 O\'chirish':'🟢 Yoqish'}</button>
     </div>`;
-  }).join('');
-  document.getElementById('zdm-body').innerHTML = `
-    <div class="info-row"><span class="info-lbl">Nomi</span><span class="info-val">${z.name}</span></div>
-    <div class="info-row"><span class="info-lbl">Tafsif</span><span class="info-val">${z.tafsif||'—'}</span></div>
-    <div class="info-row"><span class="info-lbl">Foydalanuvchilar</span><span class="info-val">${z.user_count} ta</span></div>
-    <div class="sec" style="margin-top:14px">📍 Hududlar biriktirilmagan</div>
-    <div class="hudud-grid">${hChips}</div>
-    <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="saveZavodHududlar(${z.id})">💾 Hududlarni saqlash</button>
-    <div class="btn-grid" style="margin-top:8px">
-      <button class="btn btn-ghost" onclick="editZavodInfo(${z.id})">✏️ Tahrirlash</button>
-      <button class="btn btn-ghost" onclick="doToggleZavod(${z.id})">${z.is_active?'🔴 O\'chirish':'🟢 Yoqish'}</button>
-    </div>
-  `;
+  openModal('zavod-det-modal');
+}
+function toggleZDetH(zId,hId,el){haptic();const i=S.editZavodHIds.indexOf(hId);if(i===-1){S.editZavodHIds.push(hId);el.classList.add('sel');}else{S.editZavodHIds.splice(i,1);el.classList.remove('sel');}}
+async function saveZDetH(zId){
+  const r=await fetch(`/tma-api/zavodlar/${zId}/hududlar`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({hudud_ids:S.editZavodHIds})});
+  if(r.ok){notify();closeModal('zavod-det-modal');loadZavodlar();}else notify('error');
+}
+async function editZInfo(id){
+  const z=S.zavodlar.find(x=>x.id===id);if(!z)return;
+  S.editZavodId=id;S.editZavodHIds=z.hududlar.map(h=>h.id);
+  document.getElementById('zm-title').textContent='Zavod tahrirlash';
+  document.getElementById('zm-name').value=z.name;document.getElementById('zm-tafsif').value=z.tafsif||'';
+  if(!S.hududlar.length)S.hududlar=await fetch('/tma-api/hududlar').then(r=>r.json());
+  renderZChips();closeModal('zavod-det-modal');openModal('zavod-modal');
+}
+async function toggleZavod(id){
+  const r=await fetch(`/tma-api/zavodlar/${id}/toggle`,{method:'PATCH'});
+  if(r.ok){notify();closeModal('zavod-det-modal');loadZavodlar();}else notify('error');
 }
 
-function toggleZavodHudud(zavodId, hududId, el){
-  haptic();
-  const idx = S.editZavodHududIds.indexOf(hududId);
-  if(idx===-1){S.editZavodHududIds.push(hududId);el.classList.add('selected');}
-  else{S.editZavodHududIds.splice(idx,1);el.classList.remove('selected');}
-}
-
-async function saveZavodHududlar(zavodId){
-  const res = await fetch(`/tma-api/zavodlar/${zavodId}/hududlar`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({hudud_ids:S.editZavodHududIds})});
-  if(res.ok){notify('success');closeModal('zavod-detail-modal');loadZavodlar();}
-  else notify('error');
-}
-
-async function editZavodInfo(id){
-  const z = S.zavodlar.find(x=>x.id===id); if(!z) return;
-  S.editZavodId = id;
-  S.editZavodHududIds = z.hududlar.map(h=>h.id);
-  document.getElementById('zm-title').textContent = 'Zavod tahrirlash';
-  document.getElementById('zm-name').value = z.name;
-  document.getElementById('zm-tafsif').value = z.tafsif||'';
-  if(!S.hududlar.length) S.hududlar = await fetch('/tma-api/hududlar').then(r=>r.json());
-  renderZavodFormChips();
-  closeModal('zavod-detail-modal');
-  openModal('zavod-modal');
-}
-
-async function doToggleZavod(id){
-  const res = await fetch(`/tma-api/zavodlar/${id}/toggle`,{method:'PATCH'});
-  if(res.ok){notify('success');closeModal('zavod-detail-modal');loadZavodlar();}
-  else notify('error');
-}
-
-/* ═══════════════ MATERIALS ═══════════════ */
-// (kept in orders flow for now)
-
-function empty(ico, txt){return `<div class="empty"><div class="empty-ico">${ico}</div>${txt}</div>`;}
-
-/* ─── INIT ─── */
 async function init(){
   await loadDashboard();
   document.getElementById('loading').style.display='none';
-  document.getElementById('app').style.display='block';
+  document.getElementById('app').style.display='flex';
 }
 init();
 </script>

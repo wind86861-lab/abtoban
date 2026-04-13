@@ -23,7 +23,12 @@ app.include_router(tma_router)
 
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/admin")
+    return RedirectResponse(url="/tma-admin")
+
+
+@app.get("/admin")
+async def admin_redirect():
+    return RedirectResponse(url="/tma-admin")
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
