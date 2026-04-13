@@ -229,7 +229,7 @@ if(tg){tg.ready();tg.expand();}
 const S = {
   tab:'dashboard', orderFilter:'', userFilter:'',
   orders:[], users:[], hududlar:[], zavodlar:[], roles:[],
-  editHududId:null, editZavodId:null, editZavodHududIds:[],
+  editHududId:null, editZavodId:null, editZavodHududIds:[], editUserHududIds:[],
 };
 
 function fmt(n){if(!n)return'0';return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
@@ -365,13 +365,31 @@ async function showUser(id){
   if(!S.hududlar.length) S.hududlar = await fetch('/tma-api/hududlar').then(r=>r.json());
   if(!S.zavodlar.length) S.zavodlar = await fetch('/tma-api/zavodlar').then(r=>r.json());
 
+  // Track selected hududlar for this user
+  S.editUserHududIds = (u.hududlar || []).map(h=>h.id);
+
   document.getElementById('um-title').textContent = u.name;
+  renderUserModal(u);
+  openModal('user-modal');
+}
+
+function renderUserModal(u){
+  const id = u.id;
   const roleButtons = S.roles.map(r=>
-    `<button class="btn ${u.role===r.value?'btn-primary':'btn-ghost'}" onclick="setUserRole(${id},'${r.value}')">${r.label}</button>`
+    `<button class="btn ${u.role===r.value?'btn-primary':'btn-ghost'} btn-sm" onclick="setUserRole(${id},'${r.value}')">${r.label}</button>`
   ).join('');
-  const hududButtons = S.hududlar.map(h=>
-    `<button class="pill${u.region_id===h.id?' active':''}" style="margin:3px" onclick="setUserRegion(${id},${h.id})">${h.viloyat}<br><small>${h.tuman}</small></button>`
-  ).join('');
+
+  // Multi-select hudud chips
+  const hududChips = S.hududlar.map(h=>{
+    const sel = S.editUserHududIds.includes(h.id);
+    return `<div class="hudud-chip${sel?' selected':''}" onclick="toggleUserHudud(${h.id},this)">
+      <strong>${h.viloyat}</strong><br><small>${h.tuman}</small>
+    </div>`;
+  }).join('');
+
+  // Zavod section — always visible, highlighted for ZAVOD/SHOFER roles
+  const zavodHighlight = (u.role==='zavod'||u.role==='shofer') ? 'border:2px solid var(--tg-theme-button-color,#2481cc);border-radius:10px;padding:10px;' : '';
+  const zavodLabel = u.role==='shofer' ? '🚛 Haydovchi zavodi *' : u.role==='zavod' ? '🏭 Zavod (majburiy) *' : '🏭 Zavod';
   const zavodButtons = [
     `<button class="pill${!u.zavod_id?' active':''}" onclick="setUserZavod(${id},null)">— Yo'q</button>`,
     ...S.zavodlar.map(z=>`<button class="pill${u.zavod_id===z.id?' active':''}" onclick="setUserZavod(${id},${z.id})">${z.name}</button>`)
@@ -381,18 +399,58 @@ async function showUser(id){
     <div class="info-row"><span class="info-lbl">Telegram ID</span><span class="info-val">${u.telegram_id}</span></div>
     <div class="info-row"><span class="info-lbl">Telefon</span><span class="info-val">${u.phone||'—'}</span></div>
     <div class="info-row"><span class="info-lbl">Rol</span><span class="info-val">${u.role_label}</span></div>
-    <div class="info-row"><span class="info-lbl">Hudud</span><span class="info-val">${u.region||'—'}</span></div>
+    <div class="info-row"><span class="info-lbl">Asosiy hudud</span><span class="info-val">${u.region||'—'}</span></div>
     <div class="info-row"><span class="info-lbl">Zavod</span><span class="info-val">${u.zavod_name||'—'}</span></div>
     <div class="info-row"><span class="info-lbl">Holat</span><span class="info-val">${u.is_active?'🟢 Faol':'🔴 Bloklangan'}</span></div>
-    <div class="sec" style="margin-top:14px">Rolni o'zgartirish</div>
+
+    <div class="sec" style="margin-top:16px">👤 Rolni o'zgartirish</div>
     <div class="btn-grid">${roleButtons}</div>
-    <div class="sec" style="margin-top:14px">Hudud</div>
-    <div class="pills" style="flex-wrap:wrap">${hududButtons}</div>
-    <div class="sec" style="margin-top:14px">Zavod</div>
-    <div class="pills" style="flex-wrap:wrap">${zavodButtons}</div>
+
+    <div style="margin-top:16px;${zavodHighlight}">
+      <div class="sec">${zavodLabel}</div>
+      ${(u.role==='zavod'||u.role==='shofer')?'<p style="font-size:11px;color:var(--tg-theme-hint-color,#888);margin-bottom:8px">Bu rol uchun zavod biriktirish majburiy</p>':''}
+      <div class="pills" style="flex-wrap:wrap">${zavodButtons}</div>
+    </div>
+
+    <div style="margin-top:16px;border:1.5px solid rgba(0,0,0,.08);border-radius:10px;padding:10px">
+      <div class="sec">📍 Hududlar (birdan ko'p tanlash mumkin)</div>
+      <p style="font-size:11px;color:var(--tg-theme-hint-color,#888);margin-bottom:8px">Tanlangan: <strong id="um-h-count">${S.editUserHududIds.length}</strong> ta</p>
+      <div class="hudud-grid" id="um-hudud-chips">${hududChips}</div>
+      <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="saveUserHududlar(${id})">💾 Hududlarni saqlash</button>
+    </div>
+
     <button class="btn ${u.is_active?'btn-danger':'btn-success'} btn-block" style="margin-top:14px" onclick="toggleUser(${id})">${u.is_active?'🔴 Bloklash':'🟢 Faollashtirish'}</button>
   `;
-  openModal('user-modal');
+}
+
+function toggleUserHudud(hududId, el){
+  haptic();
+  const idx = S.editUserHududIds.indexOf(hududId);
+  if(idx===-1){ S.editUserHududIds.push(hududId); el.classList.add('selected'); }
+  else{ S.editUserHududIds.splice(idx,1); el.classList.remove('selected'); }
+  const cnt = document.getElementById('um-h-count');
+  if(cnt) cnt.textContent = S.editUserHududIds.length;
+}
+
+async function saveUserHududlar(userId){
+  const res = await fetch(`/tma-api/users/${userId}/hududlar`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({hudud_ids: S.editUserHududIds})
+  });
+  if(res.ok){
+    notify('success');
+    const u = S.users.find(x=>x.id===userId);
+    if(u){
+      u.hududlar = S.hududlar.filter(h=>S.editUserHududIds.includes(h.id));
+      u.region_id = S.editUserHududIds[0] || null;
+      u.region = u.hududlar[0] ? `${u.hududlar[0].viloyat} — ${u.hududlar[0].tuman}` : null;
+    }
+    tg?.HapticFeedback?.notificationOccurred('success');
+    // Show brief success feedback
+    const btn = document.querySelector('#um-body .btn-primary[onclick*="saveUserHududlar"]');
+    if(btn){ btn.textContent='✅ Saqlandi!'; setTimeout(()=>btn.textContent='💾 Hududlarni saqlash',1500); }
+  } else { notify('error'); }
 }
 
 async function setUserRole(id, role){

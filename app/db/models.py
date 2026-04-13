@@ -79,6 +79,14 @@ class MaterialRequestStatus(str, enum.Enum):
     DELIVERED = "delivered"
 
 
+# Many-to-many join table: User ↔ Hudud (Region) — for multi-region ustas/shofers
+user_hududlar = Table(
+    "user_hududlar",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("hudud_id", Integer, ForeignKey("regions.id", ondelete="CASCADE"), primary_key=True),
+)
+
 # Many-to-many join table: Zavod ↔ Hudud (Region)
 zavod_hududlar = Table(
     "zavod_hududlar",
@@ -106,6 +114,9 @@ class Region(Base):
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="region")
     zavods: Mapped[List["Zavod"]] = relationship(
         "Zavod", secondary=zavod_hududlar, back_populates="hududlar"
+    )
+    ustas: Mapped[List["User"]] = relationship(
+        "User", secondary=user_hududlar, back_populates="hududlar"
     )
 
 
@@ -182,6 +193,9 @@ class User(Base):
 
     region: Mapped[Optional["Region"]] = relationship("Region", back_populates="users")
     zavod: Mapped[Optional["Zavod"]] = relationship("Zavod", back_populates="users")
+    hududlar: Mapped[List["Region"]] = relationship(
+        "Region", secondary=user_hududlar, back_populates="ustas"
+    )
     audit_logs: Mapped[List["AuditLog"]] = relationship(
         "AuditLog", back_populates="user", foreign_keys="AuditLog.user_id"
     )

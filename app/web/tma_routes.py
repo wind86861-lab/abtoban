@@ -12,7 +12,7 @@ from starlette.requests import Request
 
 from app.db.models import (
     ROLE_LABELS, MaterialRequest, MaterialRequestStatus, Order, OrderStatus,
-    Region, User, UserRole, Zavod, zavod_hududlar,
+    Region, User, UserRole, Zavod, zavod_hududlar, user_hududlar,
 )
 from app.db.session import async_session_maker
 
@@ -99,7 +99,7 @@ async def tma_users(limit: int = 100, role: Optional[str] = None):
     async with async_session_maker() as session:
         q = (
             select(User)
-            .options(selectinload(User.region), selectinload(User.zavod))
+            .options(selectinload(User.region), selectinload(User.zavod), selectinload(User.hududlar))
             .order_by(User.created_at.desc())
             .limit(limit)
         )
@@ -120,10 +120,52 @@ async def tma_users(limit: int = 100, role: Optional[str] = None):
             "region_id": u.region_id,
             "zavod_id": u.zavod_id,
             "zavod_name": u.zavod.name if u.zavod else None,
+            "hududlar": [{"id": h.id, "viloyat": h.viloyat or h.name, "tuman": h.tuman or ""} for h in u.hududlar],
             "is_active": u.is_active,
         }
         for u in users
     ]
+
+
+class UpdateUserHududlarRequest(BaseModel):
+    hudud_ids: List[int]
+
+
+@router.get("/tma-api/users/{user_id}/hududlar")
+async def get_user_hududlar(user_id: int):
+    async with async_session_maker() as session:
+        user = (await session.execute(
+            select(User).options(selectinload(User.hududlar)).where(User.id == user_id)
+        )).scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+        return [{"id": h.id, "viloyat": h.viloyat or h.name, "tuman": h.tuman or ""} for h in user.hududlar]
+
+
+@router.put("/tma-api/users/{user_id}/hududlar")
+async def set_user_hududlar(user_id: int, body: UpdateUserHududlarRequest):
+    """Replace all hudud assignments for a user."""
+    async with async_session_maker() as session:
+        user = (await session.execute(
+            select(User).options(selectinload(User.hududlar)).where(User.id == user_id)
+        )).scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+        await session.execute(
+            delete(user_hududlar).where(user_hududlar.c.user_id == user_id)
+        )
+        if body.hudud_ids:
+            hududlar = (await session.execute(
+                select(Region).where(Region.id.in_(body.hudud_ids))
+            )).scalars().all()
+            user.hududlar = hududlar
+            # Also set primary region_id to first selected
+            user.region_id = hududlar[0].id if hududlar else None
+        else:
+            user.hududlar = []
+            user.region_id = None
+        await session.commit()
+    return {"ok": True}
 
 
 class UpdateRoleRequest(BaseModel):
