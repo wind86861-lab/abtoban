@@ -19,6 +19,12 @@ class AdminAuth(AuthenticationBackend):
         return True
 
     async def authenticate(self, request: Request) -> bool:
+        # Auto-authenticate Telegram WebApp requests
+        user_agent = request.headers.get("user-agent", "").lower()
+        if "telegram" in user_agent or request.headers.get("sec-fetch-dest") == "webview":
+            request.session.update({"token": "authenticated"})
+            return True
+        
         token = request.session.get("token")
         if not token:
             return False
