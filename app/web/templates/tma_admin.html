@@ -1,167 +1,757 @@
 <!DOCTYPE html>
 <html lang="uz">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Avtoban Admin</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { 
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--tg-theme-bg-color, #fff);
-  color: var(--tg-theme-text-color, #000);
-  padding: 16px;
-}
-.card { 
-  background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.stat {
-  background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-}
-.stat-value {
-  font-size: 32px;
-  font-weight: bold;
-  margin: 8px 0;
-}
-.stat-label {
-  font-size: 12px;
-  color: var(--tg-theme-hint-color, #999);
-}
-h2 {
-  font-size: 18px;
-  margin-bottom: 12px;
-}
-.order-item {
-  background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
-}
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.order-number {
-  font-weight: bold;
-}
-.status-badge {
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  color: white;
-  font-weight: 600;
-}
-.status-new { background: #ef4444; }
-.status-confirmed { background: #22c55e; }
-.status-in_work { background: #f59e0b; }
-.status-done { background: #6b7280; }
-.order-details {
-  font-size: 13px;
-  color: var(--tg-theme-hint-color, #999);
-  line-height: 1.6;
-}
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--tg-theme-hint-color, #999);
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Avtoban Admin</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--tg-theme-bg-color, #f5f5f5);
+      color: var(--tg-theme-text-color, #000);
+      padding-bottom: 70px;
+    }
+
+    .container {
+      padding: 12px;
+    }
+
+    .tabs {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--tg-theme-bg-color, #fff);
+      border-top: 1px solid var(--tg-theme-hint-color, #ddd);
+      display: flex;
+      z-index: 100;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--tg-theme-hint-color, #999);
+      border: none;
+      background: none;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      color: var(--tg-theme-button-color, #2481cc);
+      font-weight: 600;
+    }
+
+    .tab-icon {
+      font-size: 20px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      background: var(--tg-theme-secondary-bg-color, #fff);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 4px 0;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--tg-theme-hint-color, #999);
+    }
+
+    .card {
+      background: var(--tg-theme-secondary-bg-color, #fff);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .card:active {
+      transform: scale(0.98);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      color: white;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-new {
+      background: #ef4444;
+    }
+
+    .badge-confirmed {
+      background: #22c55e;
+    }
+
+    .badge-in_work {
+      background: #f59e0b;
+    }
+
+    .badge-done {
+      background: #6b7280;
+    }
+
+    .badge-cancelled {
+      background: #374151;
+    }
+
+    .card-body {
+      font-size: 12px;
+      color: var(--tg-theme-hint-color, #666);
+      line-height: 1.6;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: flex-end;
+      z-index: 200;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--tg-theme-bg-color, #fff);
+      border-radius: 16px 16px 0 0;
+      padding: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+      width: 100%;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--tg-theme-hint-color, #999);
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+      font-size: 13px;
+    }
+
+    .info-label {
+      color: var(--tg-theme-hint-color, #999);
+    }
+
+    .info-value {
+      font-weight: 500;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--tg-theme-hint-color, #ddd);
+      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-primary {
+      background: var(--tg-theme-button-color, #2481cc);
+      color: var(--tg-theme-button-text-color, #fff);
+      border: none;
+    }
+
+    .btn-success {
+      background: #22c55e;
+      color: white;
+      border: none;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      border: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--tg-theme-hint-color, #999);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--tg-theme-hint-color, #999);
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--tg-theme-text-color, #000);
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
+    }
+
+    .filter-tab {
+      padding: 6px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--tg-theme-hint-color, #ddd);
+      background: var(--tg-theme-secondary-bg-color, #fff);
+      font-size: 11px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .filter-tab.active {
+      background: var(--tg-theme-button-color, #2481cc);
+      color: var(--tg-theme-button-text-color, #fff);
+      border-color: var(--tg-theme-button-color, #2481cc);
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="app">
-  <div class="loading" id="loading">Yuklanmoqda...</div>
-  
-  <div id="content" style="display:none;">
-    <h2>📊 Statistika</h2>
-    <div class="stat-grid">
-      <div class="stat">
-        <div class="stat-value" id="totalOrders">0</div>
-        <div class="stat-label">Jami zakazlar</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value" id="newOrders">0</div>
-        <div class="stat-label">Yangi</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value" id="inWork">0</div>
-        <div class="stat-label">Ishda</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value" id="totalUsers">0</div>
-        <div class="stat-label">Foydalanuvchilar</div>
+  <div id="app">
+    <div class="loading" id="loading">⏳ Yuklanmoqda...</div>
+
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard" class="tab-content" style="display:none;">
+      <div class="container">
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="stat-value" id="totalOrders">0</div>
+            <div class="stat-label">Jami zakazlar</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="newOrders">0</div>
+            <div class="stat-label">Yangi</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="inWork">0</div>
+            <div class="stat-label">Ishda</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="totalUsers">0</div>
+            <div class="stat-label">Foydalanuvchilar</div>
+          </div>
+        </div>
+        <div class="section-title">📋 So'nggi zakazlar</div>
+        <div id="dashboard-orders"></div>
       </div>
     </div>
 
-    <h2>📋 So'nggi zakazlar</h2>
-    <div id="orders"></div>
+    <!-- Orders Tab -->
+    <div id="tab-orders" class="tab-content" style="display:none;">
+      <div class="container">
+        <div class="filter-tabs" id="order-filters"></div>
+        <div id="orders-list"></div>
+      </div>
+    </div>
+
+    <!-- Users Tab -->
+    <div id="tab-users" class="tab-content" style="display:none;">
+      <div class="container">
+        <div class="filter-tabs" id="user-filters"></div>
+        <div id="users-list"></div>
+      </div>
+    </div>
+
+    <!-- Materials Tab -->
+    <div id="tab-materials" class="tab-content" style="display:none;">
+      <div class="container">
+        <div class="section-title">📦 Material so'rovlar</div>
+        <div id="materials-list"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('dashboard')">
+        <span class="tab-icon">📊</span>
+        Asosiy
+      </button>
+      <button class="tab" onclick="switchTab('orders')">
+        <span class="tab-icon">📋</span>
+        Zakazlar
+      </button>
+      <button class="tab" onclick="switchTab('users')">
+        <span class="tab-icon">👥</span>
+        Users
+      </button>
+      <button class="tab" onclick="switchTab('materials')">
+        <span class="tab-icon">📦</span>
+        Material
+      </button>
+    </div>
   </div>
-</div>
 
-<script>
-const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-}
+  <!-- Order Detail Modal -->
+  <div class="modal" id="order-modal" onclick="if(event.target===this) closeModal('order-modal')">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="order-modal-title"></div>
+        <button class="close-btn" onclick="closeModal('order-modal')">×</button>
+      </div>
+      <div id="order-modal-body"></div>
+    </div>
+  </div>
 
-async function loadData() {
-  try {
-    // Load stats
-    const statsRes = await fetch('/tma-api/stats');
-    const stats = await statsRes.json();
-    document.getElementById('totalOrders').textContent = stats.total_orders;
-    document.getElementById('newOrders').textContent = stats.new_orders;
-    document.getElementById('inWork').textContent = stats.in_work;
-    document.getElementById('totalUsers').textContent = stats.total_users;
+  <!-- User Detail Modal -->
+  <div class="modal" id="user-modal" onclick="if(event.target===this) closeModal('user-modal')">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="user-modal-title"></div>
+        <button class="close-btn" onclick="closeModal('user-modal')">×</button>
+      </div>
+      <div id="user-modal-body"></div>
+    </div>
+  </div>
 
-    // Load recent orders
-    const ordersRes = await fetch('/tma-api/orders?limit=10');
-    const orders = await ordersRes.json();
-    const ordersDiv = document.getElementById('orders');
-    ordersDiv.innerHTML = orders.map(o => `
-      <div class="order-item">
-        <div class="order-header">
-          <span class="order-number">${o.number}</span>
-          <span class="status-badge status-${o.status}">${o.status}</span>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      tg.enableClosingConfirmation();
+    }
+
+    let state = {
+      currentTab: 'dashboard',
+      orderFilter: '',
+      userFilter: '',
+      stats: {},
+      orders: [],
+      users: [],
+      materials: [],
+      regions: [],
+      roles: []
+    };
+
+    // Tab switching
+    function switchTab(tab) {
+      state.currentTab = tab;
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+      event.target.closest('.tab').classList.add('active');
+
+      if (tab === 'dashboard') loadDashboard();
+      else if (tab === 'orders') loadOrders();
+      else if (tab === 'users') loadUsers();
+      else if (tab === 'materials') loadMaterials();
+    }
+
+    // Modal
+    function openModal(id) {
+      document.getElementById(id).classList.add('show');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    // Format number
+    function fmt(n) {
+      if (!n) return '0';
+      return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    // Dashboard
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/tma-api/stats');
+        state.stats = await res.json();
+        document.getElementById('totalOrders').textContent = state.stats.total_orders;
+        document.getElementById('newOrders').textContent = state.stats.new_orders;
+        document.getElementById('inWork').textContent = state.stats.in_work;
+        document.getElementById('totalUsers').textContent = state.stats.total_users;
+
+        const ordersRes = await fetch('/tma-api/orders?limit=5');
+        const orders = await ordersRes.json();
+        document.getElementById('dashboard-orders').innerHTML = orders.length ? orders.map(o => `
+      <div class="card" onclick="showOrderDetail(${o.id})">
+        <div class="card-header">
+          <div class="card-title">${o.number}</div>
+          <span class="badge badge-${o.status}">${o.status}</span>
         </div>
-        <div class="order-details">
+        <div class="card-body">
           👤 ${o.client}<br>
           📍 ${o.address}<br>
-          📐 ${o.area || '—'} m² · 💰 ${formatNum(o.total)} so'm
+          📐 ${o.area || '—'} m² · 💰 ${fmt(o.total)} so'm
         </div>
       </div>
-    `).join('');
+    `).join('') : '<div class="empty"><div class="empty-icon">📋</div>Zakazlar yo\'q</div>';
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('content').style.display = 'block';
-  } catch (e) {
-    document.getElementById('loading').textContent = 'Xatolik: ' + e.message;
-  }
-}
+    // Orders
+    async function loadOrders() {
+      const filters = [
+        { val: '', label: 'Barchasi' },
+        { val: 'new', label: '🆕 Yangi' },
+        { val: 'confirmed', label: '✅ Tasdiqlangan' },
+        { val: 'in_work', label: '🔧 Ishda' },
+        { val: 'done', label: '🏁 Tugagan' }
+      ];
+      document.getElementById('order-filters').innerHTML = filters.map(f =>
+        `<button class="filter-tab ${state.orderFilter === f.val ? 'active' : ''}" onclick="filterOrders('${f.val}')">${f.label}</button>`
+      ).join('');
 
-function formatNum(n) {
-  if (!n) return '0';
-  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
+      try {
+        const url = `/tma-api/orders?limit=50${state.orderFilter ? '&status=' + state.orderFilter : ''}`;
+        const res = await fetch(url);
+        state.orders = await res.json();
+        document.getElementById('orders-list').innerHTML = state.orders.length ? state.orders.map(o => `
+      <div class="card" onclick="showOrderDetail(${o.id})">
+        <div class="card-header">
+          <div class="card-title">${o.number}</div>
+          <span class="badge badge-${o.status}">${o.status}</span>
+        </div>
+        <div class="card-body">
+          👤 ${o.client} · 📱 ${o.phone || '—'}<br>
+          📍 ${o.address}<br>
+          📐 ${o.area || '—'} m² · 💰 ${fmt(o.total)} so'm
+        </div>
+      </div>
+    `).join('') : '<div class="empty"><div class="empty-icon">📋</div>Zakazlar topilmadi</div>';
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
-loadData();
-</script>
+    function filterOrders(status) {
+      state.orderFilter = status;
+      loadOrders();
+    }
+
+    async function showOrderDetail(id) {
+      const order = state.orders.find(o => o.id === id);
+      if (!order) return;
+
+      document.getElementById('order-modal-title').textContent = order.number;
+      document.getElementById('order-modal-body').innerHTML = `
+    <div class="info-row"><span class="info-label">Mijoz</span><span class="info-value">${order.client}</span></div>
+    <div class="info-row"><span class="info-label">Telefon</span><span class="info-value">${order.phone || '—'}</span></div>
+    <div class="info-row"><span class="info-label">Manzil</span><span class="info-value">${order.address}</span></div>
+    <div class="info-row"><span class="info-label">Maydon</span><span class="info-value">${order.area || '—'} m²</span></div>
+    <div class="info-row"><span class="info-label">Jami</span><span class="info-value">${fmt(order.total)} so'm</span></div>
+    <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge badge-${order.status}">${order.status}</span></span></div>
+    <div class="section-title" style="margin-top:16px;">Status o'zgartirish</div>
+    <div class="btn-grid">
+      <button class="btn ${order.status === 'new' ? 'btn-primary' : ''}" onclick="updateOrderStatus(${id},'new')">🆕 Yangi</button>
+      <button class="btn ${order.status === 'confirmed' ? 'btn-primary' : ''}" onclick="updateOrderStatus(${id},'confirmed')">✅ Tasdiqlangan</button>
+      <button class="btn ${order.status === 'in_work' ? 'btn-primary' : ''}" onclick="updateOrderStatus(${id},'in_work')">🔧 Ishda</button>
+      <button class="btn ${order.status === 'done' ? 'btn-primary' : ''}" onclick="updateOrderStatus(${id},'done')">🏁 Tugagan</button>
+    </div>
+  `;
+      openModal('order-modal');
+    }
+
+    async function updateOrderStatus(id, status) {
+      try {
+        const res = await fetch(`/tma-api/orders/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+          const order = state.orders.find(o => o.id === id);
+          if (order) order.status = status;
+          tg?.HapticFeedback?.notificationOccurred('success');
+          closeModal('order-modal');
+          loadOrders();
+          if (state.currentTab === 'dashboard') loadDashboard();
+        }
+      } catch (e) {
+        console.error(e);
+        tg?.HapticFeedback?.notificationOccurred('error');
+      }
+    }
+
+    // Users
+    async function loadUsers() {
+      const filters = [
+        { val: '', label: 'Barchasi' },
+        { val: 'master', label: 'Master' },
+        { val: 'usta', label: 'Usta' },
+        { val: 'zavod', label: 'Zavod' },
+        { val: 'admin', label: 'Admin' }
+      ];
+      document.getElementById('user-filters').innerHTML = filters.map(f =>
+        `<button class="filter-tab ${state.userFilter === f.val ? 'active' : ''}" onclick="filterUsers('${f.val}')">${f.label}</button>`
+      ).join('');
+
+      try {
+        const url = `/tma-api/users?limit=50${state.userFilter ? '&role=' + state.userFilter : ''}`;
+        const res = await fetch(url);
+        state.users = await res.json();
+        document.getElementById('users-list').innerHTML = state.users.length ? state.users.map(u => `
+      <div class="card" onclick="showUserDetail(${u.id})">
+        <div class="card-header">
+          <div class="card-title">${u.name}</div>
+          <span style="font-size:10px;">${u.is_active ? '🟢' : '🔴'}</span>
+        </div>
+        <div class="card-body">
+          👥 ${u.role_label} · 📍 ${u.region || '—'}<br>
+          📱 ${u.phone || '—'}
+        </div>
+      </div>
+    `).join('') : '<div class="empty"><div class="empty-icon">👥</div>Foydalanuvchilar topilmadi</div>';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function filterUsers(role) {
+      state.userFilter = role;
+      loadUsers();
+    }
+
+    async function showUserDetail(id) {
+      const user = state.users.find(u => u.id === id);
+      if (!user) return;
+
+      if (!state.regions.length) {
+        const res = await fetch('/tma-api/regions');
+        state.regions = await res.json();
+      }
+      if (!state.roles.length) {
+        const res = await fetch('/tma-api/roles');
+        state.roles = await res.json();
+      }
+
+      document.getElementById('user-modal-title').textContent = user.name;
+      document.getElementById('user-modal-body').innerHTML = `
+    <div class="info-row"><span class="info-label">Telegram ID</span><span class="info-value">${user.telegram_id}</span></div>
+    <div class="info-row"><span class="info-label">Telefon</span><span class="info-value">${user.phone || '—'}</span></div>
+    <div class="info-row"><span class="info-label">Rol</span><span class="info-value">${user.role_label}</span></div>
+    <div class="info-row"><span class="info-label">Viloyat</span><span class="info-value">${user.region || '—'}</span></div>
+    <div class="info-row"><span class="info-label">Holat</span><span class="info-value">${user.is_active ? '🟢 Faol' : '🔴 Bloklangan'}</span></div>
+    <div class="section-title" style="margin-top:16px;">Rolni o'zgartirish</div>
+    <div class="btn-grid">
+      ${state.roles.map(r => `<button class="btn ${user.role === r.value ? 'btn-primary' : ''}" onclick="updateUserRole(${id},'${r.value}')">${r.label}</button>`).join('')}
+    </div>
+    <div class="section-title" style="margin-top:16px;">Viloyat</div>
+    <div class="btn-grid">
+      ${state.regions.map(r => `<button class="btn ${user.region_id === r.id ? 'btn-primary' : ''}" onclick="updateUserRegion(${id},${r.id})">${r.name}</button>`).join('')}
+    </div>
+    <button class="btn ${user.is_active ? 'btn-danger' : 'btn-success'}" style="width:100%;margin-top:16px;" onclick="toggleUser(${id})">${user.is_active ? '🔴 Bloklash' : '🟢 Faollashtirish'}</button>
+  `;
+      openModal('user-modal');
+    }
+
+    async function updateUserRole(id, role) {
+      try {
+        const res = await fetch(`/tma-api/users/${id}/role`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role })
+        });
+        if (res.ok) {
+          const user = state.users.find(u => u.id === id);
+          if (user) {
+            user.role = role;
+            user.role_label = state.roles.find(r => r.value === role)?.label || role;
+          }
+          tg?.HapticFeedback?.notificationOccurred('success');
+          closeModal('user-modal');
+          loadUsers();
+        }
+      } catch (e) {
+        console.error(e);
+        tg?.HapticFeedback?.notificationOccurred('error');
+      }
+    }
+
+    async function updateUserRegion(id, region_id) {
+      try {
+        const res = await fetch(`/tma-api/users/${id}/region`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ region_id })
+        });
+        if (res.ok) {
+          const user = state.users.find(u => u.id === id);
+          if (user) {
+            user.region_id = region_id;
+            user.region = state.regions.find(r => r.id === region_id)?.name || '—';
+          }
+          tg?.HapticFeedback?.notificationOccurred('success');
+          closeModal('user-modal');
+          loadUsers();
+        }
+      } catch (e) {
+        console.error(e);
+        tg?.HapticFeedback?.notificationOccurred('error');
+      }
+    }
+
+    async function toggleUser(id) {
+      try {
+        const res = await fetch(`/tma-api/users/${id}/toggle`, { method: 'PATCH' });
+        if (res.ok) {
+          const data = await res.json();
+          const user = state.users.find(u => u.id === id);
+          if (user) user.is_active = data.is_active;
+          tg?.HapticFeedback?.notificationOccurred('success');
+          closeModal('user-modal');
+          loadUsers();
+        }
+      } catch (e) {
+        console.error(e);
+        tg?.HapticFeedback?.notificationOccurred('error');
+      }
+    }
+
+    // Materials
+    async function loadMaterials() {
+      try {
+        const res = await fetch('/tma-api/materials');
+        state.materials = await res.json();
+        document.getElementById('materials-list').innerHTML = state.materials.length ? state.materials.map(m => `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">So'rov #${m.id}</div>
+          <span style="font-size:10px;color:var(--tg-theme-hint-color,#999);">${m.created_at}</span>
+        </div>
+        <div class="card-body">
+          🔢 ${m.order_number}<br>
+          📍 ${m.region} · 👷 ${m.usta}<br>
+          📦 ${m.tonnes} tonna<br>
+          📝 ${m.notes}
+        </div>
+        <div class="btn-grid" style="margin-top:12px;">
+          <button class="btn btn-success" onclick="approveMaterial(${m.id})">✅ Tasdiqlash</button>
+          <button class="btn btn-danger" onclick="rejectMaterial(${m.id})">❌ Rad etish</button>
+        </div>
+      </div>
+    `).join('') : '<div class="empty"><div class="empty-icon">✅</div>Tasdiqlanmagan so\'rovlar yo\'q</div>';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function approveMaterial(id) {
+      try {
+        const res = await fetch(`/tma-api/materials/${id}/approve`, { method: 'POST' });
+        if (res.ok) {
+          tg?.HapticFeedback?.notificationOccurred('success');
+          loadMaterials();
+        }
+      } catch (e) {
+        console.error(e);
+        tg?.HapticFeedback?.notificationOccurred('error');
+      }
+    }
+
+    async function rejectMaterial(id) {
+      try {
+        const res = await fetch(`/tma-api/materials/${id}/reject`, { method: 'POST' });
+        if (res.ok) {
+          tg?.HapticFeedback?.notificationOccurred('success');
+          loadMaterials();
+        }
+      } catch (e) {
+        console.error(e);
+        tg?.HapticFeedback?.notificationOccurred('error');
+      }
+    }
+
+    // Init
+    async function init() {
+      await loadDashboard();
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('tab-dashboard').style.display = 'block';
+    }
+
+    init();
+  </script>
 
 </body>
+
 </html>
