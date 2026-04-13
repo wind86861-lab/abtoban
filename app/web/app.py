@@ -18,19 +18,6 @@ from app.web.views import (
 
 app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
 
-app.include_router(tma_router)
-
-
-@app.get("/")
-async def root():
-    return RedirectResponse(url="/tma-admin")
-
-
-@app.get("/admin")
-@app.get("/admin/")
-async def admin_redirect():
-    return RedirectResponse(url="/tma-admin")
-
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
@@ -49,3 +36,17 @@ admin.add_view(ExpenseAdmin)
 admin.add_view(MaterialRequestAdmin)
 admin.add_view(AsphaltTypeAdmin)
 admin.add_view(RegionAdmin)
+
+# Include TMA routes and redirects AFTER SQLAdmin to override /admin
+app.include_router(tma_router)
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/tma-admin")
+
+
+@app.get("/admin")
+@app.get("/admin/")
+async def admin_redirect():
+    return RedirectResponse(url="/tma-admin")
