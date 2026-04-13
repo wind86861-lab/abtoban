@@ -208,6 +208,12 @@ class User(Base):
     usta_orders: Mapped[List["Order"]] = relationship(
         "Order", back_populates="usta", foreign_keys="Order.usta_id"
     )
+    cart_items: Mapped[List["CartItem"]] = relationship(
+        "CartItem", back_populates="user", cascade="all, delete-orphan"
+    )
+    market_orders: Mapped[List["MarketOrder"]] = relationship(
+        "MarketOrder", back_populates="user"
+    )
 
     def __repr__(self) -> str:
         return f"<User id={self.id} tg={self.telegram_id} role={self.role}>"
@@ -324,3 +330,165 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship("User", back_populates="audit_logs", foreign_keys=[user_id])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MARKETPLACE MODELS (Online Shop for Clients)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class Category(Base):
+    """Product category with multilingual support."""
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name_uz: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_ru: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_en: Mapped[str] = mapped_column(String(255), nullable=False)
+    parent_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+    )
+    image: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    parent: Mapped[Optional["Category"]] = relationship(
+        "Category", remote_side=[id], back_populates="children"
+    )
+    children: Mapped[List["Category"]] = relationship(
+        "Category", back_populates="parent"
+    )
+    products: Mapped[List["Product"]] = relationship(
+        "Product", back_populates="category"
+    )
+
+
+class Product(Base):
+    """Product in the online marketplace."""
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name_uz: Mapped[str] = mapped_column(String(500), nullable=False)
+    name_ru: Mapped[str] = mapped_column(String(500), nullable=False)
+    name_en: Mapped[str] = mapped_column(String(500), nullable=False)
+    description_uz: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description_ru: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description_en: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    discount_value: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(12, 2), nullable=True
+    )
+    discount_type: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True
+    )
+    category_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+    )
+    images: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    stock: Mapped[int] = mapped_column(Integer, default=0)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    category: Mapped[Optional["Category"]] = relationship(
+        "Category", back_populates="products"
+    )
+    cart_items: Mapped[List["CartItem"]] = relationship(
+        "CartItem", back_populates="product", cascade="all, delete-orphan"
+    )
+    order_items: Mapped[List["MarketOrderItem"]] = relationship(
+        "MarketOrderItem", back_populates="product"
+    )
+
+
+class CartItem(Base):
+    """Shopping cart item for a user."""
+    __tablename__ = "cart_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    product_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False
+    )
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="cart_items")
+    product: Mapped["Product"] = relationship("Product", back_populates="cart_items")
+
+
+class MarketOrderStatus(str, enum.Enum):
+    NEW = "new"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class MarketOrder(Base):
+    """Customer order from the online marketplace."""
+    __tablename__ = "market_orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    customer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    customer_phone: Mapped[str] = mapped_column(String(50), nullable=False)
+    total_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    status: Mapped[MarketOrderStatus] = mapped_column(
+        SAEnum(MarketOrderStatus, values_callable=lambda x: [e.value for e in x]),
+        default=MarketOrderStatus.NEW,
+    )
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="market_orders")
+    items: Mapped[List["MarketOrderItem"]] = relationship(
+        "MarketOrderItem", back_populates="order", cascade="all, delete-orphan"
+    )
+
+
+class MarketOrderItem(Base):
+    """Individual item in a market order."""
+    __tablename__ = "market_order_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("market_orders.id", ondelete="CASCADE"), nullable=False
+    )
+    product_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True
+    )
+    product_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    image: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+    order: Mapped["MarketOrder"] = relationship(
+        "MarketOrder", back_populates="items"
+    )
+    product: Mapped[Optional["Product"]] = relationship(
+        "Product", back_populates="order_items"
+    )

@@ -7,6 +7,7 @@ from app.config import settings
 from app.db.session import engine
 from app.web.auth import AdminAuth
 from app.web.tma_routes import router as tma_router
+from app.web.marketplace_routes import router as marketplace_router
 from app.web.views import (
     AsphaltTypeAdmin,
     ExpenseAdmin,
@@ -39,6 +40,7 @@ admin.add_view(RegionAdmin)
 
 # Include TMA routes and redirects AFTER SQLAdmin to override /admin
 app.include_router(tma_router)
+app.include_router(marketplace_router)
 
 
 @app.get("/")
