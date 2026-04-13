@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models import AuditLog, Region, User, UserRole
 
@@ -12,13 +13,17 @@ class UserService:
 
     async def get_by_telegram_id(self, telegram_id: int) -> Optional[User]:
         result = await self.session.execute(
-            select(User).where(User.telegram_id == telegram_id)
+            select(User)
+            .options(selectinload(User.region))
+            .where(User.telegram_id == telegram_id)
         )
         return result.scalar_one_or_none()
 
     async def get_by_id(self, user_id: int) -> Optional[User]:
         result = await self.session.execute(
-            select(User).where(User.id == user_id)
+            select(User)
+            .options(selectinload(User.region))
+            .where(User.id == user_id)
         )
         return result.scalar_one_or_none()
 
