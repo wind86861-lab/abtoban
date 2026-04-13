@@ -46,6 +46,7 @@ def get_main_menu(role: UserRole, lang: str = "uz_lat") -> ReplyKeyboardMarkup:
         )
         builder.row(
             KeyboardButton(text=t("btn_settings", lang)),
+            KeyboardButton(text=t("btn_web_panel", lang)),
         )
 
     elif role == UserRole.HELPER_ADMIN:

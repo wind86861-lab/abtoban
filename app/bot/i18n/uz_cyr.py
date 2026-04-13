@@ -500,6 +500,8 @@ STRINGS = {
     "not_priced_yet": "❌ Нарх ҳали белгиланмаган.",
     "delivery_confirmed": "✅ <b>Етказилди деб тасдиқланди!</b>\n\n📦 {amount} тонна материал\nУста хабардор қилинди.",
 
+    "btn_web_panel": "🌐 Web panel",
+
     # ── Region / viloyat ──
     "no_regions": "⚠️ Вилоятлар ҳали созланмаган. Админ билан боғ'ланинг.",
     "select_region": "📍 Вилоятни танланг:",

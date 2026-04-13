@@ -1,10 +1,12 @@
 from aiogram import F, Router
 from aiogram.types import Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.filters import RoleFilter
-from app.bot.i18n import t
+from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.keyboards.finance import get_admin_material_requests_keyboard
 from app.bot.keyboards.menus import get_main_menu
+from app.config import settings
 from app.db.models import MANAGEMENT_ROLES, User, UserRole
 from app.services.material_service import MaterialService
 
@@ -16,6 +18,24 @@ from .role_management import router as role_mgmt_router
 from .settings import router as settings_router
 
 router = Router()
+
+
+@router.message(
+    F.text.in_(ALL_BUTTON_TEXTS.get("btn_web_panel", set())),
+    RoleFilter(*MANAGEMENT_ROLES),
+)
+async def web_panel_link(message: Message, user: User, lang: str) -> None:
+    url = f"{settings.WEB_URL}/admin"
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🌐 Admin panelni ochish", url=url)
+    await message.answer(
+        f"🌐 <b>Web Admin Panel</b>\n\n"
+        f"🔗 {url}\n\n"
+        f"👤 Login: <code>{settings.ADMIN_USERNAME}</code>\n"
+        f"🔑 Parol: <code>{settings.ADMIN_PASSWORD}</code>\n\n"
+        f"ℹ️ Brauzerda oching yoki quyidagi tugmani bosing.",
+        reply_markup=builder.as_markup(),
+    )
 
 
 @router.message(F.text.contains("Material so"), RoleFilter(*MANAGEMENT_ROLES))

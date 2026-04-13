@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "admin123"
     SECRET_KEY: str = "change-me-in-production-32-chars!!"
     WEB_PORT: int = 8000
+    WEB_URL: str = "http://91.229.91.147:8000"
 
     # App
     DEBUG: bool = False
