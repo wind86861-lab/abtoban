@@ -27,6 +27,7 @@ async def root():
 
 
 @app.get("/admin")
+@app.get("/admin/")
 async def admin_redirect():
     return RedirectResponse(url="/tma-admin")
 
@@ -39,7 +40,7 @@ admin = Admin(
     engine=engine,
     authentication_backend=authentication_backend,
     title="🏗 Avtoban Admin",
-    base_url="/admin",
+    base_url="/sqladmin",
 )
 
 admin.add_view(UserAdmin)
