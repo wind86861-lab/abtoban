@@ -6,7 +6,7 @@ from app.bot.filters import RoleFilter
 from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.keyboards.finance import get_admin_material_requests_keyboard
 from app.bot.keyboards.menus import get_main_menu
-from app.config import settings
+from app.config import settings as config
 from app.db.models import MANAGEMENT_ROLES, User, UserRole
 from app.services.material_service import MaterialService
 
@@ -26,13 +26,13 @@ router = Router()
 )
 async def web_panel_link(message: Message, user: User, lang: str) -> None:
     from aiogram.types import WebAppInfo
-    url = f"{settings.WEB_URL}/admin"
+    url = f"{config.WEB_URL}/admin"
     builder = InlineKeyboardBuilder()
     builder.button(text="🌐 Admin Panel", web_app=WebAppInfo(url=url))
     await message.answer(
         f"🌐 <b>Web Admin Panel</b>\n\n"
-        f" Login: <code>{settings.ADMIN_USERNAME}</code>\n"
-        f"🔑 Parol: <code>{settings.ADMIN_PASSWORD}</code>\n\n"
+        f"👤 Login: <code>{config.ADMIN_USERNAME}</code>\n"
+        f"🔑 Parol: <code>{config.ADMIN_PASSWORD}</code>\n\n"
         f"ℹ️ Quyidagi tugmani bosing — Telegram ichida ochiladi.",
         reply_markup=builder.as_markup(),
     )
