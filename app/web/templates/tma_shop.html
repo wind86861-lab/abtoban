@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>Avtoban Do'kon</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * {
       margin: 0;
@@ -788,6 +790,100 @@
       margin-bottom: 8px
     }
 
+    /* ── LOCATION PICKER ── */
+    .loc-section {
+      margin-bottom: 12px
+    }
+
+    .loc-section h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .loc-btn {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px dashed var(--accent);
+      border-radius: 10px;
+      background: rgba(53, 99, 233, .04);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: .2s;
+      margin-bottom: 8px
+    }
+
+    .loc-btn:hover {
+      background: rgba(53, 99, 233, .1)
+    }
+
+    .loc-btn.has-loc {
+      border-style: solid;
+      background: rgba(16, 185, 129, .06);
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .loc-map-wrap {
+      width: 100%;
+      height: 200px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+      margin-bottom: 8px;
+      display: none;
+      position: relative
+    }
+
+    .loc-map-wrap.show {
+      display: block
+    }
+
+    .loc-map-wrap .leaflet-container {
+      width: 100%;
+      height: 100%
+    }
+
+    .loc-address {
+      font-size: 12px;
+      color: var(--hint);
+      padding: 4px 0;
+      display: none;
+      line-height: 1.5
+    }
+
+    .loc-address.show {
+      display: block
+    }
+
+    .loc-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -100%);
+      z-index: 999;
+      font-size: 32px;
+      pointer-events: none;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .3))
+    }
+
+    .loc-hint {
+      font-size: 11px;
+      color: var(--hint);
+      text-align: center;
+      margin-bottom: 6px
+    }
+
     /* ── SUCCESS ── */
     .success-view {
       text-align: center;
@@ -1358,6 +1454,11 @@
       portfolios: [],
       pfSlideIdx: 0,
       pfSlideImgs: [],
+      locLat: null,
+      locLng: null,
+      locAddr: '',
+      locMap: null,
+      locMarker: null,
     };
 
     function saveCart() { localStorage.setItem('avtoban_cart', JSON.stringify(S.cart)); updateCartBadge(); }
@@ -1592,8 +1693,23 @@
       <input class="form-input" id="co-name" placeholder="Ismingiz" value=""/>
       <input class="form-input" id="co-phone" type="tel" placeholder="Telefon raqam *" value=""/>
       <textarea class="form-input" id="co-comment" placeholder="Izoh (ixtiyoriy)"></textarea>
+      <div class="loc-section">
+        <h4>📍 Манзил (локация) *</h4>
+        <button class="loc-btn ${S.locLat ? 'has-loc' : ''}" id="loc-btn" onclick="getLocation()" type="button">
+          ${S.locLat ? '✅ Локация белгиланган' : '📍 Локациямни юбориш'}
+        </button>
+        <div class="loc-map-wrap ${S.locLat ? 'show' : ''}" id="loc-map-wrap">
+          <div id="loc-map" style="width:100%;height:100%"></div>
+          <div class="loc-crosshair">📍</div>
+        </div>
+        <div class="loc-hint ${S.locLat ? '' : ''}" id="loc-hint" style="${S.locLat ? '' : 'display:none'}">Харитани суриб манзилни аниқланг</div>
+        <div class="loc-address ${S.locAddr ? 'show' : ''}" id="loc-addr">${S.locAddr || ''}</div>
+      </div>
       <div class="error-msg" id="co-error"></div>
     </div>`;
+
+      // Re-init map if location was already set
+      setTimeout(() => { if (S.locLat && S.locMap === null) initLocMap(S.locLat, S.locLng); }, 100);
 
       footer.innerHTML = `
     <div class="cart-total">
@@ -1613,18 +1729,93 @@
       saveCart(); renderCart(); renderProducts();
     }
 
+    /* ══ LOCATION PICKER ══ */
+    function getLocation() {
+      const btn = document.getElementById('loc-btn');
+      btn.textContent = '⏳ Аниқланмоқда...';
+      btn.disabled = true;
+
+      if (!navigator.geolocation) {
+        btn.textContent = '❌ Геолокация қўлланилмайди';
+        btn.disabled = false;
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          S.locLat = pos.coords.latitude;
+          S.locLng = pos.coords.longitude;
+          btn.textContent = '✅ Локация белгиланган';
+          btn.classList.add('has-loc');
+          btn.disabled = false;
+
+          document.getElementById('loc-map-wrap').classList.add('show');
+          document.getElementById('loc-hint').style.display = 'block';
+
+          // Destroy old map if exists
+          if (S.locMap) { S.locMap.remove(); S.locMap = null; }
+          initLocMap(S.locLat, S.locLng);
+          reverseGeocode(S.locLat, S.locLng);
+          if (tg) tg.HapticFeedback?.impactOccurred('medium');
+        },
+        (err) => {
+          console.error(err);
+          btn.textContent = '📍 Локациямни юбориш';
+          btn.disabled = false;
+          const errEl = document.getElementById('co-error');
+          if (err.code === 1) errEl.textContent = 'Локацияга рухсат берилмади. Созламалардан рухсат беринг.';
+          else errEl.textContent = 'Локацияни аниқлаб бўлмади. Қайта уриниб кўринг.';
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    function initLocMap(lat, lng) {
+      const map = L.map('loc-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      S.locMap = map;
+
+      // On map move, update location from center
+      map.on('moveend', () => {
+        const c = map.getCenter();
+        S.locLat = c.lat;
+        S.locLng = c.lng;
+        reverseGeocode(c.lat, c.lng);
+      });
+
+      // Fix Leaflet rendering inside hidden/dynamic containers
+      setTimeout(() => map.invalidateSize(), 200);
+    }
+
+    let _geoTimer = null;
+    function reverseGeocode(lat, lng) {
+      clearTimeout(_geoTimer);
+      _geoTimer = setTimeout(async () => {
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=uz`);
+          const d = await r.json();
+          S.locAddr = d.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        } catch (e) {
+          S.locAddr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        }
+        const el = document.getElementById('loc-addr');
+        if (el) { el.textContent = '📍 ' + S.locAddr; el.classList.add('show'); }
+      }, 400);
+    }
+
     async function doCheckout() {
       const phone = document.getElementById('co-phone')?.value.trim();
       const name = document.getElementById('co-name')?.value.trim();
       const comment = document.getElementById('co-comment')?.value.trim();
       const errEl = document.getElementById('co-error');
 
-      if (!phone) { errEl.textContent = 'Telefon raqamni kiriting!'; return; }
-      if (phone.length < 7) { errEl.textContent = 'Telefon raqam noto\'g\'ri'; return; }
+      if (!phone) { errEl.textContent = 'Телефон рақамни киритинг!'; return; }
+      if (phone.length < 7) { errEl.textContent = 'Телефон рақам нотўғри'; return; }
+      if (!S.locLat) { errEl.textContent = 'Илтимос, локациянгизни юборинг!'; return; }
       errEl.textContent = '';
 
       const btn = document.getElementById('btn-co');
-      btn.disabled = true; btn.textContent = 'Yuborilmoqda...';
+      btn.disabled = true; btn.textContent = 'Юборилмоқда...';
 
       try {
         const res = await fetch('/market-api/shop/checkout', {
@@ -1634,11 +1825,16 @@
             customer_name: name || null,
             customer_phone: phone,
             comment: comment || null,
+            latitude: S.locLat,
+            longitude: S.locLng,
+            address: S.locAddr || null,
             items: S.cart.map(i => ({ product_id: i.id, quantity: i.qty })),
           })
         });
         if (res.ok) {
           S.cart = []; saveCart();
+          S.locLat = null; S.locLng = null; S.locAddr = '';
+          if (S.locMap) { S.locMap.remove(); S.locMap = null; }
           S.checkoutDone = true;
           renderCart();
           renderProducts();

@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from sqlalchemy import (
     BigInteger, Boolean, Column, DateTime, Enum as SAEnum,
-    ForeignKey, Integer, Numeric, String, Table, Text,
+    Float, ForeignKey, Integer, Numeric, String, Table, Text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -457,6 +457,9 @@ class MarketOrder(Base):
         default=MarketOrderStatus.NEW,
     )
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

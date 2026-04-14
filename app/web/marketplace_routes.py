@@ -99,6 +99,9 @@ class DirectCheckoutRequest(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: str
     comment: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    address: Optional[str] = None
     items: List[DirectCheckoutItem]
 
 
@@ -595,6 +598,9 @@ async def get_market_order(order_id: int):
             "total_price": float(order.total_price),
             "status": order.status.value,
             "comment": order.comment,
+            "latitude": order.latitude,
+            "longitude": order.longitude,
+            "address": order.address,
             "created_at": order.created_at.isoformat() if order.created_at else None,
             "items": [
                 {
@@ -699,6 +705,9 @@ async def direct_checkout(data: DirectCheckoutRequest):
             customer_phone=data.customer_phone,
             total_price=total,
             comment=data.comment,
+            latitude=data.latitude,
+            longitude=data.longitude,
+            address=data.address,
             items=order_items,
         )
         session.add(order)
