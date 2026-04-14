@@ -86,6 +86,18 @@ class CheckoutRequest(BaseModel):
     comment: Optional[str] = None
 
 
+class DirectCheckoutItem(BaseModel):
+    product_id: int
+    quantity: int
+
+
+class DirectCheckoutRequest(BaseModel):
+    customer_name: Optional[str] = None
+    customer_phone: str
+    comment: Optional[str] = None
+    items: List[DirectCheckoutItem]
+
+
 class MarketOrderStatusUpdate(BaseModel):
     status: MarketOrderStatus
 
@@ -577,3 +589,63 @@ async def get_user_market_orders(user_id: int):
             }
             for o in orders
         ]
+
+
+@router.post("/shop/checkout")
+async def direct_checkout(data: DirectCheckoutRequest):
+    """Direct checkout from web shop (client-side cart). No user_id required."""
+    async with async_session_maker() as session:
+        if not data.items:
+            raise HTTPException(status_code=400, detail="Savat bo'sh")
+
+        total = Decimal(0)
+        order_items = []
+
+        for cart_item in data.items:
+            product = await session.get(Product, cart_item.product_id)
+            if not product or not product.is_active:
+                continue
+
+            price = product.price
+            if product.discount_value and product.discount_type:
+                if product.discount_type == "percentage":
+                    price = price * (1 - product.discount_value / 100)
+                else:
+                    price = max(Decimal(0), price - product.discount_value)
+
+            subtotal = price * cart_item.quantity
+            total += subtotal
+
+            order_items.append(
+                MarketOrderItem(
+                    product_id=product.id,
+                    product_name=product.name_uz,
+                    price=price,
+                    quantity=cart_item.quantity,
+                    image=product.images.split(",")[0] if product.images else None,
+                )
+            )
+
+        if not order_items:
+            raise HTTPException(status_code=400, detail="Mahsulotlar topilmadi")
+
+        # Find or create a guest user for web orders
+        guest = (await session.execute(
+            select(User).where(User.phone == data.customer_phone)
+        )).scalar_one_or_none()
+
+        user_id = guest.id if guest else 0
+
+        order = MarketOrder(
+            user_id=user_id if user_id else 1,
+            customer_name=data.customer_name,
+            customer_phone=data.customer_phone,
+            total_price=total,
+            comment=data.comment,
+            items=order_items,
+        )
+        session.add(order)
+        await session.commit()
+        await session.refresh(order)
+
+        return {"ok": True, "order_id": order.id}

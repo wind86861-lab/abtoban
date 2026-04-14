@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Avtoban Do'kon</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#1e3d69;--accent:#3563e9;--accent-hover:#2952d1;
+  --green:#10b981;--red:#ef4444;--orange:#f59e0b;
+  --bg:#f3f4f6;--card:#fff;--border:#e5e7eb;
+  --text:#111827;--hint:#6b7280;--light:#9ca3af;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:16px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header-right{display:flex;align-items:center;gap:12px}
+.cart-btn{position:relative;background:rgba(255,255,255,.15);border:none;color:#fff;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:.2s}
+.cart-btn:hover{background:rgba(255,255,255,.25)}
+.cart-badge{position:absolute;top:-2px;right:-2px;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* ── SEARCH ── */
+.search-wrap{padding:12px 16px;background:var(--bg);position:sticky;top:74px;z-index:90}
+.search-box{position:relative}
+.search-box input{width:100%;padding:10px 16px 10px 40px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;transition:.2s}
+.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(53,99,233,.12)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--light);font-size:16px}
+
+/* ── CATEGORIES ── */
+.cat-bar{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-bar::-webkit-scrollbar{display:none}
+.cat-pill{flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid var(--border);background:#fff;color:var(--hint);cursor:pointer;transition:.2s;white-space:nowrap}
+.cat-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cat-pill:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+
+/* ── PRODUCT GRID ── */
+.products{padding:0 12px 100px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:600px){.products{grid-template-columns:repeat(3,1fr);gap:16px;padding:0 20px 100px}}
+@media(min-width:900px){.products{grid-template-columns:repeat(4,1fr)}}
+
+.prod-card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:.2s;cursor:pointer;display:flex;flex-direction:column}
+.prod-card:active{transform:scale(.98)}
+.prod-img{width:100%;aspect-ratio:1;background:#f9fafb;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.prod-img img{width:100%;height:100%;object-fit:cover}
+.prod-img .no-img{font-size:40px;color:#e5e7eb}
+.prod-badge{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:4px}
+.badge-sale{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
+.badge-feat{background:var(--orange);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
+.prod-info{padding:10px 12px;flex:1;display:flex;flex-direction:column}
+.prod-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px}
+.prod-cat{font-size:11px;color:var(--light);margin-bottom:4px}
+.prod-prices{margin-top:auto;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.prod-price{font-size:15px;font-weight:700;color:var(--primary)}
+.prod-old{font-size:12px;color:var(--light);text-decoration:line-through}
+.prod-stock{font-size:11px;color:var(--green);margin-top:4px}
+.prod-out{font-size:11px;color:var(--red);margin-top:4px}
+.prod-add{width:100%;padding:8px;border:none;border-top:1px solid var(--border);background:#fff;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.prod-add:hover{background:var(--accent);color:#fff}
+.prod-add.added{background:var(--green);color:#fff}
+
+/* ── PRODUCT DETAIL MODAL ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:.25s;display:flex;align-items:flex-end;justify-content:center}
+.modal-ov.show{opacity:1;pointer-events:auto}
+.modal-sheet{background:#fff;border-radius:20px 20px 0 0;max-height:92vh;width:100%;max-width:500px;overflow-y:auto;transform:translateY(100%);transition:.3s}
+.modal-ov.show .modal-sheet{transform:translateY(0)}
+@media(min-width:600px){.modal-sheet{border-radius:16px;max-height:85vh;margin-bottom:20px}}
+.modal-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.06);border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5}
+.detail-img{width:100%;aspect-ratio:4/3;background:#f9fafb;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.detail-img img{width:100%;height:100%;object-fit:cover}
+.detail-body{padding:20px}
+.detail-cat{font-size:12px;color:var(--light);margin-bottom:4px}
+.detail-name{font-size:20px;font-weight:700;color:var(--primary);margin-bottom:8px}
+.detail-prices{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+.detail-price{font-size:22px;font-weight:800;color:var(--accent)}
+.detail-old{font-size:14px;color:var(--light);text-decoration:line-through}
+.detail-discount{font-size:12px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:6px}
+.detail-desc{font-size:14px;color:var(--hint);line-height:1.6;margin-bottom:16px}
+.detail-stock{font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:16px}
+.detail-stock.in{background:#ecfdf5;color:var(--green)}
+.detail-stock.out{background:#fef2f2;color:var(--red)}
+.qty-row{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.qty-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.qty-btn:hover{border-color:var(--accent);color:var(--accent)}
+.qty-val{font-size:18px;font-weight:700;min-width:30px;text-align:center}
+.btn-add-cart{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:.2s}
+.btn-add-cart:hover{background:var(--accent-hover)}
+.btn-add-cart:disabled{background:#d1d5db;cursor:not-allowed}
+
+/* ── CART VIEW ── */
+.cart-view{position:fixed;inset:0;background:#fff;z-index:300;transform:translateX(100%);transition:.3s}
+.cart-view.open{transform:translateX(0)}
+.cart-header{background:var(--primary);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px}
+.cart-back{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px}
+.cart-title{font-size:18px;font-weight:700;flex:1}
+.cart-clear{background:none;border:none;color:rgba(255,255,255,.7);font-size:13px;cursor:pointer}
+.cart-body{padding:16px;overflow-y:auto;flex:1}
+.cart-empty{text-align:center;padding:60px 20px;color:var(--hint)}
+.cart-empty-ico{font-size:64px;margin-bottom:16px;opacity:.4}
+.cart-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.cart-item-img{width:64px;height:64px;border-radius:8px;background:#f9fafb;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.cart-item-img img{width:100%;height:100%;object-fit:cover}
+.cart-item-info{flex:1;min-width:0}
+.cart-item-name{font-size:13px;font-weight:600;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cart-item-price{font-size:14px;font-weight:700;color:var(--primary)}
+.cart-item-qty{display:flex;align-items:center;gap:8px;margin-top:6px}
+.cart-item-qty button{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cart-item-qty span{font-weight:600;font-size:14px;min-width:20px;text-align:center}
+.cart-item-remove{background:none;border:none;color:var(--light);cursor:pointer;padding:4px;font-size:16px}
+.cart-item-remove:hover{color:var(--red)}
+.cart-footer{padding:16px 20px;border-top:2px solid var(--border);background:#fff}
+.cart-total{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cart-total-label{font-size:16px;font-weight:600;color:var(--hint)}
+.cart-total-val{font-size:22px;font-weight:800;color:var(--primary)}
+
+/* ── CHECKOUT ── */
+.checkout-section{padding:16px}
+.checkout-section h3{font-size:16px;font-weight:700;color:var(--primary);margin-bottom:12px}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:.2s;margin-bottom:10px;background:#fff}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(53,99,233,.1)}
+textarea.form-input{resize:none;min-height:60px}
+.btn-checkout{width:100%;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:.2s}
+.btn-checkout:hover{background:#059669}
+.btn-checkout:disabled{background:#d1d5db;cursor:not-allowed}
+.error-msg{color:var(--red);font-size:13px;margin-bottom:8px}
+
+/* ── SUCCESS ── */
+.success-view{text-align:center;padding:60px 20px}
+.success-ico{font-size:72px;margin-bottom:16px}
+.success-title{font-size:22px;font-weight:700;color:var(--primary);margin-bottom:8px}
+.success-desc{font-size:14px;color:var(--hint);margin-bottom:24px}
+.btn-continue{padding:14px 32px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;color:var(--hint)}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--hint)}
+.empty-state .ico{font-size:48px;margin-bottom:12px;opacity:.5}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <div>Yuklanmoqda...</div>
+</div>
+
+<div id="app" style="display:none">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title">🏗 Avtoban Do'kon</div>
+    <div class="header-right">
+      <button class="cart-btn" onclick="openCart()">
+        🛒
+        <span class="cart-badge" id="cart-count" style="display:none">0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Mahsulot qidirish..." oninput="handleSearch(this.value)"/>
+    </div>
+  </div>
+
+  <!-- CATEGORY PILLS -->
+  <div class="cat-bar" id="cat-bar"></div>
+
+  <!-- PRODUCT GRID -->
+  <div class="products" id="products-grid"></div>
+
+</div>
+
+<!-- PRODUCT DETAIL MODAL -->
+<div class="modal-ov" id="detail-modal" onclick="if(event.target===this)closeDetail()">
+  <div class="modal-sheet">
+    <button class="modal-close" onclick="closeDetail()">✕</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- CART VIEW -->
+<div class="cart-view" id="cart-view">
+  <div style="display:flex;flex-direction:column;height:100%">
+    <div class="cart-header">
+      <button class="cart-back" onclick="closeCart()">←</button>
+      <div class="cart-title">🛒 Savat</div>
+      <button class="cart-clear" onclick="clearCart()">Tozalash</button>
+    </div>
+    <div class="cart-body" id="cart-body"></div>
+    <div class="cart-footer" id="cart-footer"></div>
+  </div>
+</div>
+
+<script>
+const tg=window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();}
+
+/* ══ STATE ══ */
+const S={
+  categories:[],
+  products:[],
+  allProducts:[],
+  activeCat:'',
+  search:'',
+  cart:JSON.parse(localStorage.getItem('avtoban_cart')||'[]'),
+  checkoutDone:false,
+};
+
+function saveCart(){localStorage.setItem('avtoban_cart',JSON.stringify(S.cart));updateCartBadge();}
+function updateCartBadge(){
+  const n=S.cart.reduce((s,i)=>s+i.qty,0);
+  const el=document.getElementById('cart-count');
+  el.textContent=n;el.style.display=n>0?'flex':'none';
+}
+
+function fmt(n){return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
+function finalPrice(p){
+  if(!p.discount_value)return p.price;
+  if(p.discount_type==='percentage')return p.price*(1-p.discount_value/100);
+  return Math.max(0,p.price-p.discount_value);
+}
+
+/* ══ DATA LOADING ══ */
+async function loadData(){
+  try{
+    const[cats,prods]=await Promise.all([
+      fetch('/market-api/categories?active_only=true').then(r=>r.json()),
+      fetch('/market-api/products?active_only=true&limit=500').then(r=>r.json()),
+    ]);
+    S.categories=cats;
+    S.allProducts=prods;
+    S.products=prods;
+    renderCategories();
+    renderProducts();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='block';
+    updateCartBadge();
+  }catch(e){console.error(e);}
+}
+
+/* ══ CATEGORIES ══ */
+function renderCategories(){
+  const bar=document.getElementById('cat-bar');
+  const pills=[{id:'',name:'Barchasi'},...S.categories.map(c=>({id:c.id,name:c.name_uz}))];
+  bar.innerHTML=pills.map(c=>`<div class="cat-pill${S.activeCat==c.id?' active':''}" onclick="filterCat('${c.id}')">${c.name}</div>`).join('');
+}
+
+function filterCat(id){
+  S.activeCat=id;
+  renderCategories();
+  applyFilters();
+}
+
+function handleSearch(val){
+  S.search=val.toLowerCase().trim();
+  applyFilters();
+}
+
+function applyFilters(){
+  let prods=S.allProducts;
+  if(S.activeCat)prods=prods.filter(p=>p.category_id==S.activeCat);
+  if(S.search)prods=prods.filter(p=>(p.name_uz+' '+p.name_ru+' '+(p.description_uz||'')).toLowerCase().includes(S.search));
+  S.products=prods;
+  renderProducts();
+}
+
+/* ══ PRODUCTS ══ */
+function renderProducts(){
+  const grid=document.getElementById('products-grid');
+  if(!S.products.length){
+    grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="ico">📦</div>Mahsulotlar topilmadi</div>';
+    return;
+  }
+  grid.innerHTML=S.products.map(p=>{
+    const fp=finalPrice(p);
+    const hasDisc=p.discount_value&&p.discount_value>0;
+    const discPct=p.discount_type==='percentage'?Math.round(p.discount_value):Math.round((1-fp/p.price)*100);
+    const img=p.images&&p.images.length?p.images[0]:null;
+    const inCart=S.cart.find(c=>c.id===p.id);
+    return`<div class="prod-card" onclick="showDetail(${p.id})">
+      <div class="prod-img">
+        ${img?`<img src="${img}" alt="" loading="lazy"/>`:'<div class="no-img">📦</div>'}
+        <div class="prod-badge">
+          ${hasDisc?`<span class="badge-sale">-${discPct}%</span>`:''}
+          ${p.is_featured?'<span class="badge-feat">⭐</span>':''}
+        </div>
+      </div>
+      <div class="prod-info">
+        ${p.category_name?`<div class="prod-cat">${p.category_name}</div>`:''}
+        <div class="prod-name">${p.name_uz}</div>
+        <div class="prod-prices">
+          <span class="prod-price">${fmt(fp)} so'm</span>
+          ${hasDisc?`<span class="prod-old">${fmt(p.price)}</span>`:''}
+        </div>
+        ${p.stock>0?`<div class="prod-stock">✓ Mavjud (${p.stock})</div>`:'<div class="prod-out">Tugagan</div>'}
+      </div>
+      <button class="prod-add${inCart?' added':''}" onclick="event.stopPropagation();quickAdd(${p.id})">
+        ${inCart?'✓ Savatda':'🛒 Savatga'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function quickAdd(id){
+  const p=S.allProducts.find(x=>x.id===id);
+  if(!p||p.stock<=0)return;
+  addToCart(p,1);
+  renderProducts();
+}
+
+/* ══ PRODUCT DETAIL ══ */
+function showDetail(id){
+  const p=S.allProducts.find(x=>x.id===id);if(!p)return;
+  const fp=finalPrice(p);
+  const hasDisc=p.discount_value&&p.discount_value>0;
+  const discPct=p.discount_type==='percentage'?Math.round(p.discount_value):Math.round((1-fp/p.price)*100);
+  const img=p.images&&p.images.length?p.images[0]:null;
+  const inCart=S.cart.find(c=>c.id===p.id);
+
+  document.getElementById('detail-content').innerHTML=`
+    <div class="detail-img">
+      ${img?`<img src="${img}" alt=""/>`:'<div style="font-size:80px;color:#e5e7eb">📦</div>'}
+    </div>
+    <div class="detail-body">
+      ${p.category_name?`<div class="detail-cat">${p.category_name}</div>`:''}
+      <div class="detail-name">${p.name_uz}</div>
+      <div class="detail-prices">
+        <span class="detail-price">${fmt(fp)} so'm</span>
+        ${hasDisc?`<span class="detail-old">${fmt(p.price)} so'm</span><span class="detail-discount">-${discPct}%</span>`:''}
+      </div>
+      ${p.description_uz?`<div class="detail-desc">${p.description_uz}</div>`:''}
+      <div class="detail-stock ${p.stock>0?'in':'out'}">
+        ${p.stock>0?`📦 Omborda: ${p.stock} dona`:'❌ Hozircha tugagan'}
+      </div>
+      ${p.stock>0?`
+        <div class="qty-row">
+          <button class="qty-btn" onclick="detailQty(-1)">−</button>
+          <span class="qty-val" id="detail-qty">1</span>
+          <button class="qty-btn" onclick="detailQty(1)">+</button>
+        </div>
+        <button class="btn-add-cart" onclick="detailAdd(${p.id})">
+          ${inCart?'✓ Yana qo\'shish':'🛒 Savatga qo\'shish'}
+        </button>
+      `:`<button class="btn-add-cart" disabled>Mavjud emas</button>`}
+    </div>`;
+  document.getElementById('detail-modal').classList.add('show');
+}
+
+let _detailQty=1;
+function detailQty(d){
+  _detailQty=Math.max(1,_detailQty+d);
+  const el=document.getElementById('detail-qty');
+  if(el)el.textContent=_detailQty;
+}
+function detailAdd(id){
+  const p=S.allProducts.find(x=>x.id===id);if(!p)return;
+  addToCart(p,_detailQty);
+  _detailQty=1;
+  closeDetail();
+  renderProducts();
+}
+function closeDetail(){document.getElementById('detail-modal').classList.remove('show');_detailQty=1;}
+
+/* ══ CART ══ */
+function addToCart(product,qty){
+  const fp=finalPrice(product);
+  const img=product.images&&product.images.length?product.images[0]:null;
+  const existing=S.cart.find(c=>c.id===product.id);
+  if(existing){
+    existing.qty+=qty;
+  }else{
+    S.cart.push({id:product.id,name:product.name_uz,price:fp,originalPrice:product.price,img,qty,stock:product.stock});
+  }
+  saveCart();
+  if(tg)tg.HapticFeedback?.impactOccurred('light');
+}
+
+function openCart(){
+  S.checkoutDone=false;
+  renderCart();
+  document.getElementById('cart-view').classList.add('open');
+}
+function closeCart(){document.getElementById('cart-view').classList.remove('open');}
+
+function clearCart(){
+  if(!S.cart.length)return;
+  S.cart=[];saveCart();renderCart();renderProducts();
+}
+
+function renderCart(){
+  const body=document.getElementById('cart-body');
+  const footer=document.getElementById('cart-footer');
+
+  if(S.checkoutDone){
+    body.innerHTML=`
+      <div class="success-view">
+        <div class="success-ico">✅</div>
+        <div class="success-title">Buyurtma qabul qilindi!</div>
+        <div class="success-desc">Tez orada siz bilan bog'lanamiz.<br>Rahmat!</div>
+        <button class="btn-continue" onclick="closeCart();S.checkoutDone=false;">🛍 Xaridni davom ettirish</button>
+      </div>`;
+    footer.innerHTML='';
+    return;
+  }
+
+  if(!S.cart.length){
+    body.innerHTML=`
+      <div class="cart-empty">
+        <div class="cart-empty-ico">🛒</div>
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px">Savat bo'sh</div>
+        <div style="font-size:14px">Mahsulotlarni katalogdan qo'shing</div>
+      </div>`;
+    footer.innerHTML='';
+    return;
+  }
+
+  const total=S.cart.reduce((s,i)=>s+i.price*i.qty,0);
+
+  body.innerHTML=S.cart.map(item=>`
+    <div class="cart-item">
+      <div class="cart-item-img">
+        ${item.img?`<img src="${item.img}"/>`:'📦'}
+      </div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${fmt(item.price)} so'm</div>
+        <div class="cart-item-qty">
+          <button onclick="cartQty(${item.id},-1)">−</button>
+          <span>${item.qty}</span>
+          <button onclick="cartQty(${item.id},1)">+</button>
+          <span style="margin-left:auto;font-size:13px;color:var(--hint)">${fmt(item.price*item.qty)} so'm</span>
+        </div>
+      </div>
+      <button class="cart-item-remove" onclick="cartRemove(${item.id})">🗑</button>
+    </div>`).join('')+`
+    <div class="checkout-section">
+      <h3>📋 Buyurtma ma'lumotlari</h3>
+      <input class="form-input" id="co-name" placeholder="Ismingiz" value=""/>
+      <input class="form-input" id="co-phone" type="tel" placeholder="Telefon raqam *" value=""/>
+      <textarea class="form-input" id="co-comment" placeholder="Izoh (ixtiyoriy)"></textarea>
+      <div class="error-msg" id="co-error"></div>
+    </div>`;
+
+  footer.innerHTML=`
+    <div class="cart-total">
+      <span class="cart-total-label">Jami:</span>
+      <span class="cart-total-val">${fmt(total)} so'm</span>
+    </div>
+    <button class="btn-checkout" id="btn-co" onclick="doCheckout()">📦 Buyurtma berish</button>`;
+}
+
+function cartQty(id,d){
+  const item=S.cart.find(c=>c.id===id);if(!item)return;
+  item.qty=Math.max(1,item.qty+d);
+  saveCart();renderCart();renderProducts();
+}
+function cartRemove(id){
+  S.cart=S.cart.filter(c=>c.id!==id);
+  saveCart();renderCart();renderProducts();
+}
+
+async function doCheckout(){
+  const phone=document.getElementById('co-phone')?.value.trim();
+  const name=document.getElementById('co-name')?.value.trim();
+  const comment=document.getElementById('co-comment')?.value.trim();
+  const errEl=document.getElementById('co-error');
+
+  if(!phone){errEl.textContent='Telefon raqamni kiriting!';return;}
+  if(phone.length<7){errEl.textContent='Telefon raqam noto\'g\'ri';return;}
+  errEl.textContent='';
+
+  const btn=document.getElementById('btn-co');
+  btn.disabled=true;btn.textContent='Yuborilmoqda...';
+
+  try{
+    const res=await fetch('/market-api/shop/checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        customer_name:name||null,
+        customer_phone:phone,
+        comment:comment||null,
+        items:S.cart.map(i=>({product_id:i.id,quantity:i.qty})),
+      })
+    });
+    if(res.ok){
+      S.cart=[];saveCart();
+      S.checkoutDone=true;
+      renderCart();
+      renderProducts();
+      if(tg)tg.HapticFeedback?.notificationOccurred('success');
+    }else{
+      const d=await res.json().catch(()=>({}));
+      errEl.textContent=d.detail||'Xatolik yuz berdi';
+      btn.disabled=false;btn.textContent='📦 Buyurtma berish';
+    }
+  }catch(e){
+    errEl.textContent='Internet bilan muammo';
+    btn.disabled=false;btn.textContent='📦 Buyurtma berish';
+  }
+}
+
+/* ══ INIT ══ */
+loadData();
+</script>
+</body>
+</html>
