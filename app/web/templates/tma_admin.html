@@ -757,7 +757,7 @@
       <button class="nav-btn" data-tab="morders" onclick="switchTab('morders',this)"><span
           class="nav-icon">📦</span>Do'kon buyurtma</button>
       <button class="nav-btn" data-tab="portfolio" onclick="switchTab('portfolio',this)"><span
-          class="nav-icon">🏗</span>Portfolio</button>
+          class="nav-icon">🏗</span>Портфолио</button>
     </nav>
 
     <div class="main">
@@ -893,8 +893,8 @@
       <div class="content tab-content" id="tab-portfolio" style="display:none">
         <div class="inner">
           <div class="sec-row">
-            <div class="sec">🏗 Portfolio — Bajarilgan loyihalar</div>
-            <button class="add-btn" onclick="openPortfolioForm()">＋ Yangi loyiha</button>
+            <div class="sec">🏗 Портфолио — Бажарилган лойиҳалар</div>
+            <button class="add-btn" onclick="openPortfolioForm()">＋ Янги лойиҳа</button>
           </div>
           <div class="cards" id="portfolio-list"></div>
         </div>
@@ -921,7 +921,7 @@
       <button class="tab" data-tab="morders" onclick="switchTab('morders',this)"><span
           class="tab-ico">📦</span>Savdo</button>
       <button class="tab" data-tab="portfolio" onclick="switchTab('portfolio',this)"><span
-          class="tab-ico">🏗</span>Portfolio</button>
+          class="tab-ico">🏗</span>Портфолио</button>
     </div>
 
   </div><!-- /app -->
@@ -1008,7 +1008,7 @@
           placeholder="Ruscha nomi" /></div>
       <div class="form-group"><label class="form-label">Nomi (EN) *</label><input class="form-input" id="cm-name-en"
           placeholder="Inglizcha nomi" /></div>
-      <div class="form-group"><label class="form-label">Rasm</label><input type="file" accept="image/*"
+      <div class="form-group"><label class="form-label">Расм</label><input type="file" accept="image/*"
           class="form-input" id="cm-image-file" onchange="uploadImg(this,'cm-image-preview')" /><input type="hidden"
           id="cm-image" />
         <div id="cm-image-preview" style="margin-top:8px"></div>
@@ -1047,15 +1047,15 @@
           </select>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">Kategoriya</label><select class="form-input" id="pm-cat">
-          <option value="">— Tanlang —</option>
+      <div class="form-group"><label class="form-label">Категория</label><select class="form-input" id="pm-cat">
+          <option value="">— Танланг —</option>
         </select></div>
-      <div class="form-group"><label class="form-label">Rasmlar</label><input type="file" accept="image/*" multiple
+      <div class="form-group"><label class="form-label">Расмлар</label><input type="file" accept="image/*" multiple
           class="form-input" id="pm-images-file" onchange="uploadMultiImg(this,'pm-images-preview')" /><input
           type="hidden" id="pm-images" />
         <div id="pm-images-preview" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
-      <div class="form-group"><label class="form-label">Ombordagi soni</label><input class="form-input" id="pm-stock"
+      <div class="form-group"><label class="form-label">Омбордаги сони</label><input class="form-input" id="pm-stock"
           type="number" value="0" /></div>
       <div class="form-group" style="display:flex;gap:16px">
         <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox"
@@ -1069,31 +1069,31 @@
   <div class="modal-ov" id="pf-modal" onclick="bgClose(event,'pf-modal')">
     <div class="modal-box">
       <div class="modal-head">
-        <div class="modal-title" id="pf-title">Yangi loyiha</div><button class="close-btn"
+        <div class="modal-title" id="pf-title">Янги лойиҳа</div><button class="close-btn"
           onclick="closeModal('pf-modal')">✕</button>
       </div>
-      <div class="form-group"><label class="form-label">Nomi (UZ) *</label><input class="form-input" id="pf-name-uz"
-          placeholder="Loyiha nomi" /></div>
-      <div class="form-group"><label class="form-label">Nomi (RU)</label><input class="form-input" id="pf-name-ru"
-          placeholder="Название проекта" /></div>
-      <div class="form-group"><label class="form-label">Nomi (EN)</label><input class="form-input" id="pf-name-en"
-          placeholder="Project name" /></div>
-      <div class="form-group"><label class="form-label">Tavsif (UZ)</label><textarea class="form-input" id="pf-desc-uz"
-          placeholder="Loyiha haqida..."></textarea></div>
-      <div class="form-group"><label class="form-label">Tavsif (RU)</label><textarea class="form-input" id="pf-desc-ru"
-          placeholder="Описание..."></textarea></div>
-      <div class="form-group"><label class="form-label">Joylashuv</label><input class="form-input" id="pf-location"
-          placeholder="Toshkent, O'zbekiston" /></div>
-      <div class="form-group"><label class="form-label">Buyurtmachi</label><input class="form-input" id="pf-client"
-          placeholder="Kompaniya nomi" /></div>
-      <div class="form-group"><label class="form-label">Yil</label><input class="form-input" id="pf-year" type="number"
+      <div class="form-group"><label class="form-label">Номи (UZ) *</label><input class="form-input" id="pf-name-uz"
+          placeholder="Лойиҳа номи" /></div>
+      <div class="form-group"><label class="form-label">Номи (RU)</label><input class="form-input" id="pf-name-ru"
+          placeholder="Лойиҳа номи русча" /></div>
+      <div class="form-group"><label class="form-label">Номи (EN)</label><input class="form-input" id="pf-name-en"
+          placeholder="Лойиҳа номи инглизча" /></div>
+      <div class="form-group"><label class="form-label">Тавсиф (UZ)</label><textarea class="form-input" id="pf-desc-uz"
+          placeholder="Лойиҳа ҳақида..."></textarea></div>
+      <div class="form-group"><label class="form-label">Тавсиф (RU)</label><textarea class="form-input" id="pf-desc-ru"
+          placeholder="Лойиҳа тавсифи русча..."></textarea></div>
+      <div class="form-group"><label class="form-label">Жойлашув</label><input class="form-input" id="pf-location"
+          placeholder="Тошкент, Ўзбекистон" /></div>
+      <div class="form-group"><label class="form-label">Буюртмачи</label><input class="form-input" id="pf-client"
+          placeholder="Компания номи" /></div>
+      <div class="form-group"><label class="form-label">Йил</label><input class="form-input" id="pf-year" type="number"
           placeholder="2026" /></div>
-      <div class="form-group"><label class="form-label">Rasmlar</label><input type="file" accept="image/*" multiple
+      <div class="form-group"><label class="form-label">Расмлар</label><input type="file" accept="image/*" multiple
           class="form-input" id="pf-images-file" onchange="uploadMultiImg(this,'pf-images-preview')" /><input
           type="hidden" id="pf-images" />
         <div id="pf-images-preview" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
-      <div class="form-group"><label class="form-label">Tartib raqami</label><input class="form-input" id="pf-order"
+      <div class="form-group"><label class="form-label">Тартиб рақами</label><input class="form-input" id="pf-order"
           type="number" value="0" /></div>
       <button class="btn btn-primary btn-block" onclick="savePortfolio()">💾 Saqlash</button>
     </div>
@@ -1123,7 +1123,7 @@
       editCatId: null, editProdId: null, editPortfolioId: null,
       prodCatFilter: '', moFilter: '',
     };
-    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', categories: '📁 Kategoriyalar', products: '� Mahsulotlar', morders: '📦 Do\'kon buyurtma', portfolio: '🏗 Portfolio' };
+    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', categories: '📁 Kategoriyalar', products: '� Mahsulotlar', morders: '📦 Do\'kon buyurtma', portfolio: '🏗 Портфолио' };
 
     function fmt(n) { if (!n) return '0'; return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
     function esc(s) { return (s || '').replace(/'/g, "\\'"); }
@@ -1712,15 +1712,15 @@
       <div style="flex:1;min-width:0">
         <div class="card-head">
           <div class="card-title">🏗 ${p.title_uz}</div>
-          <span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Faol' : 'Nofaol'}</span>
+          <span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Фаол' : 'Нофаол'}</span>
         </div>
         <div class="card-sub">
-          ${p.location ? '📍 ' + p.location + '<br>' : ''}${p.client_name ? '🏢 ' + p.client_name : ''}${p.year ? ' · 📅 ' + p.year : ''}${imgs.length ? '<br>🖼 ' + imgs.length + ' ta rasm' : ''}
+          ${p.location ? '📍 ' + p.location + '<br>' : ''}${p.client_name ? '🏢 ' + p.client_name : ''}${p.year ? ' · 📅 ' + p.year : ''}${imgs.length ? '<br>🖼 ' + imgs.length + ' та расм' : ''}
         </div>
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();togglePortfolio(${p.id})">${p.is_active ? '🔴 O\'chirish' : '🟢 Yoqish'}</button>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();togglePortfolio(${p.id})">${p.is_active ? '🔴 Ўчириш' : '🟢 Ёқиш'}</button>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePortfolio(${p.id})">🗑</button>
     </div>
   </div>`;
@@ -1731,13 +1731,13 @@
         S.portfolios = await fetch('/market-api/portfolios').then(r => r.json());
         document.getElementById('portfolio-list').innerHTML = S.portfolios.length
           ? S.portfolios.map(portfolioCard).join('')
-          : empty('🏗', 'Portfolio loyihalar yo\'q — "Yangi loyiha" tugmasini bosing');
+          : empty('🏗', 'Портфолио лойиҳалар йўқ — "Янги лойиҳа" тугмасини босинг');
       } catch (e) { console.error(e); }
     }
 
     function openPortfolioForm() {
       S.editPortfolioId = null;
-      document.getElementById('pf-title').textContent = "Yangi loyiha qo'shish";
+      document.getElementById('pf-title').textContent = "Янги лойиҳа қўшиш";
       ['pf-name-uz', 'pf-name-ru', 'pf-name-en', 'pf-desc-uz', 'pf-desc-ru', 'pf-location', 'pf-client', 'pf-images'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('pf-year').value = new Date().getFullYear();
       document.getElementById('pf-order').value = '0';
@@ -1749,7 +1749,7 @@
     function editPortfolio(id) {
       const p = S.portfolios.find(x => x.id === id); if (!p) return;
       S.editPortfolioId = id;
-      document.getElementById('pf-title').textContent = 'Loyiha tahrirlash';
+      document.getElementById('pf-title').textContent = 'Лойиҳа таҳрирлаш';
       document.getElementById('pf-name-uz').value = p.title_uz;
       document.getElementById('pf-name-ru').value = p.title_ru || '';
       document.getElementById('pf-name-en').value = p.title_en || '';
@@ -1776,7 +1776,7 @@
       const year = parseInt(document.getElementById('pf-year').value) || null;
       const images = document.getElementById('pf-images').value.trim() || null;
       const order = parseInt(document.getElementById('pf-order').value) || 0;
-      if (!uz) { alert('Loyiha nomini kiriting!'); return; }
+      if (!uz) { alert('Лойиҳа номини киритинг!'); return; }
       const body = { title_uz: uz, title_ru: ru, title_en: en, description_uz: descUz, description_ru: descRu, description_en: descRu, location, client_name: client, year, images, order };
       const url = S.editPortfolioId ? `/market-api/portfolios/${S.editPortfolioId}` : '/market-api/portfolios';
       const method = S.editPortfolioId ? 'PATCH' : 'POST';
@@ -1790,7 +1790,7 @@
     }
 
     async function deletePortfolio(id) {
-      if (!confirm('Loyihani o\'chirmoqchimisiz?')) return;
+      if (!confirm('Лойиҳани ўчирмоқчимисиз?')) return;
       const r = await fetch(`/market-api/portfolios/${id}`, { method: 'DELETE' });
       if (r.ok) { notify(); loadPortfolios(); } else notify('error');
     }

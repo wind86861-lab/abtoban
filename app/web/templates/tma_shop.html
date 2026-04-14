@@ -1281,20 +1281,20 @@
     <!-- ═══ PORTFOLIO PAGE ═══ -->
     <div class="page-section" id="page-portfolio">
       <div class="pf-hero">
-        <div class="pf-hero-title">Bizning loyihalarimiz</div>
-        <div class="pf-hero-sub">Avtoban kompaniyasi tomonidan bajarilgan yuqori sifatli loyihalar bilan tanishing</div>
+        <div class="pf-hero-title">Бизнинг лойиҳаларимиз</div>
+        <div class="pf-hero-sub">Автобан компанияси томонидан бажарилган юқори сифатли лойиҳалар билан танишинг</div>
         <div class="pf-stats">
           <div class="pf-stat">
             <div class="pf-stat-val" id="pf-count">0</div>
-            <div class="pf-stat-lbl">Loyihalar</div>
+            <div class="pf-stat-lbl">Лойиҳалар</div>
           </div>
           <div class="pf-stat">
             <div class="pf-stat-val" id="pf-years">0+</div>
-            <div class="pf-stat-lbl">Yillik tajriba</div>
+            <div class="pf-stat-lbl">Йиллик тажриба</div>
           </div>
           <div class="pf-stat">
             <div class="pf-stat-val" id="pf-images-count">0</div>
-            <div class="pf-stat-lbl">Fotosuratlar</div>
+            <div class="pf-stat-lbl">Фотосуратлар</div>
           </div>
         </div>
       </div>
@@ -1304,10 +1304,10 @@
     <!-- ═══ BOTTOM NAV ═══ -->
     <nav class="bottom-nav">
       <button class="nav-item active" onclick="switchPage('shop',this)">
-        <span class="nav-ico">🛍</span>Do'kon
+        <span class="nav-ico">�</span>Дўкон
       </button>
       <button class="nav-item" onclick="switchPage('portfolio',this)">
-        <span class="nav-ico">🏗</span>Portfolio
+        <span class="nav-ico">🏗</span>Портфолио
       </button>
     </nav>
 
@@ -1687,7 +1687,7 @@
       }
 
       if (!items.length) {
-        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🏗</div>Hozircha loyihalar qo\'shilmagan</div>';
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">🏗</div>Ҳозирча лойиҳалар қўшилмаган</div>';
         return;
       }
 
@@ -1735,10 +1735,10 @@
           <div class="pf-detail-title">${p.title_uz}</div>
           ${p.description_uz ? `<div class="pf-detail-desc">${p.description_uz}</div>` : ''}
           <div class="pf-detail-info">
-            ${p.year ? `<div class="pf-detail-info-item"><div class="label">Yil</div><div class="value">${p.year}</div></div>` : ''}
-            ${p.location ? `<div class="pf-detail-info-item"><div class="label">Joylashuv</div><div class="value">${p.location}</div></div>` : ''}
-            ${p.client_name ? `<div class="pf-detail-info-item"><div class="label">Buyurtmachi</div><div class="value">${p.client_name}</div></div>` : ''}
-            ${imgs.length ? `<div class="pf-detail-info-item"><div class="label">Fotosuratlar</div><div class="value">${imgs.length} ta</div></div>` : ''}
+            ${p.year ? `<div class="pf-detail-info-item"><div class="label">Йил</div><div class="value">${p.year}</div></div>` : ''}
+            ${p.location ? `<div class="pf-detail-info-item"><div class="label">Жойлашув</div><div class="value">${p.location}</div></div>` : ''}
+            ${p.client_name ? `<div class="pf-detail-info-item"><div class="label">Буюртмачи</div><div class="value">${p.client_name}</div></div>` : ''}
+            ${imgs.length ? `<div class="pf-detail-info-item"><div class="label">Фотосуратлар</div><div class="value">${imgs.length} та</div></div>` : ''}
           </div>
         </div>`;
       document.getElementById('pf-detail').classList.add('show');
