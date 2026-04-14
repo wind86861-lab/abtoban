@@ -42,6 +42,7 @@ STRINGS = {
     "btn_calc_price": "🧮 Нарх ҳисоблаш",
     "btn_consultation": "📞 Консултация",
     "btn_about": "ℹ️ Компания ҳақида",
+    "btn_shop": "🛍 Дўкон",
 
     # ── Admin buttons ──
     "btn_all_orders": "📋 Барча буюртмалар",

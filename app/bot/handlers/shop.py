@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.bot.filters import RoleFilter
+from app.bot.i18n import ALL_BUTTON_TEXTS
 from app.db.models import Category, Product, CartItem, MarketOrder, MarketOrderItem, User, UserRole
 from app.db.session import async_session_maker
 
@@ -127,9 +128,21 @@ def get_cart_keyboard(cart_items: list):
 # COMMAND HANDLERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.message(Command("shop"), RoleFilter([UserRole.KLIENT]))
+@router.message(Command("shop"))
 async def cmd_shop(message: Message, state: FSMContext):
     """Open shop main menu."""
+    await state.clear()
+    await message.answer(
+        "🛍 <b>Online Do'kon</b>\n\n"
+        "Mahsulotlarni ko'rish, savatga qo'shish va buyurtma berishingiz mumkin.",
+        reply_markup=get_main_shop_keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_shop", set())))
+async def btn_shop(message: Message, state: FSMContext):
+    """Open shop from main menu button."""
     await state.clear()
     await message.answer(
         "🛍 <b>Online Do'kon</b>\n\n"

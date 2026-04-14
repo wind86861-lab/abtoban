@@ -42,6 +42,7 @@ STRINGS = {
     "btn_calc_price": "🧮 Рассчитать цену",
     "btn_consultation": "📞 Консультация",
     "btn_about": "ℹ️ О компании",
+    "btn_shop": "🛍 Магазин",
 
     # ── Admin buttons ──
     "btn_all_orders": "📋 Все заказы",

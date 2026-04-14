@@ -26,10 +26,13 @@ def get_main_menu(role: UserRole, lang: str = "uz_lat") -> ReplyKeyboardMarkup:
             KeyboardButton(text=t("btn_my_orders", lang)),
         )
         builder.row(
+            KeyboardButton(text=t("btn_shop", lang)),
             KeyboardButton(text=t("btn_calc_price", lang)),
-            KeyboardButton(text=t("btn_consultation", lang)),
         )
-        builder.row(KeyboardButton(text=t("btn_about", lang)))
+        builder.row(
+            KeyboardButton(text=t("btn_consultation", lang)),
+            KeyboardButton(text=t("btn_about", lang)),
+        )
 
     elif role in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
         builder.row(
