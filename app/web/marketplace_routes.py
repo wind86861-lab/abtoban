@@ -1,16 +1,20 @@
 """
-Marketplace API routes for online shop (products, categories, cart, orders)
+Marketplace API routes for online shop (products, categories, cart, orders, portfolio)
 """
+import os
+import uuid
 from decimal import Decimal
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
-from app.db.models import Category, Product, CartItem, MarketOrder, MarketOrderItem, MarketOrderStatus, User
+from app.db.models import Category, Portfolio, Product, CartItem, MarketOrder, MarketOrderItem, MarketOrderStatus, User
 from app.db.session import async_session_maker
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads")
 
 router = APIRouter(prefix="/market-api", tags=["marketplace"])
 
@@ -100,6 +104,59 @@ class DirectCheckoutRequest(BaseModel):
 
 class MarketOrderStatusUpdate(BaseModel):
     status: MarketOrderStatus
+
+
+class PortfolioCreate(BaseModel):
+    title_uz: str
+    title_ru: str
+    title_en: str
+    description_uz: Optional[str] = None
+    description_ru: Optional[str] = None
+    description_en: Optional[str] = None
+    location: Optional[str] = None
+    client_name: Optional[str] = None
+    year: Optional[int] = None
+    images: Optional[str] = None
+    order: int = 0
+
+
+class PortfolioUpdate(BaseModel):
+    title_uz: Optional[str] = None
+    title_ru: Optional[str] = None
+    title_en: Optional[str] = None
+    description_uz: Optional[str] = None
+    description_ru: Optional[str] = None
+    description_en: Optional[str] = None
+    location: Optional[str] = None
+    client_name: Optional[str] = None
+    year: Optional[int] = None
+    images: Optional[str] = None
+    order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# IMAGE UPLOAD
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/upload")
+async def upload_image(file: UploadFile = File(...)):
+    """Upload an image and return its URL."""
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Faqat rasm fayllar qabul qilinadi")
+
+    ext = os.path.splitext(file.filename or "img.jpg")[1] or ".jpg"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fayl hajmi 10MB dan oshmasligi kerak")
+
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    return {"url": f"/uploads/{filename}", "filename": filename}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -649,3 +706,110 @@ async def direct_checkout(data: DirectCheckoutRequest):
         await session.refresh(order)
 
         return {"ok": True, "order_id": order.id}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PORTFOLIO
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/portfolios")
+async def list_portfolios(active_only: bool = False):
+    """Get all portfolio projects."""
+    async with async_session_maker() as session:
+        q = select(Portfolio)
+        if active_only:
+            q = q.where(Portfolio.is_active == True)
+        q = q.order_by(Portfolio.order.desc(), Portfolio.id.desc())
+        result = await session.execute(q)
+        items = result.scalars().all()
+        return [
+            {
+                "id": p.id,
+                "title_uz": p.title_uz,
+                "title_ru": p.title_ru,
+                "title_en": p.title_en,
+                "description_uz": p.description_uz,
+                "description_ru": p.description_ru,
+                "description_en": p.description_en,
+                "location": p.location,
+                "client_name": p.client_name,
+                "year": p.year,
+                "images": p.images.split(",") if p.images else [],
+                "order": p.order,
+                "is_active": p.is_active,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in items
+        ]
+
+
+@router.post("/portfolios")
+async def create_portfolio(data: PortfolioCreate):
+    """Create a new portfolio project."""
+    async with async_session_maker() as session:
+        item = Portfolio(**data.model_dump())
+        session.add(item)
+        await session.commit()
+        await session.refresh(item)
+        return {"id": item.id, "ok": True}
+
+
+@router.get("/portfolios/{portfolio_id}")
+async def get_portfolio(portfolio_id: int):
+    """Get a single portfolio project."""
+    async with async_session_maker() as session:
+        item = await session.get(Portfolio, portfolio_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Loyiha topilmadi")
+        return {
+            "id": item.id,
+            "title_uz": item.title_uz,
+            "title_ru": item.title_ru,
+            "title_en": item.title_en,
+            "description_uz": item.description_uz,
+            "description_ru": item.description_ru,
+            "description_en": item.description_en,
+            "location": item.location,
+            "client_name": item.client_name,
+            "year": item.year,
+            "images": item.images.split(",") if item.images else [],
+            "order": item.order,
+            "is_active": item.is_active,
+        }
+
+
+@router.patch("/portfolios/{portfolio_id}")
+async def update_portfolio(portfolio_id: int, data: PortfolioUpdate):
+    """Update a portfolio project."""
+    async with async_session_maker() as session:
+        item = await session.get(Portfolio, portfolio_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Loyiha topilmadi")
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(item, key, value)
+        await session.commit()
+        return {"ok": True}
+
+
+@router.delete("/portfolios/{portfolio_id}")
+async def delete_portfolio(portfolio_id: int):
+    """Delete a portfolio project."""
+    async with async_session_maker() as session:
+        item = await session.get(Portfolio, portfolio_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Loyiha topilmadi")
+        await session.delete(item)
+        await session.commit()
+        return {"ok": True}
+
+
+@router.patch("/portfolios/{portfolio_id}/toggle")
+async def toggle_portfolio(portfolio_id: int):
+    """Toggle portfolio project active status."""
+    async with async_session_maker() as session:
+        item = await session.get(Portfolio, portfolio_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Loyiha topilmadi")
+        item.is_active = not item.is_active
+        await session.commit()
+        return {"ok": True, "is_active": item.is_active}

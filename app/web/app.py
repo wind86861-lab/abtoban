@@ -1,4 +1,7 @@
+import os
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
@@ -20,6 +23,11 @@ from app.web.views import (
 app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
+# Static files for uploads
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
 

@@ -756,6 +756,8 @@
           class="nav-icon">🛍</span>Mahsulotlar</button>
       <button class="nav-btn" data-tab="morders" onclick="switchTab('morders',this)"><span
           class="nav-icon">📦</span>Do'kon buyurtma</button>
+      <button class="nav-btn" data-tab="portfolio" onclick="switchTab('portfolio',this)"><span
+          class="nav-icon">🏗</span>Portfolio</button>
     </nav>
 
     <div class="main">
@@ -887,6 +889,17 @@
         </div>
       </div>
 
+      <!-- PORTFOLIO -->
+      <div class="content tab-content" id="tab-portfolio" style="display:none">
+        <div class="inner">
+          <div class="sec-row">
+            <div class="sec">🏗 Portfolio — Bajarilgan loyihalar</div>
+            <button class="add-btn" onclick="openPortfolioForm()">＋ Yangi loyiha</button>
+          </div>
+          <div class="cards" id="portfolio-list"></div>
+        </div>
+      </div>
+
     </div><!-- /main -->
 
     <!-- MOBILE BOTTOM TABS -->
@@ -907,6 +920,8 @@
           class="tab-ico">🛍</span>Tovar</button>
       <button class="tab" data-tab="morders" onclick="switchTab('morders',this)"><span
           class="tab-ico">📦</span>Savdo</button>
+      <button class="tab" data-tab="portfolio" onclick="switchTab('portfolio',this)"><span
+          class="tab-ico">🏗</span>Portfolio</button>
     </div>
 
   </div><!-- /app -->
@@ -993,8 +1008,11 @@
           placeholder="Ruscha nomi" /></div>
       <div class="form-group"><label class="form-label">Nomi (EN) *</label><input class="form-input" id="cm-name-en"
           placeholder="Inglizcha nomi" /></div>
-      <div class="form-group"><label class="form-label">Rasm URL</label><input class="form-input" id="cm-image"
-          placeholder="https://..." /></div>
+      <div class="form-group"><label class="form-label">Rasm</label><input type="file" accept="image/*"
+          class="form-input" id="cm-image-file" onchange="uploadImg(this,'cm-image-preview')" /><input type="hidden"
+          id="cm-image" />
+        <div id="cm-image-preview" style="margin-top:8px"></div>
+      </div>
       <div class="form-group"><label class="form-label">Tartib raqami</label><input class="form-input" id="cm-order"
           type="number" value="0" /></div>
       <button class="btn btn-primary btn-block" onclick="saveCat()">💾 Saqlash</button>
@@ -1032,8 +1050,11 @@
       <div class="form-group"><label class="form-label">Kategoriya</label><select class="form-input" id="pm-cat">
           <option value="">— Tanlang —</option>
         </select></div>
-      <div class="form-group"><label class="form-label">Rasmlari (URL, vergul bilan)</label><input class="form-input"
-          id="pm-images" placeholder="https://img1.jpg,https://img2.jpg" /></div>
+      <div class="form-group"><label class="form-label">Rasmlar</label><input type="file" accept="image/*" multiple
+          class="form-input" id="pm-images-file" onchange="uploadMultiImg(this,'pm-images-preview')" /><input
+          type="hidden" id="pm-images" />
+        <div id="pm-images-preview" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
       <div class="form-group"><label class="form-label">Ombordagi soni</label><input class="form-input" id="pm-stock"
           type="number" value="0" /></div>
       <div class="form-group" style="display:flex;gap:16px">
@@ -1041,6 +1062,40 @@
             id="pm-featured" /> ⭐ Tavsiya etilgan</label>
       </div>
       <button class="btn btn-primary btn-block" onclick="saveProd()">💾 Saqlash</button>
+    </div>
+  </div>
+
+  <!-- PORTFOLIO FORM -->
+  <div class="modal-ov" id="pf-modal" onclick="bgClose(event,'pf-modal')">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="pf-title">Yangi loyiha</div><button class="close-btn"
+          onclick="closeModal('pf-modal')">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Nomi (UZ) *</label><input class="form-input" id="pf-name-uz"
+          placeholder="Loyiha nomi" /></div>
+      <div class="form-group"><label class="form-label">Nomi (RU)</label><input class="form-input" id="pf-name-ru"
+          placeholder="Название проекта" /></div>
+      <div class="form-group"><label class="form-label">Nomi (EN)</label><input class="form-input" id="pf-name-en"
+          placeholder="Project name" /></div>
+      <div class="form-group"><label class="form-label">Tavsif (UZ)</label><textarea class="form-input" id="pf-desc-uz"
+          placeholder="Loyiha haqida..."></textarea></div>
+      <div class="form-group"><label class="form-label">Tavsif (RU)</label><textarea class="form-input" id="pf-desc-ru"
+          placeholder="Описание..."></textarea></div>
+      <div class="form-group"><label class="form-label">Joylashuv</label><input class="form-input" id="pf-location"
+          placeholder="Toshkent, O'zbekiston" /></div>
+      <div class="form-group"><label class="form-label">Buyurtmachi</label><input class="form-input" id="pf-client"
+          placeholder="Kompaniya nomi" /></div>
+      <div class="form-group"><label class="form-label">Yil</label><input class="form-input" id="pf-year" type="number"
+          placeholder="2026" /></div>
+      <div class="form-group"><label class="form-label">Rasmlar</label><input type="file" accept="image/*" multiple
+          class="form-input" id="pf-images-file" onchange="uploadMultiImg(this,'pf-images-preview')" /><input
+          type="hidden" id="pf-images" />
+        <div id="pf-images-preview" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tartib raqami</label><input class="form-input" id="pf-order"
+          type="number" value="0" /></div>
+      <button class="btn btn-primary btn-block" onclick="savePortfolio()">💾 Saqlash</button>
     </div>
   </div>
 
@@ -1064,11 +1119,11 @@
       orders: [], users: [], hududlar: [], zavodlar: [], roles: [],
       editHududId: null, editZavodId: null,
       editZavodHIds: [], editUserHIds: [],
-      categories: [], products: [], morders: [],
-      editCatId: null, editProdId: null,
+      categories: [], products: [], morders: [], portfolios: [],
+      editCatId: null, editProdId: null, editPortfolioId: null,
       prodCatFilter: '', moFilter: '',
     };
-    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', categories: '📁 Kategoriyalar', products: '🛍 Mahsulotlar', morders: '📦 Do\'kon buyurtma' };
+    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', categories: '📁 Kategoriyalar', products: '� Mahsulotlar', morders: '📦 Do\'kon buyurtma', portfolio: '🏗 Portfolio' };
 
     function fmt(n) { if (!n) return '0'; return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
     function esc(s) { return (s || '').replace(/'/g, "\\'"); }
@@ -1094,6 +1149,33 @@
       else if (tab === 'categories') loadCategories();
       else if (tab === 'products') loadProducts();
       else if (tab === 'morders') loadMOrders();
+      else if (tab === 'portfolio') loadPortfolios();
+    }
+
+    /* ══ IMAGE UPLOAD HELPERS ══ */
+    async function uploadImg(input, previewId) {
+      const file = input.files[0]; if (!file) return;
+      const fd = new FormData(); fd.append('file', file);
+      const r = await fetch('/market-api/upload', { method: 'POST', body: fd });
+      if (r.ok) {
+        const d = await r.json();
+        const hiddenId = input.id.replace('-file', '');
+        document.getElementById(hiddenId).value = d.url;
+        document.getElementById(previewId).innerHTML = `<img src="${d.url}" style="max-width:120px;border-radius:8px" />`;
+      } else alert('Rasm yuklanmadi');
+    }
+    async function uploadMultiImg(input, previewId) {
+      const files = input.files; if (!files.length) return;
+      const hiddenId = input.id.replace('-file', '');
+      const existing = document.getElementById(hiddenId).value;
+      const urls = existing ? existing.split(',').filter(Boolean) : [];
+      for (const file of files) {
+        const fd = new FormData(); fd.append('file', file);
+        const r = await fetch('/market-api/upload', { method: 'POST', body: fd });
+        if (r.ok) { const d = await r.json(); urls.push(d.url); }
+      }
+      document.getElementById(hiddenId).value = urls.join(',');
+      document.getElementById(previewId).innerHTML = urls.map(u => `<img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:8px" />`).join('');
     }
 
     /* ══ DASHBOARD ══ */
@@ -1406,6 +1488,8 @@
       document.getElementById('cm-title').textContent = "Yangi kategoriya qo'shish";
       ['cm-name-uz', 'cm-name-ru', 'cm-name-en', 'cm-image'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('cm-order').value = '0';
+      document.getElementById('cm-image-preview').innerHTML = '';
+      document.getElementById('cm-image-file').value = '';
       openModal('cat-modal');
     }
 
@@ -1417,6 +1501,8 @@
       document.getElementById('cm-name-ru').value = c.name_ru;
       document.getElementById('cm-name-en').value = c.name_en;
       document.getElementById('cm-image').value = c.image || '';
+      document.getElementById('cm-image-file').value = '';
+      document.getElementById('cm-image-preview').innerHTML = c.image ? `<img src="${c.image}" style="max-width:120px;border-radius:8px" />` : '';
       document.getElementById('cm-order').value = c.order || 0;
       openModal('cat-modal');
     }
@@ -1494,6 +1580,8 @@
       document.getElementById('pm-disc-type').value = '';
       document.getElementById('pm-stock').value = '0';
       document.getElementById('pm-featured').checked = false;
+      document.getElementById('pm-images-file').value = '';
+      document.getElementById('pm-images-preview').innerHTML = '';
       if (!S.categories.length) S.categories = await fetch('/market-api/categories').then(r => r.json());
       const sel = document.getElementById('pm-cat');
       sel.innerHTML = '<option value="">— Tanlang —</option>' + S.categories.filter(c => c.is_active).map(c => `<option value="${c.id}">${c.name_uz}</option>`).join('');
@@ -1512,6 +1600,8 @@
       document.getElementById('pm-disc-val').value = p.discount_value || '';
       document.getElementById('pm-disc-type').value = p.discount_type || '';
       document.getElementById('pm-images').value = (p.images || []).join(',');
+      document.getElementById('pm-images-file').value = '';
+      document.getElementById('pm-images-preview').innerHTML = (p.images || []).map(u => `<img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:8px" />`).join('');
       document.getElementById('pm-stock').value = p.stock;
       document.getElementById('pm-featured').checked = p.is_featured;
       if (!S.categories.length) S.categories = await fetch('/market-api/categories').then(r => r.json());
@@ -1610,6 +1700,99 @@
     async function setMOStatus(id, status) {
       const r = await fetch(`/market-api/orders/${id}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
       if (r.ok) { notify(); closeModal('morder-modal'); loadMOrders(); } else notify('error');
+    }
+
+    /* ══ PORTFOLIO ══ */
+    function portfolioCard(p) {
+      const imgs = p.images || [];
+      const thumb = imgs.length ? `<img src="${imgs[0]}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0" />` : '';
+      return `<div class="card" onclick="editPortfolio(${p.id})">
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <div class="card-head">
+          <div class="card-title">🏗 ${p.title_uz}</div>
+          <span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Faol' : 'Nofaol'}</span>
+        </div>
+        <div class="card-sub">
+          ${p.location ? '📍 ' + p.location + '<br>' : ''}${p.client_name ? '🏢 ' + p.client_name : ''}${p.year ? ' · 📅 ' + p.year : ''}${imgs.length ? '<br>🖼 ' + imgs.length + ' ta rasm' : ''}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();togglePortfolio(${p.id})">${p.is_active ? '🔴 O\'chirish' : '🟢 Yoqish'}</button>
+      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePortfolio(${p.id})">🗑</button>
+    </div>
+  </div>`;
+    }
+
+    async function loadPortfolios() {
+      try {
+        S.portfolios = await fetch('/market-api/portfolios').then(r => r.json());
+        document.getElementById('portfolio-list').innerHTML = S.portfolios.length
+          ? S.portfolios.map(portfolioCard).join('')
+          : empty('🏗', 'Portfolio loyihalar yo\'q — "Yangi loyiha" tugmasini bosing');
+      } catch (e) { console.error(e); }
+    }
+
+    function openPortfolioForm() {
+      S.editPortfolioId = null;
+      document.getElementById('pf-title').textContent = "Yangi loyiha qo'shish";
+      ['pf-name-uz', 'pf-name-ru', 'pf-name-en', 'pf-desc-uz', 'pf-desc-ru', 'pf-location', 'pf-client', 'pf-images'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('pf-year').value = new Date().getFullYear();
+      document.getElementById('pf-order').value = '0';
+      document.getElementById('pf-images-file').value = '';
+      document.getElementById('pf-images-preview').innerHTML = '';
+      openModal('pf-modal');
+    }
+
+    function editPortfolio(id) {
+      const p = S.portfolios.find(x => x.id === id); if (!p) return;
+      S.editPortfolioId = id;
+      document.getElementById('pf-title').textContent = 'Loyiha tahrirlash';
+      document.getElementById('pf-name-uz').value = p.title_uz;
+      document.getElementById('pf-name-ru').value = p.title_ru || '';
+      document.getElementById('pf-name-en').value = p.title_en || '';
+      document.getElementById('pf-desc-uz').value = p.description_uz || '';
+      document.getElementById('pf-desc-ru').value = p.description_ru || '';
+      document.getElementById('pf-location').value = p.location || '';
+      document.getElementById('pf-client').value = p.client_name || '';
+      document.getElementById('pf-year').value = p.year || '';
+      document.getElementById('pf-order').value = p.order || 0;
+      document.getElementById('pf-images').value = (p.images || []).join(',');
+      document.getElementById('pf-images-file').value = '';
+      document.getElementById('pf-images-preview').innerHTML = (p.images || []).map(u => `<img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:8px" />`).join('');
+      openModal('pf-modal');
+    }
+
+    async function savePortfolio() {
+      const uz = document.getElementById('pf-name-uz').value.trim();
+      const ru = document.getElementById('pf-name-ru').value.trim() || uz;
+      const en = document.getElementById('pf-name-en').value.trim() || uz;
+      const descUz = document.getElementById('pf-desc-uz').value.trim() || null;
+      const descRu = document.getElementById('pf-desc-ru').value.trim() || null;
+      const location = document.getElementById('pf-location').value.trim() || null;
+      const client = document.getElementById('pf-client').value.trim() || null;
+      const year = parseInt(document.getElementById('pf-year').value) || null;
+      const images = document.getElementById('pf-images').value.trim() || null;
+      const order = parseInt(document.getElementById('pf-order').value) || 0;
+      if (!uz) { alert('Loyiha nomini kiriting!'); return; }
+      const body = { title_uz: uz, title_ru: ru, title_en: en, description_uz: descUz, description_ru: descRu, description_en: descRu, location, client_name: client, year, images, order };
+      const url = S.editPortfolioId ? `/market-api/portfolios/${S.editPortfolioId}` : '/market-api/portfolios';
+      const method = S.editPortfolioId ? 'PATCH' : 'POST';
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (r.ok) { notify(); closeModal('pf-modal'); loadPortfolios(); } else { const d = await r.json().catch(() => ({})); alert(d.detail || 'Xatolik'); }
+    }
+
+    async function togglePortfolio(id) {
+      const r = await fetch(`/market-api/portfolios/${id}/toggle`, { method: 'PATCH' });
+      if (r.ok) { notify(); loadPortfolios(); } else notify('error');
+    }
+
+    async function deletePortfolio(id) {
+      if (!confirm('Loyihani o\'chirmoqchimisiz?')) return;
+      const r = await fetch(`/market-api/portfolios/${id}`, { method: 'DELETE' });
+      if (r.ok) { notify(); loadPortfolios(); } else notify('error');
     }
 
     async function init() {

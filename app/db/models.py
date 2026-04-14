@@ -492,3 +492,32 @@ class MarketOrderItem(Base):
     product: Mapped[Optional["Product"]] = relationship(
         "Product", back_populates="order_items"
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PORTFOLIO (Completed Projects Showcase)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class Portfolio(Base):
+    """Completed project for portfolio showcase."""
+    __tablename__ = "portfolios"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title_uz: Mapped[str] = mapped_column(String(500), nullable=False)
+    title_ru: Mapped[str] = mapped_column(String(500), nullable=False)
+    title_en: Mapped[str] = mapped_column(String(500), nullable=False)
+    description_uz: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description_ru: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description_en: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    location: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    client_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    images: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
