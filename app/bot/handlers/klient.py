@@ -88,11 +88,29 @@ async def handle_target(message: Message, state: FSMContext, lang: str) -> None:
     data = await state.get_data()
     full_address = f"{data.get('district', '')}, {data.get('street', '')}, {target}"
     await state.update_data(address=full_address, target=target)
+    await state.set_state(KlientOrderStates.sharing_location)
+    await message.answer(
+        t("share_location", lang),
+        reply_markup=get_cancel_keyboard(lang),
+    )
+
+
+@router.message(KlientOrderStates.sharing_location, F.location)
+async def handle_location(message: Message, state: FSMContext, lang: str) -> None:
+    await state.update_data(
+        latitude=message.location.latitude,
+        longitude=message.location.longitude,
+    )
     await state.set_state(KlientOrderStates.entering_area)
     await message.answer(
         t("enter_area", lang),
         reply_markup=get_cancel_keyboard(lang),
     )
+
+
+@router.message(KlientOrderStates.sharing_location)
+async def handle_invalid_location(message: Message, lang: str) -> None:
+    await message.answer(t("invalid_location", lang))
 
 
 @router.message(KlientOrderStates.entering_area)
@@ -170,6 +188,8 @@ async def submit_order(callback: CallbackQuery, state: FSMContext, user: User, s
         address=data["address"],
         area_m2=Decimal(data["area_m2"]),
         asphalt_type_id=data.get("asphalt_type_id"),
+        latitude=data.get("latitude"),
+        longitude=data.get("longitude"),
     )
 
     # Notify all masters

@@ -235,6 +235,8 @@ class Order(Base):
     client_name: Mapped[str] = mapped_column(String(200), nullable=False)
     client_phone: Mapped[str] = mapped_column(String(20), nullable=False)
     address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     area_m2: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
     area_tonnes: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 3), nullable=True)

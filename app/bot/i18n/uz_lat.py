@@ -118,6 +118,8 @@ STRINGS = {
     "street_too_short": "❌ Ko'cha nomini aniqroq yozing:",
     "enter_target": "4️⃣ Mo'ljal/orientir kiriting:\n<i>Masalan: Maktab yonida, 45-uy</i>",
     "target_too_short": "❌ Mo'ljalni aniqroq yozing:",
+    "share_location": "5️⃣ 📍 <b>Lokatsiyangizni yuboring</b>\n\nPastdagi 📎 tugmasini bosing → <b>Location</b> → joylashuvingizni yuboring.",
+    "invalid_location": "❌ Iltimos, lokatsiya yuboring. Pastdagi 📎 → Location tugmasini bosing.",
     "enter_area": "📐 Taxminiy maydon hajmini kiriting (<b>m²</b>):\nMisol: <code>500</code>",
     "invalid_area": "❌ Noto'g'ri format. Faqat musbat raqam kiriting (masalan: 500):",
     "no_asphalt_types": "⚠️ Asfalt turlari hali sozlanmagan. Admin bilan bog'laning.",

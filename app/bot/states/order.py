@@ -6,6 +6,7 @@ class KlientOrderStates(StatesGroup):
     entering_district = State()     # Tuman
     entering_street = State()       # Ko'cha
     entering_target = State()       # Orientir/mo'ljal
+    sharing_location = State()      # GPS lokatsiya
     entering_area = State()
     selecting_asphalt = State()
     confirming = State()
