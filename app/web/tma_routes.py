@@ -488,3 +488,37 @@ async def update_user_zavod(user_id: int, body: UpdateZavodRequest):
         user.zavod_id = zavod_id
         await session.commit()
     return {"ok": True}
+
+
+# ─────────────────────────────────────────────────────────────
+# BOT SETTINGS (menu button)
+# ─────────────────────────────────────────────────────────────
+
+class SetMenuButtonRequest(BaseModel):
+    shop_url: str
+
+
+@router.post("/tma-api/set-menu-button")
+async def set_menu_button(body: SetMenuButtonRequest):
+    """Set/update the bot's menu button for all private chats."""
+    from aiogram.types import MenuButtonWebApp, WebAppInfo
+    from app.bot.loader import bot
+
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Web Do'kon",
+                web_app=WebAppInfo(url=body.shop_url),
+            )
+        )
+        return {"ok": True, "url": body.shop_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/tma-api/bot-info")
+async def get_bot_info():
+    """Get current bot info and WEB_URL setting."""
+    from app.config import settings
+    base_url = settings.WEB_URL.rsplit("/", 1)[0]
+    return {"shop_url": f"{base_url}/shop", "web_url": settings.WEB_URL}

@@ -1,13 +1,19 @@
+import logging
+
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, MenuButtonWebApp, Message, WebAppInfo
 
 from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.keyboards.menus import get_language_keyboard, get_main_menu, get_phone_keyboard
+from app.bot.loader import bot
 from app.bot.states.registration import LanguageStates, RegistrationStates
+from app.config import settings
 from app.db.models import User
 from app.services.user_service import UserService
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -32,6 +38,20 @@ def _role_label(user: User, lang: str) -> str:
 @router.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext, user: User, lang: str) -> None:
     await state.clear()
+
+    # Set per-chat menu button → Web Do'kon
+    try:
+        base_url = settings.WEB_URL.rsplit("/", 1)[0]
+        shop_url = f"{base_url}/shop"
+        await bot.set_chat_menu_button(
+            chat_id=message.chat.id,
+            menu_button=MenuButtonWebApp(
+                text="Web Do'kon",
+                web_app=WebAppInfo(url=shop_url),
+            )
+        )
+    except Exception as e:
+        logger.warning("Menu button error: %s", e)
 
     # First time: no language set → ask language
     if not user.language:

@@ -758,6 +758,9 @@
           class="nav-icon">📦</span>Do'kon buyurtma</button>
       <button class="nav-btn" data-tab="portfolio" onclick="switchTab('portfolio',this)"><span
           class="nav-icon">🏗</span>Портфолио</button>
+      <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+      <button class="nav-btn" data-tab="settings" onclick="switchTab('settings',this)"><span
+          class="nav-icon">⚙️</span>Sozlamalar</button>
     </nav>
 
     <div class="main">
@@ -900,6 +903,24 @@
         </div>
       </div>
 
+      <!-- SETTINGS -->
+      <div class="content tab-content" id="tab-settings" style="display:none">
+        <div class="inner">
+          <div class="sec">⚙️ Bot sozlamalari</div>
+          <div class="card" style="margin-top:12px">
+            <div class="card-head" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:12px">
+              <div class="card-title">🌐 Web Do'kon havolasi</div>
+            </div>
+            <div class="form-group"><label class="form-label">Do'kon URL manzili</label><input class="form-input"
+                id="set-shop-url" placeholder="https://..." /></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-block" onclick="applyMenuButton()">✅ Menu tugmasini o'rnatish</button>
+            </div>
+            <div id="set-result" style="margin-top:10px;font-size:12px;color:var(--hint)"></div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /main -->
 
     <!-- MOBILE BOTTOM TABS -->
@@ -922,6 +943,8 @@
           class="tab-ico">📦</span>Savdo</button>
       <button class="tab" data-tab="portfolio" onclick="switchTab('portfolio',this)"><span
           class="tab-ico">🏗</span>Портфолио</button>
+      <button class="tab" data-tab="settings" onclick="switchTab('settings',this)"><span
+          class="tab-ico">⚙️</span>Sozlama</button>
     </div>
 
   </div><!-- /app -->
@@ -1123,7 +1146,7 @@
       editCatId: null, editProdId: null, editPortfolioId: null,
       prodCatFilter: '', moFilter: '',
     };
-    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', categories: '📁 Kategoriyalar', products: '� Mahsulotlar', morders: '📦 Do\'kon buyurtma', portfolio: '🏗 Портфолио' };
+    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', categories: '📁 Kategoriyalar', products: '🛍 Mahsulotlar', morders: '📦 Do\'kon buyurtma', portfolio: '🏗 Портфолио', settings: '⚙️ Sozlamalar' };
 
     function fmt(n) { if (!n) return '0'; return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
     function esc(s) { return (s || '').replace(/'/g, "\\'"); }
@@ -1150,6 +1173,7 @@
       else if (tab === 'products') loadProducts();
       else if (tab === 'morders') loadMOrders();
       else if (tab === 'portfolio') loadPortfolios();
+      else if (tab === 'settings') loadSettings();
     }
 
     /* ══ IMAGE UPLOAD HELPERS ══ */
@@ -1348,23 +1372,43 @@
     async function loadHududlar() {
       try {
         S.hududlar = await fetch('/tma-api/hududlar').then(r => r.json());
-        document.getElementById('hududlar-list').innerHTML = S.hududlar.length
-          ? S.hududlar.map(h => `
-        <div class="card">
-          <div class="card-head">
-            <div><div class="card-title">📍 ${h.viloyat}</div><div style="font-size:12px;color:var(--hint);margin-top:3px">${h.tuman}</div></div>
-            <span class="badge ${h.is_active ? 'badge-active' : 'badge-inactive'}">${h.is_active ? 'Faol' : 'Nofaol'}</span>
-          </div>
-          ${h.tafsif ? `<div class="card-sub" style="margin:8px 0">${h.tafsif}</div>` : ''}
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="btn btn-ghost btn-sm" onclick="editHudud(${h.id},'${esc(h.viloyat)}','${esc(h.tuman)}','${esc(h.tafsif)}')">✏️ Tahrirlash</button>
-            <button class="btn btn-ghost btn-sm" onclick="toggleHudud(${h.id})">${h.is_active ? '🔴 O\'chirish' : '🟢 Yoqish'}</button>
-          </div>
-        </div>`).join('')
-          : empty('📍', 'Hududlar yo\'q — "Yangi hudud" tugmasini bosing');
+        if (!S.hududlar.length) {
+          document.getElementById('hududlar-list').innerHTML = empty('📍', 'Hududlar yo\'q — "Yangi hudud" tugmasini bosing');
+          return;
+        }
+        // Group by viloyat
+        const grouped = {};
+        S.hududlar.forEach(h => {
+          const v = h.viloyat || 'Boshqa';
+          if (!grouped[v]) grouped[v] = [];
+          grouped[v].push(h);
+        });
+        let html = '';
+        Object.keys(grouped).sort().forEach(viloyat => {
+          const tumans = grouped[viloyat];
+          html += `<div class="card" style="margin-bottom:16px">
+            <div class="card-head" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
+              <div><div class="card-title" style="font-size:16px">📍 ${viloyat}</div><div style="font-size:11px;color:var(--hint);margin-top:2px">${tumans.length} ta tuman</div></div>
+              <button class="btn btn-ghost btn-sm" onclick="openHududFormFor('${esc(viloyat)}')">＋ Tuman</button>
+            </div>
+            ${tumans.map(h => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.04)">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="badge ${h.is_active ? 'badge-active' : 'badge-inactive'}" style="font-size:9px">${h.is_active ? '✓' : '✕'}</span>
+                <span style="font-size:14px;font-weight:500">${h.tuman}</span>
+                ${h.tafsif ? `<span style="font-size:11px;color:var(--hint)">(${h.tafsif})</span>` : ''}
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="editHudud(${h.id},'${esc(h.viloyat)}','${esc(h.tuman)}','${esc(h.tafsif)}')">✏️</button>
+                <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="toggleHudud(${h.id})">${h.is_active ? '🔴' : '🟢'}</button>
+              </div>
+            </div>`).join('')}
+          </div>`;
+        });
+        document.getElementById('hududlar-list').innerHTML = html;
       } catch (e) { console.error(e); }
     }
     function openHududForm() { S.editHududId = null; document.getElementById('hm-title').textContent = "Yangi hudud qo'shish";['hm-viloyat', 'hm-tuman', 'hm-tafsif'].forEach(id => document.getElementById(id).value = ''); openModal('hudud-modal'); }
+    function openHududFormFor(viloyat) { S.editHududId = null; document.getElementById('hm-title').textContent = viloyat + " — yangi tuman"; document.getElementById('hm-viloyat').value = viloyat; document.getElementById('hm-tuman').value = ''; document.getElementById('hm-tafsif').value = ''; openModal('hudud-modal'); }
     function editHudud(id, v, t, d) { S.editHududId = id; document.getElementById('hm-title').textContent = 'Tahrirlash'; document.getElementById('hm-viloyat').value = v; document.getElementById('hm-tuman').value = t; document.getElementById('hm-tafsif').value = d || ''; openModal('hudud-modal'); }
     async function saveHudud() {
       const v = document.getElementById('hm-viloyat').value.trim(), t = document.getElementById('hm-tuman').value.trim(), d = document.getElementById('hm-tafsif').value.trim();
@@ -1796,6 +1840,32 @@
       if (!confirm('Лойиҳани ўчирмоқчимисиз?')) return;
       const r = await fetch(`/market-api/portfolios/${id}`, { method: 'DELETE' });
       if (r.ok) { notify(); loadPortfolios(); } else notify('error');
+    }
+
+    /* ══ SETTINGS ══ */
+    async function loadSettings() {
+      try {
+        const info = await fetch('/tma-api/bot-info').then(r => r.json());
+        document.getElementById('set-shop-url').value = info.shop_url || '';
+      } catch (e) { console.error(e); }
+    }
+    async function applyMenuButton() {
+      const url = document.getElementById('set-shop-url').value.trim();
+      const res = document.getElementById('set-result');
+      if (!url) { res.textContent = '❌ URL kiriting!'; res.style.color = 'var(--red)'; return; }
+      res.textContent = '⏳ O\'rnatilmoqda...'; res.style.color = 'var(--hint)';
+      try {
+        const r = await fetch('/tma-api/set-menu-button', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shop_url: url }) });
+        if (r.ok) {
+          res.textContent = '✅ Menu tugmasi muvaffaqiyatli o\'rnatildi! Foydalanuvchilar /start bosganda ko\'rinadi.';
+          res.style.color = 'var(--green)';
+          notify();
+        } else {
+          const d = await r.json().catch(() => ({}));
+          res.textContent = '❌ Xatolik: ' + (d.detail || 'Noma\'lum');
+          res.style.color = 'var(--red)';
+        }
+      } catch (e) { res.textContent = '❌ Tarmoq xatoligi'; res.style.color = 'var(--red)'; }
     }
 
     async function init() {
