@@ -2,12 +2,14 @@ import asyncio
 import logging
 
 from aiogram import Dispatcher
+from aiogram.types import MenuButtonWebApp, WebAppInfo
 
 from app.bot.handlers import register_all_routers
 from app.bot.loader import bot, dp
 from app.bot.middlewares.audit import AuditMiddleware
 from app.bot.middlewares.auth import AuthMiddleware
 from app.bot.middlewares.db import DbSessionMiddleware
+from app.config import settings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,6 +22,20 @@ async def on_startup(dispatcher: Dispatcher) -> None:
     logger.info("Bot starting up...")
     register_all_routers(dispatcher)
     logger.info("All routers registered.")
+
+    # Set menu button → Web Do'kon (shop web app)
+    try:
+        base_url = settings.WEB_URL.rsplit("/", 1)[0]  # remove /tma-admin
+        shop_url = f"{base_url}/shop"
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Web Do'kon",
+                web_app=WebAppInfo(url=shop_url),
+            )
+        )
+        logger.info("Menu button set → %s", shop_url)
+    except Exception as e:
+        logger.warning("Failed to set menu button: %s", e)
 
 
 async def on_shutdown(dispatcher: Dispatcher) -> None:

@@ -506,5 +506,5 @@ STRINGS = {
     # ── Region / viloyat ──
     "no_regions": "⚠️ Viloyatlar hali sozlanmagan. Admin bilan bog'laning.",
     "select_region": "📍 Viloyatni tanlang:",
-    "region_selected": "✅ Viloyat tanlandi. Davom etamiz...",
+    "region_selected": "✅ Viloyat tanlandi.\n\nEndi tumanni tanlang yoki kiriting:",
 }

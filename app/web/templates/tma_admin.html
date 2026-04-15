@@ -1683,6 +1683,8 @@
         <tr><td>Jami</td><td><strong>${fmt(o.total_price)} so'm</strong></td></tr>
         <tr><td>Status</td><td><span class="badge badge-${o.status === 'new' ? 'new' : o.status === 'processing' ? 'in_work' : o.status === 'completed' ? 'done' : 'cancelled'}">${MO_STATUS[o.status] || o.status}</span></td></tr>
         <tr><td>Izoh</td><td>${o.comment || '—'}</td></tr>
+        <tr><td>📍 Viloyat / Tuman</td><td>${o.viloyat ? o.viloyat + (o.tuman ? ' — ' + o.tuman : '') : '—'}</td></tr>
+        <tr><td>🏠 Manzil</td><td>${o.address || '—'}</td></tr>
         <tr><td>📍 Lokatsiya</td><td>${o.latitude ? `<a href="https://www.google.com/maps?q=${o.latitude},${o.longitude}" target="_blank" style="color:#3563e9;text-decoration:underline">🗺 Xaritada ko'rish</a><br><span style="font-size:11px;color:#6b7280">${o.address || (o.latitude.toFixed(5) + ', ' + o.longitude.toFixed(5))}</span>` : '—'}</td></tr>
         <tr><td>Sana</td><td>${o.created_at ? new Date(o.created_at).toLocaleString('uz') : '—'}</td></tr>
       </table>

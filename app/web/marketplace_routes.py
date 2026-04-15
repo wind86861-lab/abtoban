@@ -99,6 +99,8 @@ class DirectCheckoutRequest(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: str
     comment: Optional[str] = None
+    viloyat: Optional[str] = None
+    tuman: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     address: Optional[str] = None
@@ -598,6 +600,8 @@ async def get_market_order(order_id: int):
             "total_price": float(order.total_price),
             "status": order.status.value,
             "comment": order.comment,
+            "viloyat": order.viloyat,
+            "tuman": order.tuman,
             "latitude": order.latitude,
             "longitude": order.longitude,
             "address": order.address,
@@ -705,6 +709,8 @@ async def direct_checkout(data: DirectCheckoutRequest):
             customer_phone=data.customer_phone,
             total_price=total,
             comment=data.comment,
+            viloyat=data.viloyat,
+            tuman=data.tuman,
             latitude=data.latitude,
             longitude=data.longitude,
             address=data.address,

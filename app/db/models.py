@@ -457,6 +457,8 @@ class MarketOrder(Base):
         default=MarketOrderStatus.NEW,
     )
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    viloyat: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    tuman: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     address: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)

@@ -790,6 +790,42 @@
       margin-bottom: 8px
     }
 
+    /* ── CHECKOUT STEPS ── */
+    .co-step {
+      margin-bottom: 14px
+    }
+
+    .co-step-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .co-step-label .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    select.form-input {
+      appearance: none;
+      -webkit-appearance: none;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 14px center;
+      padding-right: 36px
+    }
+
     /* ── LOCATION PICKER ── */
     .loc-section {
       margin-bottom: 12px
@@ -1459,6 +1495,9 @@
       locAddr: '',
       locMap: null,
       locMarker: null,
+      regions: [],
+      selViloyat: '',
+      selTuman: '',
     };
 
     function saveCart() { localStorage.setItem('avtoban_cart', JSON.stringify(S.cart)); updateCartBadge(); }
@@ -1478,13 +1517,15 @@
     /* ══ DATA LOADING ══ */
     async function loadData() {
       try {
-        const [cats, prods] = await Promise.all([
+        const [cats, prods, regs] = await Promise.all([
           fetch('/market-api/categories?active_only=true').then(r => r.json()),
           fetch('/market-api/products?active_only=true&limit=500').then(r => r.json()),
+          fetch('/tma-api/hududlar').then(r => r.json()).catch(() => []),
         ]);
         S.categories = cats;
         S.allProducts = prods;
         S.products = prods;
+        S.regions = regs.filter(r => r.is_active);
         renderCategories();
         renderProducts();
         document.getElementById('loading').style.display = 'none';
@@ -1689,22 +1730,49 @@
       <button class="cart-item-remove" onclick="cartRemove(${item.id})">🗑</button>
     </div>`).join('') + `
     <div class="checkout-section">
-      <h3>📋 Buyurtma ma'lumotlari</h3>
-      <input class="form-input" id="co-name" placeholder="Ismingiz" value=""/>
-      <input class="form-input" id="co-phone" type="tel" placeholder="Telefon raqam *" value=""/>
-      <textarea class="form-input" id="co-comment" placeholder="Izoh (ixtiyoriy)"></textarea>
-      <div class="loc-section">
-        <h4>📍 Манзил (локация) *</h4>
+      <h3>📋 Буюртма маълумотлари</h3>
+
+      <div class="co-step">
+        <div class="co-step-label"><span class="step-num">1</span> Исмингиз ва телефон</div>
+        <input class="form-input" id="co-name" placeholder="Исмингиз" value=""/>
+        <input class="form-input" id="co-phone" type="tel" placeholder="Телефон рақам *" value=""/>
+      </div>
+
+      <div class="co-step">
+        <div class="co-step-label"><span class="step-num">2</span> Вилоят ва туман *</div>
+        <select class="form-input" id="co-viloyat" onchange="onViloyatChange()">
+          <option value="">— Вилоятни танланг —</option>
+          ${[...new Set(S.regions.map(r => r.viloyat).filter(Boolean))].map(v => `<option value="${v}" ${S.selViloyat === v ? 'selected' : ''}>${v}</option>`).join('')}
+        </select>
+        <select class="form-input" id="co-tuman" ${!S.selViloyat ? 'disabled style="opacity:.5"' : ''}>
+          <option value="">— Туманни танланг —</option>
+          ${S.selViloyat ? S.regions.filter(r => r.viloyat === S.selViloyat).map(r => `<option value="${r.tuman}" ${S.selTuman === r.tuman ? 'selected' : ''}>${r.tuman}</option>`).join('') : ''}
+        </select>
+      </div>
+
+      <div class="co-step">
+        <div class="co-step-label"><span class="step-num">3</span> Манзил (кўча, уй)</div>
+        <input class="form-input" id="co-address" placeholder="Масалан: Амир Темур кўчаси, 15-уй" value=""/>
+      </div>
+
+      <div class="co-step">
+        <div class="co-step-label"><span class="step-num">4</span> 📍 Локация (харитадан белгиланг) *</div>
         <button class="loc-btn ${S.locLat ? 'has-loc' : ''}" id="loc-btn" onclick="getLocation()" type="button">
-          ${S.locLat ? '✅ Локация белгиланган' : '📍 Локациямни юбориш'}
+          ${S.locLat ? '✅ Локация белгиланди — харитада кўринг' : '📍 Менинг жойлашувимни аниқлаш'}
         </button>
         <div class="loc-map-wrap ${S.locLat ? 'show' : ''}" id="loc-map-wrap">
           <div id="loc-map" style="width:100%;height:100%"></div>
           <div class="loc-crosshair">📍</div>
         </div>
-        <div class="loc-hint ${S.locLat ? '' : ''}" id="loc-hint" style="${S.locLat ? '' : 'display:none'}">Харитани суриб манзилни аниқланг</div>
-        <div class="loc-address ${S.locAddr ? 'show' : ''}" id="loc-addr">${S.locAddr || ''}</div>
+        ${S.locLat ? '<div class="loc-hint">Харитани суриб аниқ жойни белгиланг</div>' : ''}
+        <div class="loc-address ${S.locAddr ? 'show' : ''}" id="loc-addr">${S.locAddr ? '📍 ' + S.locAddr : ''}</div>
       </div>
+
+      <div class="co-step">
+        <div class="co-step-label"><span class="step-num">5</span> Изоҳ</div>
+        <textarea class="form-input" id="co-comment" placeholder="Қўшимча изоҳ (ихтиёрий)"></textarea>
+      </div>
+
       <div class="error-msg" id="co-error"></div>
     </div>`;
 
@@ -1727,6 +1795,23 @@
     function cartRemove(id) {
       S.cart = S.cart.filter(c => c.id !== id);
       saveCart(); renderCart(); renderProducts();
+    }
+
+    /* ══ VILOYAT / TUMAN ══ */
+    function onViloyatChange() {
+      S.selViloyat = document.getElementById('co-viloyat').value;
+      S.selTuman = '';
+      const tumanEl = document.getElementById('co-tuman');
+      if (!S.selViloyat) {
+        tumanEl.innerHTML = '<option value="">— Туманни танланг —</option>';
+        tumanEl.disabled = true;
+        tumanEl.style.opacity = '.5';
+        return;
+      }
+      const tumans = S.regions.filter(r => r.viloyat === S.selViloyat);
+      tumanEl.innerHTML = '<option value="">— Туманни танланг —</option>' + tumans.map(r => `<option value="${r.tuman}">${r.tuman}</option>`).join('');
+      tumanEl.disabled = false;
+      tumanEl.style.opacity = '1';
     }
 
     /* ══ LOCATION PICKER ══ */
@@ -1806,13 +1891,20 @@
     async function doCheckout() {
       const phone = document.getElementById('co-phone')?.value.trim();
       const name = document.getElementById('co-name')?.value.trim();
+      const viloyat = document.getElementById('co-viloyat')?.value;
+      const tuman = document.getElementById('co-tuman')?.value;
+      const address = document.getElementById('co-address')?.value.trim();
       const comment = document.getElementById('co-comment')?.value.trim();
       const errEl = document.getElementById('co-error');
 
       if (!phone) { errEl.textContent = 'Телефон рақамни киритинг!'; return; }
       if (phone.length < 7) { errEl.textContent = 'Телефон рақам нотўғри'; return; }
+      if (!viloyat) { errEl.textContent = 'Вилоятни танланг!'; return; }
+      if (!tuman) { errEl.textContent = 'Туманни танланг!'; return; }
       if (!S.locLat) { errEl.textContent = 'Илтимос, локациянгизни юборинг!'; return; }
       errEl.textContent = '';
+
+      const fullAddr = [address, tuman, viloyat].filter(Boolean).join(', ');
 
       const btn = document.getElementById('btn-co');
       btn.disabled = true; btn.textContent = 'Юборилмоқда...';
@@ -1825,15 +1917,18 @@
             customer_name: name || null,
             customer_phone: phone,
             comment: comment || null,
+            viloyat: viloyat,
+            tuman: tuman,
             latitude: S.locLat,
             longitude: S.locLng,
-            address: S.locAddr || null,
+            address: fullAddr || S.locAddr || null,
             items: S.cart.map(i => ({ product_id: i.id, quantity: i.qty })),
           })
         });
         if (res.ok) {
           S.cart = []; saveCart();
           S.locLat = null; S.locLng = null; S.locAddr = '';
+          S.selViloyat = ''; S.selTuman = '';
           if (S.locMap) { S.locMap.remove(); S.locMap = null; }
           S.checkoutDone = true;
           renderCart();
