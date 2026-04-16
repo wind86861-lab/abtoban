@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, HTMLResponse
 
 from app.config import settings
 from app.db.session import engine
@@ -25,9 +25,11 @@ app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
-# Static files for uploads
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads")
+# Static files for uploads and custom CSS
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
@@ -36,7 +38,7 @@ admin = Admin(
     app=app,
     engine=engine,
     authentication_backend=authentication_backend,
-    title="🏗 Avtoban Admin",
+    title="🏗 Avtoban Stroy - Admin Panel",
     base_url="/sqladmin",
 )
 
@@ -48,9 +50,26 @@ admin.add_view(MaterialRequestAdmin)
 admin.add_view(AsphaltTypeAdmin)
 admin.add_view(RegionAdmin)
 
+# Mount Master Panel
+from app.web.master_app import master_app
+app.mount("/master-panel", master_app)
+
 # Include TMA routes and redirects AFTER SQLAdmin to override /admin
 app.include_router(tma_router)
 app.include_router(marketplace_router)
+
+# Inject custom CSS
+@app.get("/custom-admin-css")
+async def custom_admin_css():
+    return HTMLResponse("""
+    <link rel="stylesheet" href="/static/custom_admin.css">
+    <style>
+        /* Additional inline styles for SQLAdmin */
+        .navbar-brand::before {
+            content: "🏗 ";
+        }
+    </style>
+    """)
 
 
 @app.get("/")
