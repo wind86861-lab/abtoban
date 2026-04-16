@@ -123,8 +123,22 @@ async def hisobotlar_menu(message: Message, session) -> None:
     svc = ReportService(session)
     report = await svc.get_financial_report()
     
+    # Build product breakdown section
+    product_section = ""
+    if report.product_profits:
+        product_section = "\n━━━━━━━━━━━━━━━━━━━━\n📊 <b>MAHSULOT BO'YICHA FOYDA</b>\n"
+        for i, prod in enumerate(report.product_profits[:5], 1):  # Top 5 products
+            product_section += (
+                f"\n{i}. <b>{prod.product_name}</b>\n"
+                f"   Maydon: {float(prod.total_area):,.0f} m²\n"
+                f"   Zakazlar: {prod.order_count} ta\n"
+                f"   Tannarxi: {float(prod.cost_per_m2):,.0f} so'm/m²\n"
+                f"   Sotish: {float(prod.price_per_m2):,.0f} so'm/m²\n"
+                f"   💎 Foyda: <b>{float(prod.total_profit):,.0f} so'm</b>\n"
+            )
+    
     await message.answer(
-        f"� <b>MOLIYAVIY HISOBOT</b>\n\n"
+        f"📊 <b>MOLIYAVIY HISOBOT</b>\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"💰 <b>DAROMAD</b>\n"
         f"Jami tushum: <b>{float(report.total_revenue):,.0f} so'm</b>\n"
@@ -136,7 +150,7 @@ async def hisobotlar_menu(message: Message, session) -> None:
         f"Asfalt tannarxi: <b>{float(report.asphalt_cost):,.0f} so'm</b>\n"
         f"Asfalt foyda: <b>{float(report.asphalt_profit):,.0f} so'm</b>\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"� <b>XARAJATLAR TAFSILOTI</b>\n"
+        f"💸 <b>XARAJATLAR TAFSILOTI</b>\n"
         f"Asfalt tannarxi: {float(report.asphalt_cost):,.0f} so'm\n"
         f"Material xarajatlari: {float(report.material_cost):,.0f} so'm\n"
         f"Boshqa xarajatlar: {float(report.other_expenses):,.0f} so'm\n"
@@ -146,6 +160,7 @@ async def hisobotlar_menu(message: Message, session) -> None:
         f"Foyda: <b>{float(report.net_profit):,.0f} so'm</b>\n"
         f"Foyda darajasi: <b>{report.profit_margin:.1f}%</b>\n\n"
         f"📦 Jami zakazlar: {report.total_orders}"
+        f"{product_section}"
     )
 
 

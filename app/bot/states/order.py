@@ -53,5 +53,7 @@ class MasterOrderCreateStates(StatesGroup):
 
 class AdminSettingsStates(StatesGroup):
     entering_asphalt_name = State()
+    entering_asphalt_cost_price = State()
     entering_asphalt_price = State()
     updating_asphalt_price = State()
+    updating_asphalt_cost_price = State()

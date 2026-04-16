@@ -48,6 +48,18 @@ class UstaStat:
 
 
 @dataclass
+class ProductProfit:
+    product_name: str
+    total_area: Decimal
+    cost_per_m2: Decimal
+    price_per_m2: Decimal
+    total_cost: Decimal
+    total_revenue: Decimal
+    total_profit: Decimal
+    order_count: int
+
+
+@dataclass
 class FinancialReport:
     total_revenue: Decimal = field(default_factory=lambda: Decimal("0"))
     total_advance: Decimal = field(default_factory=lambda: Decimal("0"))
@@ -61,6 +73,7 @@ class FinancialReport:
     net_profit: Decimal = field(default_factory=lambda: Decimal("0"))
     profit_margin: float = 0.0
     total_orders: int = 0
+    product_profits: List["ProductProfit"] = field(default_factory=list)
 
 
 class ReportService:
@@ -248,7 +261,7 @@ class ReportService:
         )
         report.other_expenses = expense_stats.scalar() or Decimal("0")
         
-        # Asphalt cost vs revenue calculation
+        # Asphalt cost vs revenue calculation with product-level breakdown
         from app.db.models import AsphaltType
         orders_with_asphalt = await self.session.execute(
             select(Order)
@@ -260,6 +273,9 @@ class ReportService:
             )
         )
         
+        # Track product-level profits
+        product_stats = {}  # {asphalt_type_id: {name, total_area, cost, revenue, count}}
+        
         for order in orders_with_asphalt.scalars():
             if order.asphalt_type:
                 area = order.area_m2 or Decimal("0")
@@ -268,6 +284,40 @@ class ReportService:
                 
                 report.asphalt_cost += area * cost_per_m2
                 report.asphalt_revenue += area * price_per_m2
+                
+                # Track by product
+                type_id = order.asphalt_type.id
+                if type_id not in product_stats:
+                    product_stats[type_id] = {
+                        'name': order.asphalt_type.name,
+                        'cost_per_m2': cost_per_m2,
+                        'price_per_m2': price_per_m2,
+                        'total_area': Decimal("0"),
+                        'total_cost': Decimal("0"),
+                        'total_revenue': Decimal("0"),
+                        'count': 0
+                    }
+                
+                product_stats[type_id]['total_area'] += area
+                product_stats[type_id]['total_cost'] += area * cost_per_m2
+                product_stats[type_id]['total_revenue'] += area * price_per_m2
+                product_stats[type_id]['count'] += 1
+        
+        # Create ProductProfit objects
+        for stats in product_stats.values():
+            report.product_profits.append(ProductProfit(
+                product_name=stats['name'],
+                total_area=stats['total_area'],
+                cost_per_m2=stats['cost_per_m2'],
+                price_per_m2=stats['price_per_m2'],
+                total_cost=stats['total_cost'],
+                total_revenue=stats['total_revenue'],
+                total_profit=stats['total_revenue'] - stats['total_cost'],
+                order_count=stats['count']
+            ))
+        
+        # Sort by profit descending
+        report.product_profits.sort(key=lambda x: x.total_profit, reverse=True)
         
         report.asphalt_profit = report.asphalt_revenue - report.asphalt_cost
         report.total_costs = report.asphalt_cost + report.material_cost + report.other_expenses

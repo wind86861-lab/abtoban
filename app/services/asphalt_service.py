@@ -31,8 +31,13 @@ class AsphaltService:
         )
         return result.scalar_one_or_none()
 
-    async def create(self, name: str, price_per_m2: Decimal) -> AsphaltType:
-        at = AsphaltType(name=name, price_per_m2=price_per_m2, is_active=True)
+    async def create(self, name: str, price_per_m2: Decimal, cost_price_per_m2: Optional[Decimal] = None) -> AsphaltType:
+        at = AsphaltType(
+            name=name, 
+            cost_price_per_m2=cost_price_per_m2 or Decimal("0"),
+            price_per_m2=price_per_m2, 
+            is_active=True
+        )
         self.session.add(at)
         await self.session.flush()
         return at

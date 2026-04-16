@@ -65,9 +65,31 @@ async def handle_asphalt_name(message: Message, state: FSMContext) -> None:
         await message.answer("❌ Ism juda qisqa. Qaytadan kiriting:")
         return
     await state.update_data(asphalt_name=name)
+    await state.set_state(AdminSettingsStates.entering_asphalt_cost_price)
+    await message.answer(
+        f"� <b>{name}</b> uchun tannarxini kiriting (so'm/m²):\n"
+        f"Misol: <code>65000</code>",
+        reply_markup=get_cancel_keyboard(),
+    )
+
+
+@router.message(AdminSettingsStates.entering_asphalt_cost_price, RoleFilter(*ADMIN_ROLES))
+async def handle_asphalt_cost_price(message: Message, state: FSMContext) -> None:
+    raw = (message.text or "").strip().replace(" ", "").replace(",", "")
+    try:
+        cost_price = Decimal(raw)
+        if cost_price <= 0:
+            raise ValueError
+    except (InvalidOperation, ValueError):
+        await message.answer("❌ Noto'g'ri narx. Raqam kiriting (masalan: 65000):")
+        return
+    
+    data = await state.get_data()
+    await state.update_data(asphalt_cost_price=cost_price)
     await state.set_state(AdminSettingsStates.entering_asphalt_price)
     await message.answer(
-        f"💰 <b>{name}</b> uchun m² narxini kiriting (so'm):\n"
+        f"💰 <b>{data['asphalt_name']}</b> uchun sotish narxini kiriting (so'm/m²):\n"
+        f"Tannarxi: <b>{float(cost_price):,.0f} so'm/m²</b>\n\n"
         f"Misol: <code>85000</code>",
         reply_markup=get_cancel_keyboard(),
     )
@@ -85,15 +107,24 @@ async def handle_asphalt_price(message: Message, state: FSMContext, user: User, 
         return
 
     data = await state.get_data()
+    cost_price = data.get("asphalt_cost_price", Decimal("0"))
     await state.clear()
 
     svc = AsphaltService(session)
-    at = await svc.create(name=data["asphalt_name"], price_per_m2=price)
+    at = await svc.create(
+        name=data["asphalt_name"], 
+        cost_price_per_m2=cost_price,
+        price_per_m2=price
+    )
+    
+    profit_per_m2 = price - cost_price
 
     await message.answer(
         f"✅ Asfalt turi qo'shildi!\n\n"
         f"🏗 Nom: <b>{at.name}</b>\n"
-        f"💰 Narx: <b>{float(at.price_per_m2):,.0f} so'm/m²</b>",
+        f"� Tannarxi: <b>{float(cost_price):,.0f} so'm/m²</b>\n"
+        f"💰 Sotish narxi: <b>{float(price):,.0f} so'm/m²</b>\n"
+        f"💎 Foyda: <b>{float(profit_per_m2):,.0f} so'm/m²</b>",
         reply_markup=get_main_menu(user.role, lang),
     )
 
@@ -106,10 +137,17 @@ async def manage_asphalt_item(callback: CallbackQuery, session) -> None:
     if not at:
         await callback.answer("❌ Topilmadi", show_alert=True)
         return
+    
+    cost_price = at.cost_price_per_m2 or Decimal("0")
+    selling_price = at.price_per_m2
+    profit_per_m2 = selling_price - cost_price
+    
     status = "🟢 Faol" if at.is_active else "🔴 O'chirilgan"
     await callback.message.edit_text(
-        f"🏗 <b>{at.name}</b>\n"
-        f"💰 Narx: <b>{float(at.price_per_m2):,.0f} so'm/m²</b>\n"
+        f"🏗 <b>{at.name}</b>\n\n"
+        f"� Tannarxi: <b>{float(cost_price):,.0f} so'm/m²</b>\n"
+        f"💰 Sotish narxi: <b>{float(selling_price):,.0f} so'm/m²</b>\n"
+        f"💎 Foyda: <b>{float(profit_per_m2):,.0f} so'm/m²</b>\n\n"
         f"Holat: {status}",
         reply_markup=get_asphalt_actions_keyboard(at.id, at.is_active),
     )
