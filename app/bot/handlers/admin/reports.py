@@ -3,7 +3,6 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.filters import RoleFilter
-from app.config import settings
 from app.db.models import ADMIN_ROLES, MANAGEMENT_ROLES
 from app.services.report_service import ReportService
 
