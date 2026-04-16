@@ -55,3 +55,10 @@ def build_button_variants():
 
 
 build_button_variants()
+
+
+def location_link(lat, lng) -> str:
+    """Return a clickable Google Maps link for Telegram HTML, or empty string if no coords."""
+    if lat and lng:
+        return f'🗺 <a href="https://www.google.com/maps?q={lat},{lng}">Xaritada ko\'rish</a>\n'
+    return ""

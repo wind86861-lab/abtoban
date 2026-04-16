@@ -130,17 +130,18 @@ STRINGS = {
         "📍 <b>Manzil:</b>\n"
         "   Viloyat: {district}\n"
         "   Ko'cha: {street}\n"
-        "   Mo'ljal: {target}\n\n"
+        "   Mo'ljal: {target}\n"
+        "{location_link}\n"
         "📐 Maydon: <b>{area} m²</b>\n"
         "🏗 Asfalt: <b>{asphalt}</b>\n"
         "💰 Taxminiy narx: <b>{price} so'm</b>\n\n"
         "Tasdiqlaysizmi?"
     ),
-    "order_submitted": "✅ <b>Zakaz qabul qilindi!</b>\n\n🔢 Raqam: <code>{number}</code>\n📍 Manzil: {address}\n📐 Maydon: {area} m²\n\nYaqin orada master siz bilan bog'lanadi.",
+    "order_submitted": "✅ <b>Zakaz qabul qilindi!</b>\n\n🔢 Raqam: <code>{number}</code>\n📍 Manzil: {address}\n{location_link}📐 Maydon: {area} m²\n\nYaqin orada master siz bilan bog'lanadi.",
     "order_cancelled": "❌ Zakaz bekor qilindi.",
     "no_orders": "📋 <b>Mening zakazlarim</b>\n\nSizda hali zakazlar yo'q.\nZakaz qoldirish uchun 📝 tugmasini bosing.",
     "my_orders_header": "📋 <b>Mening zakazlarim:</b>\n",
-    "new_order_notify": "🆕 <b>Yangi zakaz!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n📐 {area} m²\n🏗 {asphalt}",
+    "new_order_notify": "🆕 <b>Yangi zakaz!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} m²\n🏗 {asphalt}",
 
     # ── Price calculator ──
     "calc_start": "🧮 <b>Narx hisoblash</b>\n\n📐 Maydon hajmini kiriting (m²):\nMisol: <code>300</code>",
@@ -188,12 +189,13 @@ STRINGS = {
         "👤 Klient: <b>{client}</b>\n"
         "📱 Tel: <b>{phone}</b>\n"
         "📍 Manzil: <b>{address}</b>\n"
+        "{location_link}"
         "📐 Maydon: <b>{area} m²</b>\n"
         "🏗 Asfalt: <b>{asphalt}</b>\n"
         "💰 Taxminiy narx: <b>{price} so'm</b>\n\n"
         "Tasdiqlaysizmi?"
     ),
-    "master_order_created": "✅ <b>Zakaz yaratildi!</b>\n\n🔢 Raqam: <code>{number}</code>\n👤 Klient: {name}\n📍 Manzil: {address}\n📐 Maydon: {area} m²\n\nEndi 'Yangi zakazlar' orqali tasdiqlashingiz mumkin.",
+    "master_order_created": "✅ <b>Zakaz yaratildi!</b>\n\n🔢 Raqam: <code>{number}</code>\n👤 Klient: {name}\n📍 Manzil: {address}\n{location_link}📐 Maydon: {area} m²\n\nEndi 'Yangi zakazlar' orqali tasdiqlashingiz mumkin.",
     "no_my_orders": "📋 <b>Mening zakazlarim</b>\n\nSizga biriktirilgan zakazlar yo'q.",
     "my_orders_master": "📋 <b>Mening zakazlarim</b> ({count} ta):",
 
@@ -245,7 +247,7 @@ STRINGS = {
     # ── Usta ──
     "usta_no_orders": "📋 <b>Mening zakazlarim</b>\n\nSizga hali zakaz biriktirilmagan.\nBildirishnoma kelganda avtomatik ko'rinadi.",
     "usta_orders_list": "📋 <b>Mening zakazlarim</b> ({count} ta):\n",
-    "usta_accepted": "✅ <b>Zakaz qabul qilindi!</b>\n\n🔢 #{number}\n📍 {address}\n📐 {area} m²  🏗 {asphalt}\n📅 Ish sanasi: {date}\n💰 Usta haqi: {wage} so'm",
+    "usta_accepted": "✅ <b>Zakaz qabul qilindi!</b>\n\n🔢 #{number}\n📍 {address}\n{location_link}📐 {area} m²  🏗 {asphalt}\n📅 Ish sanasi: {date}\n💰 Usta haqi: {wage} so'm",
     "usta_accepted_notify": "✅ <b>Usta zakazni qabul qildi!</b>\n\nZakaz: #{number}\n👷 Usta: {usta}",
     "assignment_not_yours": "❌ Bu zakaz sizga tayinlanmagan yoki allaqachon boshqa usta qabul qildi.",
     "usta_declined": "❌ Zakaz rad etildi.",
@@ -359,13 +361,14 @@ STRINGS = {
         "👤 Klient: <b>{client}</b>\n"
         "📱 Tel: <b>{phone}</b>\n"
         "📍 Manzil: {address}\n"
+        "{location_link}"
         "📐 Maydon: <b>{area} m²</b>\n"
         "🏗 Asfalt: <b>{asphalt}</b>\n"
         "💰 Taxminiy: <b>{price} so'm</b>\n\n"
         "Tasdiqlaysizmi?"
     ),
-    "admin_order_created": "✅ <b>Zakaz yaratildi!</b>\n\n🔢 Raqam: <code>{number}</code>\n👤 Klient: {client}\n📍 Manzil: {address}",
-    "admin_order_notify": "🆕 <b>Yangi zakaz (admin tomonidan)!</b>\n\n🔢 #{number}\n👤 {client} | {phone}\n📍 {address}\n📐 {area} m²",
+    "admin_order_created": "✅ <b>Zakaz yaratildi!</b>\n\n🔢 Raqam: <code>{number}</code>\n👤 Klient: {client}\n📍 Manzil: {address}\n{location_link}",
+    "admin_order_notify": "🆕 <b>Yangi zakaz (admin tomonidan)!</b>\n\n🔢 #{number}\n👤 {client} | {phone}\n📍 {address}\n{location_link}📐 {area} m²",
     "change_status": "🔄 Yangi statusni tanlang:",
 
     # ── Admin settings ──

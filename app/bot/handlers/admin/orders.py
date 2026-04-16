@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.filters import RoleFilter
+from app.bot.i18n.core import location_link
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
 from app.bot.keyboards.order import (
     get_admin_order_detail_keyboard,
@@ -47,6 +48,7 @@ def _fmt_order_detail(order) -> str:
         f"👤 Klient: <b>{order.client_name}</b>\n"
         f"📱 Tel: <b>{order.client_phone}</b>\n"
         f"📍 Manzil: <b>{order.address or '—'}</b>\n"
+        f"{location_link(order.latitude, order.longitude)}"
         f"📐 Maydon: <b>{order.area_m2 or '?'} m²</b>\n"
         f"🏗 Asfalt: <b>{asphalt}</b>\n"
         f"💰 Summa: <b>{price}</b>\n"
@@ -345,6 +347,7 @@ async def admin_order_asphalt(callback: CallbackQuery, state: FSMContext, sessio
         f"👤 Klient: <b>{data['client_name']}</b>\n"
         f"📱 Tel: <b>{data['client_phone']}</b>\n"
         f"📍 Manzil: {data['address']}\n"
+        f"{location_link(data.get('latitude'), data.get('longitude'))}"
         f"📐 Maydon: <b>{area} m²</b>\n"
         f"🏗 Asfalt: <b>{asphalt.name}</b>\n"
         f"💰 Taxminiy: <b>{float(estimated):,.0f} so'm</b>\n\n"
@@ -379,6 +382,7 @@ async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: U
         f"🔢 #{order.order_number}\n"
         f"👤 {data['client_name']} | {data['client_phone']}\n"
         f"📍 {order.address}\n"
+        f"{location_link(order.latitude, order.longitude)}"
         f"📐 {order.area_m2} m²"
     )
     for master in masters:
@@ -391,7 +395,8 @@ async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: U
         f"✅ <b>Zakaz yaratildi!</b>\n\n"
         f"🔢 Raqam: <code>{order.order_number}</code>\n"
         f"👤 Klient: {data['client_name']}\n"
-        f"📍 Manzil: {order.address}"
+        f"📍 Manzil: {order.address}\n"
+        f"{location_link(order.latitude, order.longitude)}"
     )
     await callback.message.answer("Asosiy menyu:", reply_markup=get_main_menu(user.role, lang))
     await callback.answer()

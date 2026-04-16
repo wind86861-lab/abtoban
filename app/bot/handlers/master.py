@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters import RoleFilter
 from app.bot.i18n import t, ALL_BUTTON_TEXTS
+from app.bot.i18n.core import location_link
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu, get_skip_keyboard
 from app.bot.keyboards.order import (
     get_asphalt_keyboard,
@@ -81,11 +82,13 @@ async def view_new_order(callback: CallbackQuery, session, lang: str) -> None:
         await callback.answer(t("order_not_found", lang), show_alert=True)
         return
     asphalt = order.asphalt_type.name if order.asphalt_type else "—"
+    loc = location_link(order.latitude, order.longitude)
     text = (
         f"📋 <b>{t('order', lang)}: {order.order_number}</b>\n\n"
         f"👤 {t('client', lang)}: <b>{order.client_name}</b>\n"
         f"📱 {t('phone', lang)}: <b>{order.client_phone}</b>\n"
         f"📍 {t('address', lang)}: <b>{order.address or '—'}</b>\n"
+        f"{loc}"
         f"📐 {t('area', lang)}: <b>{order.area_m2 or '?'} m²</b>\n"
         f"🏗 {t('asphalt', lang)}: <b>{asphalt}</b>\n"
         f"📅 {t('created', lang)}: <b>{order.created_at.strftime('%d.%m.%Y %H:%M')}</b>\n\n"
@@ -272,6 +275,7 @@ async def master_order_asphalt(callback: CallbackQuery, state: FSMContext, sessi
           district=data.get('district', '—'),
           street=data.get('street', '—'),
           target=data.get('target', '—'),
+          location_link=location_link(data.get('latitude'), data.get('longitude')),
           area=area,
           asphalt=asphalt.name,
           price=f"{float(estimated):,.0f}"),
@@ -299,6 +303,7 @@ async def master_order_submit(callback: CallbackQuery, state: FSMContext, user: 
           number=order.order_number,
           name=data['client_name'],
           address=data['address'],
+          location_link=location_link(data.get('latitude'), data.get('longitude')),
           area=data['area_m2']),
     )
     await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
@@ -339,10 +344,12 @@ async def view_my_order(callback: CallbackQuery, session, lang: str) -> None:
     status_label = ORDER_STATUS_LABELS.get(order.status, order.status.value)
     asphalt = order.asphalt_type.name if order.asphalt_type else "—"
     usta_name = order.usta.full_name if order.usta else t("not_assigned", lang)
+    loc = location_link(order.latitude, order.longitude)
     text = (
         f"📋 <b>{t('order', lang)}: {order.order_number}</b>\n\n"
         f"👤 {t('client', lang)}: <b>{order.client_name}</b> | {order.client_phone}\n"
         f"📍 {t('address', lang)}: <b>{order.address or '—'}</b>\n"
+        f"{loc}"
         f"📐 {t('area', lang)}: <b>{order.area_m2 or '?'} m²</b>\n"
         f"🏗 {t('asphalt', lang)}: <b>{asphalt}</b>\n"
         f"💰 {t('total', lang)}: <b>{float(order.total_price):,.0f}</b>\n"

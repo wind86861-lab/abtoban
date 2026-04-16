@@ -130,17 +130,18 @@ STRINGS = {
         "📍 <b>Адрес:</b>\n"
         "   Район: {district}\n"
         "   Улица: {street}\n"
-        "   Ориентир: {target}\n\n"
+        "   Ориентир: {target}\n"
+        "{location_link}\n"
         "📐 Площадь: <b>{area} м²</b>\n"
         "🏗 Асфальт: <b>{asphalt}</b>\n"
         "💰 Ориентировочная цена: <b>{price} сум</b>\n\n"
         "Подтверждаете?"
     ),
-    "order_submitted": "✅ <b>Заказ принят!</b>\n\n🔢 Номер: <code>{number}</code>\n📍 Адрес: {address}\n📐 Площадь: {area} м²\n\nВ ближайшее время мастер с вами свяжется.",
+    "order_submitted": "✅ <b>Заказ принят!</b>\n\n🔢 Номер: <code>{number}</code>\n📍 Адрес: {address}\n{location_link}📐 Площадь: {area} м²\n\nВ ближайшее время мастер с вами свяжется.",
     "order_cancelled": "❌ Заказ отменён.",
     "no_orders": "📋 <b>Мои заказы</b>\n\nУ вас пока нет заказов.\nНажмите 📝 чтобы оставить заказ.",
     "my_orders_header": "📋 <b>Мои заказы:</b>\n",
-    "new_order_notify": "🆕 <b>Новый заказ!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n📐 {area} м²\n🏗 {asphalt}",
+    "new_order_notify": "🆕 <b>Новый заказ!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} м²\n🏗 {asphalt}",
 
     # ── Price calculator ──
     "calc_start": "🧮 <b>Расчёт цены</b>\n\n📐 Введите площадь (м²):\nПример: <code>300</code>",
@@ -188,12 +189,13 @@ STRINGS = {
         "👤 Клиент: <b>{client}</b>\n"
         "📱 Тел: <b>{phone}</b>\n"
         "📍 Адрес: <b>{address}</b>\n"
+        "{location_link}"
         "📐 Площадь: <b>{area} м²</b>\n"
         "🏗 Асфальт: <b>{asphalt}</b>\n"
         "💰 Ориент. цена: <b>{price} сум</b>\n\n"
         "Подтверждаете?"
     ),
-    "master_order_created": "✅ <b>Заказ создан!</b>\n\n🔢 Номер: <code>{number}</code>\n👤 Клиент: {name}\n📍 Адрес: {address}\n📐 Площадь: {area} м²\n\nТеперь подтвердите через 'Новые заказы'.",
+    "master_order_created": "✅ <b>Заказ создан!</b>\n\n🔢 Номер: <code>{number}</code>\n👤 Клиент: {name}\n📍 Адрес: {address}\n{location_link}📐 Площадь: {area} м²\n\nТеперь подтвердите через 'Новые заказы'.",
     "no_my_orders": "📋 <b>Мои заказы</b>\n\nЗакреплённых за вами заказов нет.",
     "my_orders_master": "📋 <b>Мои заказы</b> ({count} шт.):",
 
@@ -245,7 +247,7 @@ STRINGS = {
     # ── Usta ──
     "usta_no_orders": "📋 <b>Мои заказы</b>\n\nВам ещё не назначены заказы.\nУведомление придёт автоматически.",
     "usta_orders_list": "📋 <b>Мои заказы</b> ({count} шт.):\n",
-    "usta_accepted": "✅ <b>Заказ принят!</b>\n\n🔢 #{number}\n📍 {address}\n📐 {area} м²  🏗 {asphalt}\n📅 Дата работ: {date}\n💰 Зарплата: {wage} сум",
+    "usta_accepted": "✅ <b>Заказ принят!</b>\n\n🔢 #{number}\n📍 {address}\n{location_link}📐 {area} м²  🏗 {asphalt}\n📅 Дата работ: {date}\n💰 Зарплата: {wage} сум",
     "usta_accepted_notify": "✅ <b>Мастер принял заказ!</b>\n\nЗаказ: #{number}\n👷 Мастер: {usta}",
     "assignment_not_yours": "❌ Этот заказ не назначен вам или уже принят другим мастером.",
     "usta_declined": "❌ Заказ отклонён.",
@@ -359,13 +361,14 @@ STRINGS = {
         "👤 Клиент: <b>{client}</b>\n"
         "📱 Тел: <b>{phone}</b>\n"
         "📍 Адрес: {address}\n"
+        "{location_link}"
         "📐 Площадь: <b>{area} м²</b>\n"
         "🏗 Асфальт: <b>{asphalt}</b>\n"
         "💰 Ориент.: <b>{price} сум</b>\n\n"
         "Подтверждаете?"
     ),
-    "admin_order_created": "✅ <b>Заказ создан!</b>\n\n🔢 Номер: <code>{number}</code>\n👤 Клиент: {client}\n📍 Адрес: {address}",
-    "admin_order_notify": "🆕 <b>Новый заказ (от админа)!</b>\n\n🔢 #{number}\n👤 {client} | {phone}\n📍 {address}\n📐 {area} м²",
+    "admin_order_created": "✅ <b>Заказ создан!</b>\n\n🔢 Номер: <code>{number}</code>\n👤 Клиент: {client}\n📍 Адрес: {address}\n{location_link}",
+    "admin_order_notify": "🆕 <b>Новый заказ (от админа)!</b>\n\n🔢 #{number}\n👤 {client} | {phone}\n📍 {address}\n{location_link}📐 {area} м²",
     "change_status": "🔄 Выберите новый статус:",
 
     # ── Admin settings ──

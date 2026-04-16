@@ -1247,6 +1247,7 @@
       <tr><td>Mijoz</td><td>${o.client}</td></tr>
       <tr><td>Telefon</td><td>${o.phone || '—'}</td></tr>
       <tr><td>Manzil</td><td>${o.address || '—'}</td></tr>
+      <tr><td>📍 Lokatsiya</td><td>${o.latitude ? `<a href="https://www.google.com/maps?q=${o.latitude},${o.longitude}" target="_blank" style="color:#3563e9;text-decoration:underline">🗺 Xaritada ko'rish</a>` : '—'}</td></tr>
       <tr><td>Maydon</td><td>${o.area || '—'} m²</td></tr>
       <tr><td>Jami narx</td><td><strong>${fmt(o.total)} so'm</strong></td></tr>
       <tr><td>Status</td><td><span class="badge badge-${o.status}">${STATUS_FULL[o.status] || o.status}</span></td></tr>

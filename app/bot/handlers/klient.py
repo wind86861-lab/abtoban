@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters import RoleFilter
 from app.bot.i18n import t, ALL_BUTTON_TEXTS
+from app.bot.i18n.core import location_link
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
 from app.bot.keyboards.order import (
     get_asphalt_keyboard,
@@ -169,6 +170,7 @@ async def handle_asphalt_pick(callback: CallbackQuery, state: FSMContext, sessio
           district=data.get('district', '—'),
           street=data.get('street', '—'),
           target=data.get('target', '—'),
+          location_link=location_link(data.get('latitude'), data.get('longitude')),
           area=area,
           asphalt=asphalt.name,
           price=f"{float(estimated):,.0f}"),
@@ -207,6 +209,7 @@ async def submit_order(callback: CallbackQuery, state: FSMContext, user: User, s
                   name=user.full_name or t("nameless", ml),
                   phone=user.phone,
                   address=order.address,
+                  location_link=location_link(order.latitude, order.longitude),
                   area=order.area_m2,
                   asphalt=data.get('asphalt_name', '—')),
             )
@@ -217,6 +220,7 @@ async def submit_order(callback: CallbackQuery, state: FSMContext, user: User, s
         t("order_submitted", lang,
           number=order.order_number,
           address=order.address,
+          location_link=location_link(order.latitude, order.longitude),
           area=order.area_m2),
     )
     await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.KLIENT, lang))

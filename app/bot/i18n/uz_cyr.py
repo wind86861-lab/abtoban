@@ -130,17 +130,18 @@ STRINGS = {
         "📍 <b>Манзил:</b>\n"
         "   Вилоят: {district}\n"
         "   Кўча: {street}\n"
-        "   Мўлжал: {target}\n\n"
+        "   Мўлжал: {target}\n"
+        "{location_link}\n"
         "📐 Майдон: <b>{area} м²</b>\n"
         "🏗 Асфалт: <b>{asphalt}</b>\n"
         "💰 Тахминий нарх: <b>{price} сўм</b>\n\n"
         "Тасдиқлайсизми?"
     ),
-    "order_submitted": "✅ <b>Буюртма қабул қилинди!</b>\n\n🔢 Рақам: <code>{number}</code>\n📍 Манзил: {address}\n📐 Майдон: {area} м²\n\nЯқин орада мастер сиз билан боғланади.",
+    "order_submitted": "✅ <b>Буюртма қабул қилинди!</b>\n\n🔢 Рақам: <code>{number}</code>\n📍 Манзил: {address}\n{location_link}📐 Майдон: {area} м²\n\nЯқин орада мастер сиз билан боғланади.",
     "order_cancelled": "❌ Буюртма бекор қилинди.",
     "no_orders": "📋 <b>Менинг буюртмаларим</b>\n\nСизда ҳали буюртмалар йўқ.\nБуюртма қолдириш учун 📝 тугмасини босинг.",
     "my_orders_header": "📋 <b>Менинг буюртмаларим:</b>\n",
-    "new_order_notify": "🆕 <b>Янги буюртма!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n📐 {area} м²\n🏗 {asphalt}",
+    "new_order_notify": "🆕 <b>Янги буюртма!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} м²\n🏗 {asphalt}",
 
     # ── Price calculator ──
     "calc_start": "🧮 <b>Нарх ҳисоблаш</b>\n\n📐 Майдон ҳажмини киритинг (м²):\nМисол: <code>300</code>",
@@ -188,12 +189,13 @@ STRINGS = {
         "👤 Клиент: <b>{client}</b>\n"
         "📱 Тел: <b>{phone}</b>\n"
         "📍 Манзил: <b>{address}</b>\n"
+        "{location_link}"
         "📐 Майдон: <b>{area} м²</b>\n"
         "🏗 Асфалт: <b>{asphalt}</b>\n"
         "💰 Тахминий нарх: <b>{price} сўм</b>\n\n"
         "Тасдиқлайсизми?"
     ),
-    "master_order_created": "✅ <b>Буюртма яратилди!</b>\n\n🔢 Рақам: <code>{number}</code>\n👤 Клиент: {name}\n📍 Манзил: {address}\n📐 Майдон: {area} м²\n\nЭнди 'Янги буюртмалар' орқали тасдиқлашингиз мумкин.",
+    "master_order_created": "✅ <b>Буюртма яратилди!</b>\n\n🔢 Рақам: <code>{number}</code>\n👤 Клиент: {name}\n📍 Манзил: {address}\n{location_link}📐 Майдон: {area} м²\n\nЭнди 'Янги буюртмалар' орқали тасдиқлашингиз мумкин.",
     "no_my_orders": "📋 <b>Менинг буюртмаларим</b>\n\nСизга бириктирилган буюртмалар йўқ.",
     "my_orders_master": "📋 <b>Менинг буюртмаларим</b> ({count} та):",
 
@@ -245,7 +247,7 @@ STRINGS = {
     # ── Usta ──
     "usta_no_orders": "📋 <b>Менинг буюртмаларим</b>\n\nСизга ҳали буюртма бириктирилмаган.\nБилдиришнома келганда автоматик кўринади.",
     "usta_orders_list": "📋 <b>Менинг буюртмаларим</b> ({count} та):\n",
-    "usta_accepted": "✅ <b>Буюртма қабул қилинди!</b>\n\n🔢 #{number}\n📍 {address}\n📐 {area} м²  🏗 {asphalt}\n📅 Иш санаси: {date}\n💰 Уста ҳақи: {wage} сўм",
+    "usta_accepted": "✅ <b>Буюртма қабул қилинди!</b>\n\n🔢 #{number}\n📍 {address}\n{location_link}📐 {area} м²  🏗 {asphalt}\n📅 Иш санаси: {date}\n💰 Уста ҳақи: {wage} сўм",
     "usta_accepted_notify": "✅ <b>Уста буюртмани қабул қилди!</b>\n\nБуюртма: #{number}\n👷 Уста: {usta}",
     "assignment_not_yours": "❌ Бу буюртма сизга тайинланмаган ёки аллақачон бошқа уста қабул қилди.",
     "usta_declined": "❌ Буюртма рад этилди.",
@@ -359,13 +361,14 @@ STRINGS = {
         "👤 Клиент: <b>{client}</b>\n"
         "📱 Тел: <b>{phone}</b>\n"
         "📍 Манзил: {address}\n"
+        "{location_link}"
         "📐 Майдон: <b>{area} м²</b>\n"
         "🏗 Асфалт: <b>{asphalt}</b>\n"
         "💰 Тахминий: <b>{price} сўм</b>\n\n"
         "Тасдиқлайсизми?"
     ),
-    "admin_order_created": "✅ <b>Буюртма яратилди!</b>\n\n🔢 Рақам: <code>{number}</code>\n👤 Клиент: {client}\n📍 Манзил: {address}",
-    "admin_order_notify": "🆕 <b>Янги буюртма (админ томонидан)!</b>\n\n🔢 #{number}\n👤 {client} | {phone}\n📍 {address}\n📐 {area} м²",
+    "admin_order_created": "✅ <b>Буюртма яратилди!</b>\n\n🔢 Рақам: <code>{number}</code>\n👤 Клиент: {client}\n📍 Манзил: {address}\n{location_link}",
+    "admin_order_notify": "🆕 <b>Янги буюртма (админ томонидан)!</b>\n\n🔢 #{number}\n👤 {client} | {phone}\n📍 {address}\n{location_link}📐 {area} м²",
     "change_status": "🔄 Янги статусни танланг:",
 
     # ── Admin settings ──

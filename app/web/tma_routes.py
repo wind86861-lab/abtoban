@@ -75,6 +75,8 @@ async def tma_orders(limit: int = 10, status: Optional[str] = None):
             "area": float(o.area_m2) if o.area_m2 else None,
             "total": float(o.total_price) if o.total_price else None,
             "status": o.status.value,
+            "latitude": o.latitude,
+            "longitude": o.longitude,
         }
         for o in orders
     ]

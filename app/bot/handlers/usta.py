@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.filters import RoleFilter
 from app.bot.i18n import t, ALL_BUTTON_TEXTS
+from app.bot.i18n.core import location_link
 from app.bot.keyboards.finance import (
     get_active_orders_for_material_keyboard,
     get_material_confirm_keyboard,
@@ -86,6 +87,7 @@ async def accept_assignment(callback: CallbackQuery, user: User, session, lang: 
         t("usta_accepted", lang,
           number=order.order_number,
           address=order.address or "—",
+          location_link=location_link(order.latitude, order.longitude),
           area=order.area_m2,
           asphalt=asphalt,
           date=work_date,
