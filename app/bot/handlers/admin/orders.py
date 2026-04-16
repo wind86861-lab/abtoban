@@ -12,6 +12,7 @@ from app.bot.keyboards.order import (
     get_admin_order_detail_keyboard,
     get_asphalt_keyboard,
     get_order_confirm_keyboard,
+    get_regions_keyboard,
     get_status_selection_keyboard,
 )
 from app.bot.states.order import AdminOrderCreateStates
@@ -244,12 +245,22 @@ async def admin_order_phone(message: Message, state: FSMContext, session) -> Non
             client_phone=phone,
             client_name=found_user.full_name or "Nomsiz",
         )
-        await state.set_state(AdminOrderCreateStates.entering_address)
-        await message.answer(
-            f"✅ Klient topildi: <b>{found_user.full_name or 'Nomsiz'}</b>\n\n"
-            f"2/5 — Manzilni kiriting:",
-            reply_markup=get_cancel_keyboard(),
-        )
+        user_svc2 = UserService(session)
+        regions = await user_svc2.get_regions()
+        if regions:
+            await state.set_state(AdminOrderCreateStates.selecting_region)
+            await message.answer(
+                f"✅ Klient topildi: <b>{found_user.full_name or 'Nomsiz'}</b>\n\n"
+                f"2/6 — Viloyatni tanlang:",
+                reply_markup=get_regions_keyboard(regions),
+            )
+        else:
+            await state.set_state(AdminOrderCreateStates.entering_address)
+            await message.answer(
+                f"✅ Klient topildi: <b>{found_user.full_name or 'Nomsiz'}</b>\n\n"
+                f"3/6 — Manzilni kiriting:",
+                reply_markup=get_cancel_keyboard(),
+            )
     else:
         await state.update_data(client_phone=phone)
         await state.set_state(AdminOrderCreateStates.entering_client_name)
@@ -283,12 +294,34 @@ async def admin_order_name(message: Message, state: FSMContext, session) -> None
     await session.flush()
 
     await state.update_data(client_id=new_user.id, client_name=name)
+    user_svc2 = UserService(session)
+    regions = await user_svc2.get_regions()
+    if regions:
+        await state.set_state(AdminOrderCreateStates.selecting_region)
+        await message.answer(
+            f"✅ Klient yaratildi: <b>{name}</b>\n\n"
+            f"2/6 — Viloyatni tanlang:",
+            reply_markup=get_regions_keyboard(regions),
+        )
+    else:
+        await state.set_state(AdminOrderCreateStates.entering_address)
+        await message.answer(
+            f"✅ Klient yaratildi: <b>{name}</b>\n\n"
+            f"3/6 — Manzilni kiriting:",
+            reply_markup=get_cancel_keyboard(),
+        )
+
+
+@router.callback_query(AdminOrderCreateStates.selecting_region, F.data.startswith("region:"), RoleFilter(*MANAGEMENT_ROLES))
+async def admin_order_region(callback: CallbackQuery, state: FSMContext) -> None:
+    region_id = int(callback.data.split(":")[1])
+    await state.update_data(region_id=region_id)
     await state.set_state(AdminOrderCreateStates.entering_address)
-    await message.answer(
-        f"✅ Klient yaratildi: <b>{name}</b>\n\n"
-        f"2/5 — Manzilni kiriting:",
-        reply_markup=get_cancel_keyboard(),
+    await callback.message.edit_text(
+        "✅ Viloyat tanlandi!\n\n"
+        "3/6 — Manzilni kiriting:",
     )
+    await callback.answer()
 
 
 @router.message(AdminOrderCreateStates.entering_address, RoleFilter(*MANAGEMENT_ROLES))
@@ -300,7 +333,7 @@ async def admin_order_address(message: Message, state: FSMContext) -> None:
     await state.update_data(address=address)
     await state.set_state(AdminOrderCreateStates.entering_area)
     await message.answer(
-        "3/5 — Maydon hajmini kiriting (m²):\nMisol: <code>500</code>",
+        "4/6 — Maydon hajmini kiriting (m²):\nMisol: <code>500</code>",
         reply_markup=get_cancel_keyboard(),
     )
 
@@ -324,7 +357,7 @@ async def admin_order_area(message: Message, state: FSMContext, session) -> None
         await state.clear()
         return
     await state.set_state(AdminOrderCreateStates.selecting_asphalt)
-    await message.answer("4/5 — Asfalt turini tanlang:", reply_markup=get_asphalt_keyboard(types))
+    await message.answer("5/6 — Asfalt turini tanlang:", reply_markup=get_asphalt_keyboard(types))
 
 
 @router.callback_query(AdminOrderCreateStates.selecting_asphalt, F.data.startswith("asphalt:"))
@@ -371,6 +404,7 @@ async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: U
         address=data["address"],
         area_m2=Decimal(data["area_m2"]),
         asphalt_type_id=data.get("asphalt_type_id"),
+        region_id=data.get("region_id"),
     )
 
     # Notify masters

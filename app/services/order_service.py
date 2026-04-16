@@ -32,6 +32,7 @@ class OrderService:
         notes: Optional[str] = None,
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
+        region_id: Optional[int] = None,
     ) -> Order:
         order_number = await self.generate_order_number()
         order = Order(
@@ -43,6 +44,7 @@ class OrderService:
             latitude=latitude,
             longitude=longitude,
             area_m2=area_m2,
+            region_id=region_id,
             asphalt_type_id=asphalt_type_id,
             status=OrderStatus.NEW,
             notes=notes,
@@ -114,6 +116,7 @@ class OrderService:
         area_m2: Decimal,
         asphalt_type_id: Optional[int] = None,
         notes: Optional[str] = None,
+        region_id: Optional[int] = None,
     ) -> Order:
         order_number = await self.generate_order_number()
         order = Order(
@@ -123,6 +126,7 @@ class OrderService:
             client_phone=client_phone,
             address=address,
             area_m2=area_m2,
+            region_id=region_id,
             asphalt_type_id=asphalt_type_id,
             status=OrderStatus.NEW,
             notes=notes,

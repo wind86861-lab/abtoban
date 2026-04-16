@@ -192,6 +192,7 @@ async def submit_order(callback: CallbackQuery, state: FSMContext, user: User, s
         asphalt_type_id=data.get("asphalt_type_id"),
         latitude=data.get("latitude"),
         longitude=data.get("longitude"),
+        region_id=data.get("region_id"),
     )
 
     # Notify all masters

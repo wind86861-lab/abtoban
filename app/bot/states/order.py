@@ -32,6 +32,7 @@ class MasterConfirmStates(StatesGroup):
 class AdminOrderCreateStates(StatesGroup):
     entering_client_phone = State()
     entering_client_name = State()
+    selecting_region = State()
     entering_address = State()
     entering_area = State()
     selecting_asphalt = State()
