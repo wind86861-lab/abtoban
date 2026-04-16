@@ -63,6 +63,7 @@ STRINGS = {
     "btn_master_my_orders": "📋 Менинг буюртмаларим",
     "btn_assign_usta": "👷 Уста тайинлаш",
     "btn_add_expense": "💸 Харажат киритиш",
+    "btn_master_web_panel": "🌐 Веб Панель",
 
     # ── Usta buttons ──
     "btn_usta_my_orders": "📋 Менинг буюртмаларим",

@@ -63,6 +63,7 @@ STRINGS = {
     "btn_master_my_orders": "📋 Мои заказы",
     "btn_assign_usta": "👷 Назначить мастера",
     "btn_add_expense": "💸 Добавить расход",
+    "btn_master_web_panel": "🌐 Веб Панель",
 
     # ── Usta buttons ──
     "btn_usta_my_orders": "📋 Мои заказы",
