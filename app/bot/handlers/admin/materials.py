@@ -24,7 +24,13 @@ async def admin_view_material(callback: CallbackQuery, session) -> None:
     
     order_num = req.order.order_number if req.order else "?"
     usta_name = req.usta.full_name or str(req.usta.telegram_id) if req.usta else "?"
-    region_name = req.order.region.name if req.order and req.order.region else "—"
+    # Fallback to usta's region if order.region is NULL (old orders)
+    if req.order and req.order.region:
+        region_name = req.order.region.name
+    elif req.usta and req.usta.region:
+        region_name = req.usta.region.name
+    else:
+        region_name = "—"
     
     await callback.message.edit_text(
         f"📦 <b>Material so'rov #{req.id}</b>\n\n"
@@ -51,8 +57,16 @@ async def admin_approve_material(callback: CallbackQuery, session) -> None:
         return
 
     req_full = await mat_svc.get_by_id(req_id)
-    order_region_id = req_full.order.region_id if req_full and req_full.order else None
-    region_name = req_full.order.region.name if req_full and req_full.order and req_full.order.region else "—"
+    # Use order region if available, fallback to usta region for old orders
+    if req_full and req_full.order and req_full.order.region_id:
+        order_region_id = req_full.order.region_id
+        region_name = req_full.order.region.name
+    elif req_full and req_full.usta and req_full.usta.region_id:
+        order_region_id = req_full.usta.region_id
+        region_name = req_full.usta.region.name if req_full.usta.region else "—"
+    else:
+        order_region_id = None
+        region_name = "—"
 
     # Get zavods filtered by order region
     user_svc = UserService(session)
@@ -93,7 +107,13 @@ async def show_all_zavods_for_material(callback: CallbackQuery, session) -> None
         await callback.answer("❌ So'rov topilmadi", show_alert=True)
         return
 
-    region_name = req_full.order.region.name if req_full.order and req_full.order.region else "—"
+    # Fallback to usta region if order region is NULL
+    if req_full.order and req_full.order.region:
+        region_name = req_full.order.region.name
+    elif req_full.usta and req_full.usta.region:
+        region_name = req_full.usta.region.name
+    else:
+        region_name = "—"
 
     user_svc = UserService(session)
     zavods = await user_svc.get_zavods()
@@ -133,7 +153,13 @@ async def pick_zavod_for_material(callback: CallbackQuery, session) -> None:
     await mat_svc.assign_zavod(req_id, zavod_id)
 
     usta_name = req_full.usta.full_name if req_full.usta else "?"
-    region_name = req_full.order.region.name if req_full.order and req_full.order.region else "—"
+    # Fallback to usta region if order region is NULL
+    if req_full.order and req_full.order.region:
+        region_name = req_full.order.region.name
+    elif req_full.usta and req_full.usta.region:
+        region_name = req_full.usta.region.name
+    else:
+        region_name = "—"
 
     # Get the selected zavod entity
     user_svc = UserService(session)
