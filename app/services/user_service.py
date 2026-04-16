@@ -223,6 +223,16 @@ class UserService:
         )
         return list(result.scalars().all())
 
+    async def link_zavod_to_region(self, zavod_id: int, region_id: int) -> None:
+        from app.db.models import zavod_hududlar
+        from sqlalchemy import insert
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        stmt = pg_insert(zavod_hududlar).values(
+            zavod_id=zavod_id, hudud_id=region_id
+        ).on_conflict_do_nothing()
+        await self.session.execute(stmt)
+        await self.session.flush()
+
     async def update_zavod(
         self,
         user_id: int,

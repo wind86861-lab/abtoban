@@ -268,7 +268,7 @@ async def assign_region(
     if new_role_str and UserRole(new_role_str) == UserRole.ZAVOD:
         zavods = await user_svc.get_zavods()
         if zavods:
-            await state.update_data(region_name=region_name)
+            await state.update_data(region_name=region_name, selected_region_id=region_id)
             await state.set_state(AdminRoleStates.selecting_zavod)
             builder = InlineKeyboardBuilder()
             for z in zavods:
@@ -332,17 +332,43 @@ async def skip_region_assign(
     target_user_id = data.get("target_user_id")
     new_role_str = data.get("new_role")
     role_label = data.get("role_label", "")
-    await state.clear()
 
     if not target_user_id:
+        await state.clear()
         await callback.answer()
         return
 
     user_svc = UserService(session)
     updated = await user_svc.get_by_id(target_user_id)
     if not updated:
+        await state.clear()
         await callback.answer("❌ Foydalanuvchi topilmadi.", show_alert=True)
         return
+
+    # If role is ZAVOD, still chain to zavod selection even if region skipped
+    if new_role_str and UserRole(new_role_str) == UserRole.ZAVOD:
+        zavods = await user_svc.get_zavods()
+        if zavods:
+            await state.update_data(region_name="—")
+            await state.set_state(AdminRoleStates.selecting_zavod)
+            builder = InlineKeyboardBuilder()
+            for z in zavods:
+                builder.button(
+                    text=f"🏭 {z.name}",
+                    callback_data=f"pick_zavod:{z.id}",
+                )
+            builder.button(text="⏩ O'tkazib yuborish", callback_data="skip_zavod_assign")
+            builder.adjust(2)
+            await callback.message.edit_text(
+                f"✅ Rol o'zgartirildi: <b>{role_label}</b>\n"
+                f"📍 Viloyat: o'tkazib yuborildi\n\n"
+                f"🏭 Endi <b>{updated.full_name or 'Foydalanuvchi'}</b>ni qaysi zavodga biriktirish kerak?",
+                reply_markup=builder.as_markup(),
+            )
+            await callback.answer()
+            return
+
+    await state.clear()
 
     await callback.message.edit_text(
         f"✅ Rol o'zgartirildi: <b>{role_label}</b>\n"
@@ -388,6 +414,7 @@ async def pick_zavod(
     zavod_id = int(callback.data.split(":")[1])
     role_label = data.get("role_label", "")
     region_name = data.get("region_name", "—")
+    region_id = data.get("selected_region_id")
 
     user_svc = UserService(session)
     updated = await user_svc.update_zavod(
@@ -395,6 +422,11 @@ async def pick_zavod(
         zavod_id=zavod_id,
         changed_by_id=user.id,
     )
+
+    # Link zavod entity to the selected region in zavod_hududlar
+    if region_id:
+        await user_svc.link_zavod_to_region(zavod_id, region_id)
+
     await state.clear()
 
     if not updated:
