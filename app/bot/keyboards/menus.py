@@ -82,6 +82,9 @@ def get_main_menu(role: UserRole, lang: str = "uz_lat") -> ReplyKeyboardMarkup:
         )
         builder.row(
             KeyboardButton(text=t("btn_request_material", lang)),
+            KeyboardButton(text=t("btn_add_expense", lang)),
+        )
+        builder.row(
             KeyboardButton(text=t("btn_work_history", lang)),
         )
 

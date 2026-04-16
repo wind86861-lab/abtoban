@@ -94,6 +94,26 @@ def get_master_orders_for_expense_keyboard(orders: List[Order]) -> InlineKeyboar
     return builder.as_markup()
 
 
+def get_usta_orders_for_expense_keyboard(orders: List[Order]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for o in orders:
+        builder.button(
+            text=f"🔢 {o.order_number} | {o.address or '—'}",
+            callback_data=f"usta_exp_order:{o.id}",
+        )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_usta_expense_type_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for exp_type, label in EXPENSE_LABELS.items():
+        builder.button(text=label, callback_data=f"usta_exp_type:{exp_type.value}")
+    builder.button(text="❌ Bekor qilish", callback_data="usta_exp_cancel")
+    builder.adjust(2)
+    return builder.as_markup()
+
+
 def get_payment_update_keyboard(order_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="💵 To'lov kiritish", callback_data=f"payment_enter:{order_id}")

@@ -11,11 +11,14 @@ from app.bot.keyboards.finance import (
     get_active_orders_for_material_keyboard,
     get_material_confirm_keyboard,
     get_skip_notes_keyboard,
+    get_usta_expense_type_keyboard,
+    get_usta_orders_for_expense_keyboard,
 )
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
 from app.bot.keyboards.usta import get_usta_notification_keyboard, get_usta_order_detail_keyboard
-from app.bot.states.finance import MaterialRequestStates
+from app.bot.states.finance import ExpenseAddStates, MaterialRequestStates
 from app.db.models import ORDER_STATUS_LABELS, OrderStatus, User, UserRole
+from app.services.expense_service import EXPENSE_LABELS, ExpenseService
 from app.services.material_service import MaterialService
 from app.services.order_service import OrderService
 from app.services.usta_service import UstaService
@@ -300,3 +303,94 @@ async def work_history(message: Message, user: User, session, lang: str) -> None
             f"  📅 {date}  💰 {wage}"
         )
     await message.answer("\n".join(lines))
+
+
+# ── Expense entry FSM (Qo'shimcha narx) ──────────────────────────────────────
+
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_add_expense", set())))
+async def usta_expense_start(message: Message, user: User, session, lang: str) -> None:
+    order_svc = OrderService(session)
+    orders = await order_svc.get_by_usta(user.id)
+    active = [o for o in orders if o.status in (OrderStatus.CONFIRMED, OrderStatus.IN_WORK)]
+    if not active:
+        await message.answer(t("expense_no_active", lang))
+        return
+    await message.answer(
+        t("expense_start", lang),
+        reply_markup=get_usta_orders_for_expense_keyboard(active),
+    )
+
+
+@router.callback_query(F.data.startswith("usta_exp_order:"))
+async def usta_expense_pick_order(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    await state.update_data(order_id=order_id)
+    await state.set_state(ExpenseAddStates.selecting_type)
+    await callback.message.edit_text(
+        t("expense_select_type", lang),
+        reply_markup=get_usta_expense_type_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(ExpenseAddStates.selecting_type, F.data.startswith("usta_exp_type:"))
+async def usta_expense_pick_type(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    exp_type = callback.data.split(":", 1)[1]
+    await state.update_data(expense_type=exp_type)
+    await state.set_state(ExpenseAddStates.entering_amount)
+    await callback.message.edit_text(t("expense_enter_amount", lang))
+    await callback.answer()
+
+
+@router.message(ExpenseAddStates.entering_amount)
+async def usta_expense_amount(message: Message, state: FSMContext, lang: str) -> None:
+    raw = (message.text or "").strip().replace(" ", "").replace(",", "")
+    try:
+        amount = Decimal(raw)
+        if amount <= 0:
+            raise ValueError
+    except (InvalidOperation, ValueError):
+        await message.answer(t("invalid_sum", lang))
+        return
+    await state.update_data(amount=str(amount))
+    await state.set_state(ExpenseAddStates.entering_description)
+    await message.answer(
+        t("expense_enter_desc", lang),
+        reply_markup=get_cancel_keyboard(lang),
+    )
+
+
+@router.message(ExpenseAddStates.entering_description)
+async def usta_expense_description(
+    message: Message, state: FSMContext, user: User, session, lang: str
+) -> None:
+    text = message.text or ""
+    description = None if text.startswith("⏩") else text.strip() or None
+    data = await state.get_data()
+    await state.clear()
+
+    from app.db.models import ExpenseType
+    exp_svc = ExpenseService(session)
+    expense = await exp_svc.add(
+        order_id=data["order_id"],
+        expense_type=ExpenseType(data["expense_type"]),
+        amount=Decimal(data["amount"]),
+        created_by=user.id,
+        description=description,
+    )
+    label = EXPENSE_LABELS.get(ExpenseType(data["expense_type"]), data["expense_type"])
+    await message.answer(
+        t("expense_added", lang,
+          label=label,
+          amount=f"{float(expense.amount):,.0f}",
+          desc=description or '—'),
+        reply_markup=get_main_menu(UserRole.USTA, lang),
+    )
+
+
+@router.callback_query(ExpenseAddStates.selecting_type, F.data == "usta_exp_cancel")
+async def usta_expense_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    await state.clear()
+    await callback.message.edit_text(t("expense_cancelled", lang))
+    await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.USTA, lang))
+    await callback.answer()

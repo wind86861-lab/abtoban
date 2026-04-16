@@ -13,3 +13,4 @@ class AdminRoleStates(StatesGroup):
     waiting_for_telegram_id = State()
     selecting_role = State()
     selecting_region = State()
+    selecting_zavod = State()

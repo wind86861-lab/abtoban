@@ -22,7 +22,7 @@ class UserService:
     async def get_by_id(self, user_id: int) -> Optional[User]:
         result = await self.session.execute(
             select(User)
-            .options(selectinload(User.region))
+            .options(selectinload(User.region), selectinload(User.zavod))
             .where(User.id == user_id)
         )
         return result.scalar_one_or_none()
@@ -202,3 +202,36 @@ class UserService:
             select(Region).where(Region.is_active == True).order_by(Region.name)
         )
         return list(result.scalars().all())
+
+    async def get_zavods(self) -> list:
+        from app.db.models import Zavod
+        result = await self.session.execute(
+            select(Zavod).where(Zavod.is_active == True).order_by(Zavod.name)
+        )
+        return list(result.scalars().all())
+
+    async def update_zavod(
+        self,
+        user_id: int,
+        zavod_id: int,
+        changed_by_id: Optional[int] = None,
+    ) -> Optional[User]:
+        user = await self.get_by_id(user_id)
+        if not user:
+            return None
+        old_zavod = str(user.zavod_id) if user.zavod_id else "none"
+        user.zavod_id = zavod_id
+        await self.session.flush()
+
+        if changed_by_id:
+            log = AuditLog(
+                user_id=changed_by_id,
+                action="zavod_change",
+                entity_type="user",
+                entity_id=user_id,
+                old_value=old_zavod,
+                new_value=str(zavod_id),
+            )
+            self.session.add(log)
+            await self.session.flush()
+        return user
