@@ -9,6 +9,7 @@ from app.config import settings
 from app.db.session import engine
 from app.web.master_auth import MasterAuth
 from app.web.master_views import MasterOrderAdmin
+from app.web.master_dashboard import MasterDashboardView
 
 # Create Master panel app
 master_app = FastAPI(title="Master Panel", docs_url=None, redoc_url=None)
@@ -28,12 +29,13 @@ master_admin = Admin(
     app=master_app,
     engine=engine,
     authentication_backend=master_auth,
-    title="🏗 Avtoban - Master Panel",
+    title="🏗 Avtoban Stroy - Master Panel",
     base_url="/master",
     templates_dir=os.path.join(os.path.dirname(__file__), "templates"),
 )
 
 # Add Master views
+master_admin.add_view(MasterDashboardView)
 master_admin.add_view(MasterOrderAdmin)
 
 # Custom CSS injection

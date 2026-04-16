@@ -40,6 +40,7 @@ admin = Admin(
     authentication_backend=authentication_backend,
     title="🏗 Avtoban Stroy - Admin Panel",
     base_url="/sqladmin",
+    templates_dir=os.path.join(os.path.dirname(__file__), "templates"),
 )
 
 admin.add_view(ReportsView)

@@ -1,0 +1,21 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" href="/static/custom_admin.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+</style>
+{% endblock %}
+
+{% block brand_logo %}
+<a class="navbar-brand" href="{{ admin.base_url }}">
+    <span style="color: #FF6B00; font-weight: 800; font-size: 1.5rem;">🏗 AVTOBAN</span>
+    <span style="color: #FF6B00; font-weight: 300;">STROY</span>
+</a>
+{% endblock %}

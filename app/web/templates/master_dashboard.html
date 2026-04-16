@@ -1,0 +1,171 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" href="/static/custom_admin.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header fade-in">
+        <h1>👋 Salom, {{ stats.master_name }}!</h1>
+        <p>Master Panel - Sizning zakazlaringiz va komissiyangiz</p>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="row mb-4 fade-in">
+        <!-- Total Commission Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <i class="fas fa-dollar-sign fa-3x mb-3" style="opacity: 0.8;"></i>
+                <h3>{{ "{:,.0f}".format(stats.total_commission) }}</h3>
+                <p>Jami Komissiya (so'm)</p>
+            </div>
+        </div>
+
+        <!-- Total Orders Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);">
+                <i class="fas fa-clipboard-list fa-3x mb-3" style="opacity: 0.8;"></i>
+                <h3>{{ stats.total_orders }}</h3>
+                <p>Jami Zakazlar</p>
+            </div>
+        </div>
+
+        <!-- Total Revenue Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #17a2b8 0%, #3dc2d4 100%);">
+                <i class="fas fa-money-bill-wave fa-3x mb-3" style="opacity: 0.8;"></i>
+                <h3>{{ "{:,.0f}".format(stats.total_revenue) }}</h3>
+                <p>Jami Tushum (so'm)</p>
+            </div>
+        </div>
+
+        <!-- Month Commission Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #ffdb4d 100%);">
+                <i class="fas fa-calendar-alt fa-3x mb-3" style="opacity: 0.8; color: #1a1a1a;"></i>
+                <h3 style="color: #1a1a1a;">{{ "{:,.0f}".format(stats.month_commission) }}</h3>
+                <p style="color: #1a1a1a;">Bu Oy Komissiya</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month Stats Row -->
+    <div class="row mb-4 fade-in">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    📅 Bu Oy Statistika
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h4 style="color: #FF6B00;">{{ stats.month_orders }}</h4>
+                            <p class="text-muted">Zakazlar</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(stats.month_revenue) }} so'm</h4>
+                            <p class="text-muted">Tushum</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(stats.month_commission) }} so'm</h4>
+                            <p class="text-muted">Komissiya</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Status Breakdown -->
+    <div class="row mb-4 fade-in">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    📊 Zakazlar Holati
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        {% for status, count in stats.status_counts.items() %}
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 border rounded">
+                                <h4 style="color: #FF6B00;">{{ count }}</h4>
+                                <p class="text-muted">{{ status }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="row fade-in">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    📋 Oxirgi Zakazlar
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Klient</th>
+                                    <th>Manzil</th>
+                                    <th>Summa</th>
+                                    <th>Komissiya</th>
+                                    <th>Status</th>
+                                    <th>Sana</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in stats.recent_orders %}
+                                <tr>
+                                    <td><strong>{{ order.order_number }}</strong></td>
+                                    <td>{{ order.client_name or order.client_phone }}</td>
+                                    <td>{{ order.address[:30] }}...</td>
+                                    <td>{{ "{:,.0f}".format(order.total_price or 0) }} so'm</td>
+                                    <td><strong style="color: #FF6B00;">{{ "{:,.0f}".format(order.master_commission or 0) }} so'm</strong></td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ order.status.value }}</span>
+                                    </td>
+                                    <td>{{ order.created_at.strftime('%d.%m.%Y') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div class="row mt-4 fade-in">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    💰 To'lov Ma'lumotlari
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Oldindan to'lov:</strong></td>
+                            <td class="text-right">{{ "{:,.0f}".format(stats.total_advance) }} so'm</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Qarz:</strong></td>
+                            <td class="text-right text-danger">{{ "{:,.0f}".format(stats.total_debt) }} so'm</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
