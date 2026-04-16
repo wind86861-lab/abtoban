@@ -129,6 +129,9 @@ async def pick_zavod_for_material(callback: CallbackQuery, session) -> None:
         await callback.answer("❌ So'rov topilmadi", show_alert=True)
         return
 
+    # Assign the zavod entity to the material request
+    await mat_svc.assign_zavod(req_id, zavod_id)
+
     usta_name = req_full.usta.full_name if req_full.usta else "?"
     region_name = req_full.order.region.name if req_full.order and req_full.order.region else "—"
 

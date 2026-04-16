@@ -27,7 +27,10 @@ router.message.filter(RoleFilter(UserRole.ZAVOD))
 @router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_material_requests", set()) | ALL_BUTTON_TEXTS.get("btn_set_price", set())))
 async def material_requests(message: Message, user: User, session, lang: str) -> None:
     mat_svc = MaterialService(session)
-    pending = await mat_svc.get_pending(region_id=user.region_id)
+    if user.zavod_id:
+        pending = await mat_svc.get_pending_for_zavod(user.zavod_id)
+    else:
+        pending = await mat_svc.get_pending(region_id=user.region_id)
     if not pending:
         await message.answer(t("no_pending_requests", lang))
         return
@@ -40,7 +43,10 @@ async def material_requests(message: Message, user: User, session, lang: str) ->
 @router.callback_query(F.data == "zavod_pending_list")
 async def zavod_pending_list(callback: CallbackQuery, user: User, session, lang: str) -> None:
     mat_svc = MaterialService(session)
-    pending = await mat_svc.get_pending(region_id=user.region_id)
+    if user.zavod_id:
+        pending = await mat_svc.get_pending_for_zavod(user.zavod_id)
+    else:
+        pending = await mat_svc.get_pending(region_id=user.region_id)
     if not pending:
         await callback.message.edit_text(t("no_pending_requests", lang))
     else:
@@ -227,7 +233,10 @@ async def price_cancel(callback: CallbackQuery, state: FSMContext, lang: str) ->
 @router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_zavod_history", set())))
 async def history(message: Message, user: User, session, lang: str) -> None:
     mat_svc = MaterialService(session)
-    priced = await mat_svc.get_priced(region_id=user.region_id)
+    if user.zavod_id:
+        priced = await mat_svc.get_priced_for_zavod(user.zavod_id)
+    else:
+        priced = await mat_svc.get_priced(region_id=user.region_id)
     if not priced:
         await message.answer(t("no_priced_requests", lang))
         return

@@ -299,6 +299,9 @@ class MaterialRequest(Base):
     order_id: Mapped[int] = mapped_column(Integer, ForeignKey("orders.id"), nullable=False)
     usta_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     zavod_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_zavod_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("zavods.id"), nullable=True
+    )
 
     amount_tonnes: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     material_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(15, 2), nullable=True)
@@ -316,6 +319,7 @@ class MaterialRequest(Base):
     order: Mapped["Order"] = relationship("Order", back_populates="material_requests")
     usta: Mapped["User"] = relationship("User", foreign_keys=[usta_id])
     zavod: Mapped[Optional["User"]] = relationship("User", foreign_keys=[zavod_id])
+    assigned_zavod: Mapped[Optional["Zavod"]] = relationship("Zavod")
 
 
 class AuditLog(Base):

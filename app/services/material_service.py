@@ -98,6 +98,51 @@ class MaterialService:
         )
         return list(result.scalars().all())
 
+    async def assign_zavod(self, req_id: int, zavod_id: int) -> Optional[MaterialRequest]:
+        result = await self.session.execute(
+            select(MaterialRequest).where(MaterialRequest.id == req_id)
+        )
+        req = result.scalar_one_or_none()
+        if not req:
+            return None
+        req.assigned_zavod_id = zavod_id
+        await self.session.flush()
+        return req
+
+    async def get_pending_for_zavod(self, zavod_id: int) -> List[MaterialRequest]:
+        """Get PENDING material requests assigned to a specific zavod entity."""
+        query = (
+            select(MaterialRequest)
+            .options(
+                selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.usta),
+            )
+            .where(
+                MaterialRequest.status == MaterialRequestStatus.PENDING,
+                MaterialRequest.assigned_zavod_id == zavod_id,
+            )
+            .order_by(MaterialRequest.created_at.asc())
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_priced_for_zavod(self, zavod_id: int) -> List[MaterialRequest]:
+        """Get PRICED material requests assigned to a specific zavod entity."""
+        query = (
+            select(MaterialRequest)
+            .options(
+                selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.usta),
+            )
+            .where(
+                MaterialRequest.status == MaterialRequestStatus.PRICED,
+                MaterialRequest.assigned_zavod_id == zavod_id,
+            )
+            .order_by(MaterialRequest.created_at.asc())
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
     async def get_all_active(self) -> List[MaterialRequest]:
         result = await self.session.execute(
             select(MaterialRequest)
