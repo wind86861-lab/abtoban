@@ -1,0 +1,158 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" href="/static/custom_admin.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="dashboard-header fade-in">
+        <h1>💰 Komissiya Hisoboti</h1>
+        <p>Sizning komissiya daromadingiz va tafsilotlar</p>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="row mb-4 fade-in">
+        <!-- Total Commission -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <i class="fas fa-dollar-sign fa-3x mb-3" style="opacity: 0.8;"></i>
+                <h3>{{ "{:,.0f}".format(total_commission) }}</h3>
+                <p>Jami Komissiya (so'm)</p>
+            </div>
+        </div>
+
+        <!-- Month Commission -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);">
+                <i class="fas fa-calendar-month fa-3x mb-3" style="opacity: 0.8;"></i>
+                <h3>{{ "{:,.0f}".format(month_commission) }}</h3>
+                <p>Bu Oy ({{ month_orders }} zakaz)</p>
+            </div>
+        </div>
+
+        <!-- Week Commission -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #17a2b8 0%, #3dc2d4 100%);">
+                <i class="fas fa-calendar-week fa-3x mb-3" style="opacity: 0.8;"></i>
+                <h3>{{ "{:,.0f}".format(week_commission) }}</h3>
+                <p>Bu Hafta ({{ week_orders }} zakaz)</p>
+            </div>
+        </div>
+
+        <!-- Total Orders -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #ffdb4d 100%);">
+                <i class="fas fa-clipboard-list fa-3x mb-3" style="opacity: 0.8; color: #1a1a1a;"></i>
+                <h3 style="color: #1a1a1a;">{{ total_orders }}</h3>
+                <p style="color: #1a1a1a;">Jami Zakazlar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Breakdown -->
+    <div class="row mb-4 fade-in">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    📊 Moliyaviy Tafsilotlar
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(total_revenue) }} so'm</h4>
+                            <p class="text-muted">Jami Tushum</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 style="color: #28a745;">{{ "{:,.0f}".format(total_advance) }} so'm</h4>
+                            <p class="text-muted">Oldindan To'lov</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 style="color: #dc3545;">{{ "{:,.0f}".format(total_debt) }} so'm</h4>
+                            <p class="text-muted">Qarz</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(total_commission) }} so'm</h4>
+                            <p class="text-muted">Mening Komissiyam</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Breakdown -->
+    <div class="row mb-4 fade-in">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    📈 Holat Bo'yicha Komissiya
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Holat</th>
+                                    <th>Zakazlar Soni</th>
+                                    <th>Komissiya</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in status_breakdown %}
+                                <tr>
+                                    <td><span class="badge badge-primary">{{ item.status }}</span></td>
+                                    <td>{{ item.count }} ta</td>
+                                    <td><strong style="color: #FF6B00;">{{ "{:,.0f}".format(item.commission) }} so'm</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commission History -->
+    <div class="row fade-in">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    📋 Oxirgi Komissiyalar
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Zakaz №</th>
+                                    <th>Klient</th>
+                                    <th>Jami Summa</th>
+                                    <th>Komissiya</th>
+                                    <th>Holat</th>
+                                    <th>Sana</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in commission_history %}
+                                <tr>
+                                    <td><strong>{{ item.order_number }}</strong></td>
+                                    <td>{{ item.client_name }}</td>
+                                    <td>{{ "{:,.0f}".format(item.total_price) }} so'm</td>
+                                    <td><strong style="color: #FF6B00;">{{ "{:,.0f}".format(item.commission) }} so'm</strong></td>
+                                    <td><span class="badge badge-primary">{{ item.status }}</span></td>
+                                    <td>{{ item.date.strftime('%d.%m.%Y') if item.date else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

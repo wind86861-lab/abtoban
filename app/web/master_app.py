@@ -10,6 +10,8 @@ from app.db.session import engine
 from app.web.master_auth import MasterAuth
 from app.web.master_views import MasterOrderAdmin
 from app.web.master_dashboard import MasterDashboardView
+from app.web.master_clients import MasterClientsView
+from app.web.master_commission import MasterCommissionView
 
 # Create Master panel app
 master_app = FastAPI(title="Master Panel", docs_url=None, redoc_url=None)
@@ -34,9 +36,11 @@ master_admin = Admin(
     templates_dir=os.path.join(os.path.dirname(__file__), "templates"),
 )
 
-# Add Master views
+# Add Master views - Dashboard first, then main functionality
 master_admin.add_view(MasterDashboardView)
 master_admin.add_view(MasterOrderAdmin)
+master_admin.add_view(MasterClientsView)
+master_admin.add_view(MasterCommissionView)
 
 # Custom CSS injection
 @master_app.on_event("startup")

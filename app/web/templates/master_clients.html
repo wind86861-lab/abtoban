@@ -1,0 +1,91 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" href="/static/custom_admin.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="dashboard-header fade-in">
+        <h1>👥 Mening Klientlarim</h1>
+        <p>Barcha klientlar va ularning zakaz tarixi</p>
+    </div>
+
+    <!-- Clients Table -->
+    <div class="row fade-in">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    📋 Klientlar Ro'yxati
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Klient Ismi</th>
+                                    <th>Telefon</th>
+                                    <th>Zakazlar Soni</th>
+                                    <th>Jami Tushum</th>
+                                    <th>Jami Komissiya</th>
+                                    <th>Oxirgi Zakaz</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in clients %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td><strong>{{ client.name }}</strong></td>
+                                    <td>{{ client.phone }}</td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ client.order_count }} ta</span>
+                                    </td>
+                                    <td>{{ "{:,.0f}".format(client.total_revenue) }} so'm</td>
+                                    <td>
+                                        <strong style="color: #FF6B00;">
+                                            {{ "{:,.0f}".format(client.total_commission) }} so'm
+                                        </strong>
+                                    </td>
+                                    <td>{{ client.last_order_date.strftime('%d.%m.%Y') if client.last_order_date else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mt-4 fade-in">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 style="color: #FF6B00;">{{ clients|length }}</h3>
+                    <p class="text-muted">Jami Klientlar</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 style="color: #FF6B00;">{{ clients|sum(attribute='order_count') }}</h3>
+                    <p class="text-muted">Jami Zakazlar</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 style="color: #FF6B00;">{{ "{:,.0f}".format(clients|sum(attribute='total_commission')) }} so'm</h3>
+                    <p class="text-muted">Jami Komissiya</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
