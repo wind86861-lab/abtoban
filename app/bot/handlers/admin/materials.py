@@ -1,5 +1,6 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.filters import RoleFilter
 from app.bot.keyboards.finance import get_admin_material_requests_keyboard, get_admin_material_detail_keyboard
@@ -44,60 +45,132 @@ async def admin_approve_material(callback: CallbackQuery, session) -> None:
     req_id = int(callback.data.split(":")[1])
     mat_svc = MaterialService(session)
     req = await mat_svc.approve(req_id)
-    
+
     if not req:
         await callback.answer("❌ So'rov allaqachon tasdiqlangan yoki topilmadi", show_alert=True)
         return
-    
+
     req_full = await mat_svc.get_by_id(req_id)
-    
-    # Notify only zavod users in the order's region
-    from app.bot.loader import bot
-    user_svc = UserService(session)
-    
-    usta_name = req_full.usta.full_name if req_full and req_full.usta else "?"
     order_region_id = req_full.order.region_id if req_full and req_full.order else None
     region_name = req_full.order.region.name if req_full and req_full.order and req_full.order.region else "—"
-    
-    notify_text = (
-        f"📦 <b>Yangi material so'rov!</b>\n\n"
-        f"🔢 So'rov #{req.id}\n"
-        f"📍 Viloyat: {region_name}\n"
-        f"👷 Usta: {usta_name}\n"
-        f"📦 Miqdor: <b>{req.amount_tonnes} tonna</b>\n"
-        f"📝 Izoh: {req.notes or '—'}"
-    )
-    
-    # Find zavod users matching the order's region
+
+    # Get zavods filtered by order region
+    user_svc = UserService(session)
     if order_region_id:
-        zavods = await user_svc.get_by_role_and_region(UserRole.ZAVOD, order_region_id)
+        zavods = await user_svc.get_zavods_by_region(order_region_id)
     else:
-        zavods = await user_svc.get_all(role=UserRole.ZAVOD)
-    
-    notified_count = 0
-    for zavod in zavods:
-        try:
-            await bot.send_message(zavod.telegram_id, notify_text)
-            notified_count += 1
-        except Exception:
-            pass
-    
-    if notified_count == 0 and order_region_id:
-        # No regional zavod found, notify all zavods as fallback
-        all_zavods = await user_svc.get_all(role=UserRole.ZAVOD)
-        for zavod in all_zavods:
-            try:
-                await bot.send_message(zavod.telegram_id, notify_text)
-            except Exception:
-                pass
-    
+        zavods = await user_svc.get_zavods()
+
+    builder = InlineKeyboardBuilder()
+    for z in zavods:
+        builder.button(
+            text=f"🏭 {z.name}",
+            callback_data=f"mat_zavod:{req_id}:{z.id}",
+        )
+    builder.adjust(2)
+    if order_region_id:
+        builder.row()
+        builder.button(text="📋 Barcha zavodlar", callback_data=f"mat_zavod_all:{req_id}")
+    builder.row()
+    builder.button(text="⬅️ Orqaga", callback_data="back_admin_materials")
+
     await callback.message.edit_text(
         f"✅ <b>So'rov tasdiqlandi!</b>\n\n"
         f"📦 {req.amount_tonnes} tonna\n"
+        f"📍 Viloyat: {region_name}\n\n"
+        f"🏭 Qaysi zavodga yuborish kerak?",
+        reply_markup=builder.as_markup(),
+    )
+    await callback.answer("✅ Tasdiqlandi! Zavodni tanlang.")
+
+
+@router.callback_query(F.data.startswith("mat_zavod_all:"), RoleFilter(*MANAGEMENT_ROLES))
+async def show_all_zavods_for_material(callback: CallbackQuery, session) -> None:
+    req_id = int(callback.data.split(":")[1])
+    mat_svc = MaterialService(session)
+    req_full = await mat_svc.get_by_id(req_id)
+    if not req_full:
+        await callback.answer("❌ So'rov topilmadi", show_alert=True)
+        return
+
+    region_name = req_full.order.region.name if req_full.order and req_full.order.region else "—"
+
+    user_svc = UserService(session)
+    zavods = await user_svc.get_zavods()
+
+    builder = InlineKeyboardBuilder()
+    for z in zavods:
+        builder.button(
+            text=f"🏭 {z.name}",
+            callback_data=f"mat_zavod:{req_id}:{z.id}",
+        )
+    builder.adjust(2)
+    builder.row()
+    builder.button(text="⬅️ Orqaga", callback_data="back_admin_materials")
+
+    await callback.message.edit_text(
+        f"� So'rov #{req_full.id} | {req_full.amount_tonnes} tonna\n"
+        f"📍 Viloyat: {region_name}\n\n"
+        f"🏭 <b>Barcha zavodlar</b> — tanlang:",
+        reply_markup=builder.as_markup(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("mat_zavod:"), RoleFilter(*MANAGEMENT_ROLES))
+async def pick_zavod_for_material(callback: CallbackQuery, session) -> None:
+    parts = callback.data.split(":")
+    req_id = int(parts[1])
+    zavod_id = int(parts[2])
+
+    mat_svc = MaterialService(session)
+    req_full = await mat_svc.get_by_id(req_id)
+    if not req_full:
+        await callback.answer("❌ So'rov topilmadi", show_alert=True)
+        return
+
+    usta_name = req_full.usta.full_name if req_full.usta else "?"
+    region_name = req_full.order.region.name if req_full.order and req_full.order.region else "—"
+
+    # Get the selected zavod entity
+    user_svc = UserService(session)
+    from app.db.models import Zavod
+    from sqlalchemy import select as sa_select
+    result = await user_svc.session.execute(
+        sa_select(Zavod).where(Zavod.id == zavod_id)
+    )
+    zavod = result.scalar_one_or_none()
+    zavod_name = zavod.name if zavod else "?"
+
+    notify_text = (
+        f"📦 <b>Yangi material so'rov!</b>\n\n"
+        f"🔢 So'rov #{req_full.id}\n"
+        f"📍 Viloyat: {region_name}\n"
+        f"👷 Usta: {usta_name}\n"
+        f"📦 Miqdor: <b>{req_full.amount_tonnes} tonna</b>\n"
+        f"📝 Izoh: {req_full.notes or '—'}"
+    )
+
+    # Notify users linked to the selected zavod
+    from app.bot.loader import bot
+    zavod_users = await user_svc.get_all(role=UserRole.ZAVOD)
+    notified_count = 0
+    for u in zavod_users:
+        if u.zavod_id == zavod_id:
+            try:
+                await bot.send_message(u.telegram_id, notify_text)
+                notified_count += 1
+            except Exception:
+                pass
+
+    await callback.message.edit_text(
+        f"✅ <b>Zavod tanlandi!</b>\n\n"
+        f"🏭 Zavod: <b>{zavod_name}</b>\n"
+        f"📦 {req_full.amount_tonnes} tonna\n"
         f"📍 Viloyat: {region_name}\n"
         f"Zavod xabardor qilindi ({notified_count} ta)."
     )
-    await callback.answer("✅ Tasdiqlandi va zavodga yuborildi!")
+    await callback.answer("✅ Zavodga yuborildi!")
 
 
 @router.callback_query(F.data.startswith("admin_reject_material:"), RoleFilter(*MANAGEMENT_ROLES))

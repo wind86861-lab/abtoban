@@ -210,6 +210,19 @@ class UserService:
         )
         return list(result.scalars().all())
 
+    async def get_zavods_by_region(self, region_id: int) -> list:
+        from app.db.models import Zavod, zavod_hududlar
+        result = await self.session.execute(
+            select(Zavod)
+            .join(zavod_hududlar, Zavod.id == zavod_hududlar.c.zavod_id)
+            .where(
+                zavod_hududlar.c.hudud_id == region_id,
+                Zavod.is_active == True,
+            )
+            .order_by(Zavod.name)
+        )
+        return list(result.scalars().all())
+
     async def update_zavod(
         self,
         user_id: int,
