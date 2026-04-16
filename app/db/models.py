@@ -125,6 +125,7 @@ class AsphaltType(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    cost_price_per_m2: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True, default=0)
     price_per_m2: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(

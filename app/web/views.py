@@ -142,14 +142,19 @@ class AsphaltTypeAdmin(ModelView, model=AsphaltType):
     column_list = [
         AsphaltType.id,
         AsphaltType.name,
+        AsphaltType.cost_price_per_m2,
         AsphaltType.price_per_m2,
         AsphaltType.is_active,
         AsphaltType.created_at,
     ]
     column_searchable_list = [AsphaltType.name]
-    column_sortable_list = [AsphaltType.id, AsphaltType.price_per_m2, AsphaltType.is_active]
+    column_sortable_list = [AsphaltType.id, AsphaltType.cost_price_per_m2, AsphaltType.price_per_m2, AsphaltType.is_active]
+    column_labels = {
+        AsphaltType.cost_price_per_m2: "Tannarxi (so'm/m²)",
+        AsphaltType.price_per_m2: "Sotuvdagi narxi (so'm/m²)",
+    }
 
-    form_columns = [AsphaltType.name, AsphaltType.price_per_m2, AsphaltType.is_active]
+    form_columns = [AsphaltType.name, AsphaltType.cost_price_per_m2, AsphaltType.price_per_m2, AsphaltType.is_active]
     page_size = 25
 
 

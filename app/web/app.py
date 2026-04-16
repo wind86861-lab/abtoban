@@ -11,6 +11,7 @@ from app.db.session import engine
 from app.web.auth import AdminAuth
 from app.web.tma_routes import router as tma_router
 from app.web.marketplace_routes import router as marketplace_router
+from app.web.reports import ReportsView
 from app.web.views import (
     AsphaltTypeAdmin,
     ExpenseAdmin,
@@ -39,6 +40,7 @@ admin = Admin(
     base_url="/sqladmin",
 )
 
+admin.add_view(ReportsView)
 admin.add_view(UserAdmin)
 admin.add_view(OrderAdmin)
 admin.add_view(ExpenseAdmin)

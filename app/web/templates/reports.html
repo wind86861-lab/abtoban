@@ -1,0 +1,223 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">📊 Hisobotlar (Moliyaviy Hisobot)</h1>
+    
+    <!-- Summary Cards Row -->
+    <div class="row">
+        <!-- Total Revenue Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Jami Daromad
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.total_revenue) }} so'm
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Costs Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Jami Xarajatlar
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.total_costs) }} so'm
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Profit Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Sof Foyda
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.net_profit) }} so'm
+                            </div>
+                            <small class="text-muted">Foyda darajasi: {{ "{:.1f}".format(stats.profit_margin) }}%</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Orders Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Jami Zakazlar
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.total_orders }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Breakdown Row -->
+    <div class="row">
+        <!-- Asphalt Profit Breakdown -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">🏗 Asfalt Foyda Tahlili</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><strong>Asfalt sotuv daromadi:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.asphalt_revenue) }} so'm</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Asfalt tannarxi:</strong></td>
+                                <td class="text-right text-danger">-{{ "{:,.0f}".format(stats.asphalt_cost) }} so'm</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Asfalt foyda:</strong></td>
+                                <td class="text-right"><strong>{{ "{:,.0f}".format(stats.asphalt_profit) }} so'm</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cost Breakdown -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-danger">💸 Xarajatlar Tafsiloti</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><strong>Asfalt tannarxi:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.asphalt_cost) }} so'm</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Material xarajatlari:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.total_material_cost) }} so'm</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Boshqa xarajatlar:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.total_expenses) }} so'm</td>
+                            </tr>
+                            <tr class="table-danger">
+                                <td><strong>Jami xarajat:</strong></td>
+                                <td class="text-right"><strong>{{ "{:,.0f}".format(stats.total_costs) }} so'm</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Status Row -->
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">💰 To'lov Holati</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Oldindan to'lov</div>
+                                <div class="h5 mb-0 font-weight-bold text-success">
+                                    {{ "{:,.0f}".format(stats.total_advance) }} so'm
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Qarz</div>
+                                <div class="h5 mb-0 font-weight-bold text-danger">
+                                    {{ "{:,.0f}".format(stats.total_debt) }} so'm
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">To'lov foizi</div>
+                                <div class="h5 mb-0 font-weight-bold text-info">
+                                    {% if stats.total_revenue > 0 %}
+                                        {{ "{:.1f}".format((stats.total_advance / stats.total_revenue) * 100) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Status Breakdown -->
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">📋 Zakazlar Holati</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for status, count in stats.status_counts.items() %}
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">{{ status }}</div>
+                                <div class="h5 mb-0 font-weight-bold">{{ count }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
