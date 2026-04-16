@@ -3,6 +3,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.filters import RoleFilter
+from app.config import settings
 from app.db.models import ADMIN_ROLES, MANAGEMENT_ROLES
 from app.services.report_service import ReportService
 
@@ -90,6 +91,42 @@ async def master_report(callback: CallbackQuery, session) -> None:
         "\n".join(lines), reply_markup=builder.as_markup()
     )
     await callback.answer()
+
+
+# ── Moliya (Finance) Menu ──────────────────────────────────────────────────────
+
+@router.message(F.text == "💰 Moliya", RoleFilter(*ADMIN_ROLES))
+async def moliya_menu(message: Message) -> None:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📊 Hisobotlar (Web Panel)", url=f"{settings.WEB_URL}/sqladmin/reports")
+    builder.button(text="💸 Xarajatlar", url=f"{settings.WEB_URL}/sqladmin/expense/list")
+    builder.button(text="📦 Material so'rovlar", url=f"{settings.WEB_URL}/sqladmin/materialrequest/list")
+    builder.button(text="🏗 Asfalt turlari", url=f"{settings.WEB_URL}/sqladmin/asphalttype/list")
+    builder.adjust(1)
+    await message.answer(
+        "💰 <b>Moliya bo'limi</b>\n\n"
+        "Moliyaviy hisobotlar va ma'lumotlarni ko'rish uchun quyidagi tugmalardan foydalaning:",
+        reply_markup=builder.as_markup(),
+    )
+
+
+@router.message(F.text == "📊 Hisobotlar", RoleFilter(*ADMIN_ROLES))
+async def hisobotlar_menu(message: Message) -> None:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📊 To'liq hisobot (Web Panel)", url=f"{settings.WEB_URL}/sqladmin/reports")
+    builder.button(text="📋 Zakazlar", url=f"{settings.WEB_URL}/sqladmin/order/list")
+    builder.button(text="💸 Xarajatlar", url=f"{settings.WEB_URL}/sqladmin/expense/list")
+    builder.button(text="📦 Material so'rovlar", url=f"{settings.WEB_URL}/sqladmin/materialrequest/list")
+    builder.adjust(1)
+    await message.answer(
+        "📊 <b>Hisobotlar bo'limi</b>\n\n"
+        "Batafsil moliyaviy hisobotlar va statistikani web panelda ko'ring:\n"
+        "• Jami daromad va xarajatlar\n"
+        "• Sof foyda va foyda darajasi\n"
+        "• Asfalt foyda tahlili\n"
+        "• To'lov holati va qarzlar",
+        reply_markup=builder.as_markup(),
+    )
 
 
 # ── Usta report ───────────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import AsphaltType, Expense, MaterialRequest, Order, OrderStatus
-from app.db.session import async_session
+from app.db.session import async_session_maker
 
 
 class ReportsView(BaseView):
@@ -16,7 +16,7 @@ class ReportsView(BaseView):
     @expose("/reports", methods=["GET"])
     async def reports_page(self, request):
         """Main reports dashboard showing profit, revenue, costs"""
-        async with async_session() as session:
+        async with async_session_maker() as session:
             stats = await self._calculate_stats(session)
         
         return await self.templates.TemplateResponse(
