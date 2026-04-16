@@ -47,6 +47,22 @@ class UstaStat:
     total_wage: Decimal
 
 
+@dataclass
+class FinancialReport:
+    total_revenue: Decimal = field(default_factory=lambda: Decimal("0"))
+    total_advance: Decimal = field(default_factory=lambda: Decimal("0"))
+    total_debt: Decimal = field(default_factory=lambda: Decimal("0"))
+    asphalt_cost: Decimal = field(default_factory=lambda: Decimal("0"))
+    asphalt_revenue: Decimal = field(default_factory=lambda: Decimal("0"))
+    asphalt_profit: Decimal = field(default_factory=lambda: Decimal("0"))
+    material_cost: Decimal = field(default_factory=lambda: Decimal("0"))
+    other_expenses: Decimal = field(default_factory=lambda: Decimal("0"))
+    total_costs: Decimal = field(default_factory=lambda: Decimal("0"))
+    net_profit: Decimal = field(default_factory=lambda: Decimal("0"))
+    profit_margin: float = 0.0
+    total_orders: int = 0
+
+
 class ReportService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -194,6 +210,73 @@ class ReportService:
             .order_by(MaterialRequest.created_at.asc())
         )
         return list(result.scalars().all())
+
+    async def get_financial_report(self) -> FinancialReport:
+        """Get comprehensive financial report with profit calculations"""
+        report = FinancialReport()
+        
+        # Total orders and revenue
+        order_stats = await self.session.execute(
+            select(
+                func.count(Order.id),
+                func.sum(Order.total_price),
+                func.sum(Order.advance_paid),
+                func.sum(Order.debt),
+            ).where(Order.status != OrderStatus.CANCELLED)
+        )
+        row = order_stats.first()
+        report.total_orders = row[0] or 0
+        report.total_revenue = row[1] or Decimal("0")
+        report.total_advance = row[2] or Decimal("0")
+        report.total_debt = row[3] or Decimal("0")
+        
+        # Material costs
+        material_stats = await self.session.execute(
+            select(
+                func.sum(
+                    func.coalesce(MaterialRequest.material_price, 0) + 
+                    func.coalesce(MaterialRequest.delivery_price, 0) + 
+                    func.coalesce(MaterialRequest.extra_cost, 0)
+                )
+            )
+        )
+        report.material_cost = material_stats.scalar() or Decimal("0")
+        
+        # Other expenses
+        expense_stats = await self.session.execute(
+            select(func.sum(Expense.amount))
+        )
+        report.other_expenses = expense_stats.scalar() or Decimal("0")
+        
+        # Asphalt cost vs revenue calculation
+        from app.db.models import AsphaltType
+        orders_with_asphalt = await self.session.execute(
+            select(Order)
+            .options(selectinload(Order.asphalt_type))
+            .where(
+                Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.DONE]),
+                Order.asphalt_type_id.isnot(None),
+                Order.area_m2.isnot(None)
+            )
+        )
+        
+        for order in orders_with_asphalt.scalars():
+            if order.asphalt_type:
+                area = order.area_m2 or Decimal("0")
+                cost_per_m2 = order.asphalt_type.cost_price_per_m2 or Decimal("0")
+                price_per_m2 = order.asphalt_type.price_per_m2 or Decimal("0")
+                
+                report.asphalt_cost += area * cost_per_m2
+                report.asphalt_revenue += area * price_per_m2
+        
+        report.asphalt_profit = report.asphalt_revenue - report.asphalt_cost
+        report.total_costs = report.asphalt_cost + report.material_cost + report.other_expenses
+        report.net_profit = report.total_revenue - report.total_costs
+        
+        if report.total_revenue > 0:
+            report.profit_margin = float(report.net_profit / report.total_revenue * 100)
+        
+        return report
 
     @staticmethod
     def period_bounds(period: str) -> tuple[datetime, datetime]:

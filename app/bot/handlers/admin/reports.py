@@ -96,36 +96,57 @@ async def master_report(callback: CallbackQuery, session) -> None:
 # ── Moliya (Finance) Menu ──────────────────────────────────────────────────────
 
 @router.message(F.text == "💰 Moliya", RoleFilter(*ADMIN_ROLES))
-async def moliya_menu(message: Message) -> None:
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📊 Hisobotlar (Web Panel)", url=f"{settings.WEB_URL}/sqladmin/reports")
-    builder.button(text="💸 Xarajatlar", url=f"{settings.WEB_URL}/sqladmin/expense/list")
-    builder.button(text="📦 Material so'rovlar", url=f"{settings.WEB_URL}/sqladmin/materialrequest/list")
-    builder.button(text="🏗 Asfalt turlari", url=f"{settings.WEB_URL}/sqladmin/asphalttype/list")
-    builder.adjust(1)
+async def moliya_menu(message: Message, session) -> None:
+    svc = ReportService(session)
+    report = await svc.get_financial_report()
+    
     await message.answer(
-        "💰 <b>Moliya bo'limi</b>\n\n"
-        "Moliyaviy hisobotlar va ma'lumotlarni ko'rish uchun quyidagi tugmalardan foydalaning:",
-        reply_markup=builder.as_markup(),
+        f"� <b>Moliya bo'limi</b>\n\n"
+        f"📊 <b>DAROMAD</b>\n"
+        f"� Jami tushum: <b>{float(report.total_revenue):,.0f} so'm</b>\n"
+        f"✅ Yig'ilgan: <b>{float(report.total_advance):,.0f} so'm</b>\n"
+        f"❌ Qarz: <b>{float(report.total_debt):,.0f} so'm</b>\n\n"
+        f"💸 <b>XARAJATLAR</b>\n"
+        f"🏗 Asfalt tannarxi: <b>{float(report.asphalt_cost):,.0f} so'm</b>\n"
+        f"📦 Material xarajatlari: <b>{float(report.material_cost):,.0f} so'm</b>\n"
+        f"💼 Boshqa xarajatlar: <b>{float(report.other_expenses):,.0f} so'm</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"� Jami xarajat: <b>{float(report.total_costs):,.0f} so'm</b>\n\n"
+        f"💎 <b>SOF FOYDA</b>\n"
+        f"✨ Foyda: <b>{float(report.net_profit):,.0f} so'm</b>\n"
+        f"📈 Foyda darajasi: <b>{report.profit_margin:.1f}%</b>\n\n"
+        f"📦 Jami zakazlar: <b>{report.total_orders}</b>"
     )
 
 
 @router.message(F.text == "📊 Hisobotlar", RoleFilter(*ADMIN_ROLES))
-async def hisobotlar_menu(message: Message) -> None:
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📊 To'liq hisobot (Web Panel)", url=f"{settings.WEB_URL}/sqladmin/reports")
-    builder.button(text="📋 Zakazlar", url=f"{settings.WEB_URL}/sqladmin/order/list")
-    builder.button(text="💸 Xarajatlar", url=f"{settings.WEB_URL}/sqladmin/expense/list")
-    builder.button(text="📦 Material so'rovlar", url=f"{settings.WEB_URL}/sqladmin/materialrequest/list")
-    builder.adjust(1)
+async def hisobotlar_menu(message: Message, session) -> None:
+    svc = ReportService(session)
+    report = await svc.get_financial_report()
+    
     await message.answer(
-        "📊 <b>Hisobotlar bo'limi</b>\n\n"
-        "Batafsil moliyaviy hisobotlar va statistikani web panelda ko'ring:\n"
-        "• Jami daromad va xarajatlar\n"
-        "• Sof foyda va foyda darajasi\n"
-        "• Asfalt foyda tahlili\n"
-        "• To'lov holati va qarzlar",
-        reply_markup=builder.as_markup(),
+        f"� <b>MOLIYAVIY HISOBOT</b>\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 <b>DAROMAD</b>\n"
+        f"Jami tushum: <b>{float(report.total_revenue):,.0f} so'm</b>\n"
+        f"Oldindan to'lov: {float(report.total_advance):,.0f} so'm\n"
+        f"Qarz: {float(report.total_debt):,.0f} so'm\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🏗 <b>ASFALT FOYDA TAHLILI</b>\n"
+        f"Asfalt sotuv: <b>{float(report.asphalt_revenue):,.0f} so'm</b>\n"
+        f"Asfalt tannarxi: <b>{float(report.asphalt_cost):,.0f} so'm</b>\n"
+        f"Asfalt foyda: <b>{float(report.asphalt_profit):,.0f} so'm</b>\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"� <b>XARAJATLAR TAFSILOTI</b>\n"
+        f"Asfalt tannarxi: {float(report.asphalt_cost):,.0f} so'm\n"
+        f"Material xarajatlari: {float(report.material_cost):,.0f} so'm\n"
+        f"Boshqa xarajatlar: {float(report.other_expenses):,.0f} so'm\n"
+        f"<b>Jami xarajat: {float(report.total_costs):,.0f} so'm</b>\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"💎 <b>SOF FOYDA</b>\n"
+        f"Foyda: <b>{float(report.net_profit):,.0f} so'm</b>\n"
+        f"Foyda darajasi: <b>{report.profit_margin:.1f}%</b>\n\n"
+        f"📦 Jami zakazlar: {report.total_orders}"
     )
 
 
