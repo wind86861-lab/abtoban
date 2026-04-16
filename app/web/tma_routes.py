@@ -29,7 +29,7 @@ async def tma_admin_page(request: Request):
 @router.get("/shop", response_class=HTMLResponse)
 async def tma_shop_page(request: Request):
     """Online marketplace web app for clients."""
-    return templates.TemplateResponse("tma_shop.html", {"request": request})
+    return templates.TemplateResponse("tma_shop_new.html", {"request": request})
 
 
 @router.get("/tma-api/stats")
