@@ -25,48 +25,48 @@ from app.web.views import (
 app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
 
 
-class RouteMastersAwayMiddleware(BaseHTTPMiddleware):
-    """If a Master user lands on /sqladmin/* (the main admin), redirect them
-    to the equivalent path under /master-panel/admin/.
+class RouteMastersAwayMiddleware:
+    """Pure ASGI middleware. Rewrites Location headers on redirect responses
+    so that users whose session ends up with ``user_role == 'master'`` get
+    sent to ``/master-panel/admin/...`` instead of ``/sqladmin/...``.
 
-    This covers the case where a Master opens the main admin login page
-    (e.g. because of cached Telegram WebApp URLs) and still needs to end up
-    in their own panel after signing in.
+    Runs AFTER SessionMiddleware so ``scope['session']`` is always present.
+    Using a pure-ASGI wrapper lets us inspect the session at the moment the
+    downstream app sends its response-start — which is after the session
+    dict has been mutated by the login handler.
     """
 
-    async def dispatch(self, request: Request, call_next):
-        path = request.url.path
-        session = request.scope.get("session") or {}
-        is_master = session.get("user_role") == "master"
+    def __init__(self, app):
+        self.app = app
 
-        # After a successful login SQLAdmin issues a 302 to /sqladmin/.
-        # Intercept and send Master users to /master-panel/admin/ instead.
-        response = await call_next(request)
-        if is_master and response.status_code in (301, 302, 303, 307, 308):
-            location = response.headers.get("location", "")
-            if "/sqladmin" in location:
-                new_loc = location.replace("/sqladmin", "/master-panel/admin", 1)
-                response.headers["location"] = new_loc
-            return response
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-        # Also: if a Master is already signed in but GETs a non-login
-        # /sqladmin page, bounce them over.
-        if (
-            is_master
-            and request.method == "GET"
-            and path.startswith("/sqladmin")
-            and not path.startswith("/sqladmin/login")
-            and not path.startswith("/sqladmin/logout")
-            and not path.startswith("/sqladmin/statics")
-        ):
-            target = path.replace("/sqladmin", "/master-panel/admin", 1)
-            return RedirectResponse(url=target, status_code=302)
+        async def send_wrapper(message):
+            if message["type"] == "response.start":
+                session = scope.get("session") or {}
+                if session.get("user_role") == "master":
+                    status = message.get("status", 200)
+                    if status in (301, 302, 303, 307, 308):
+                        headers = [list(h) for h in message.get("headers", [])]
+                        for i, (name, value) in enumerate(headers):
+                            if name.lower() == b"location":
+                                loc = value.decode("latin-1")
+                                if "/sqladmin" in loc:
+                                    loc = loc.replace(
+                                        "/sqladmin", "/master-panel/admin", 1
+                                    )
+                                    headers[i] = [b"location", loc.encode("latin-1")]
+                        message["headers"] = [tuple(h) for h in headers]
+            await send(message)
 
-        return response
+        await self.app(scope, receive, send_wrapper)
 
 
-# Session middleware must be the OUTER-most so session is available to the
-# redirect middleware above.
+# Middleware order: added LAST wraps OUTERMOST. Session must be outermost so
+# that by the time RouteMastersAway runs, scope['session'] already exists.
 app.add_middleware(RouteMastersAwayMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
