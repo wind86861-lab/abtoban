@@ -204,6 +204,16 @@
             © 2026 Avtoban Stroy. Barcha huquqlar himoyalangan.
         </div>
     </div>
+    <script>
+        // Force correct form action - prevent cache issues
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.getElementById('loginForm');
+            if (form) {
+                form.action = '/master-panel/admin/login';
+                console.log('Form action set to:', form.action);
+            }
+        });
+    </script>
 </body>
 
 </html>
