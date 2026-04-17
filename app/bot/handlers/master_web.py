@@ -16,8 +16,10 @@ router.message.filter(RoleFilter(UserRole.MASTER))
 async def master_web_panel(message: Message, lang: str) -> None:
     """Send Master web panel link"""
     
-    # Build web panel URL - remove /tma-admin from WEB_URL and add /master-panel/admin
-    base_url = settings.WEB_URL.replace("/tma-admin", "")
+    # Build web panel URL - extract base domain from WEB_URL
+    # WEB_URL format: https://domain.com/tma-admin
+    # We need: https://domain.com/master-panel/admin
+    base_url = settings.WEB_URL.rsplit("/", 1)[0]  # Remove last path segment
     web_url = f"{base_url}/master-panel/admin"
     
     # Create inline keyboard with web app button
