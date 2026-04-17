@@ -1,8 +1,9 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from sqladmin import Admin
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.staticfiles import StaticFiles
 
 from app.config import settings
@@ -16,6 +17,22 @@ from app.web.master_commission import MasterCommissionView
 # Create Master panel app
 master_app = FastAPI(title="Master Panel", docs_url=None, redoc_url=None)
 
+
+class FixRedirectMiddleware(BaseHTTPMiddleware):
+    """Rewrite redirect Location headers that point to the main /sqladmin
+    panel so that Master users are kept inside /master-panel/admin."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        location = response.headers.get("location")
+        if location and "/sqladmin" in location:
+            # Replace /sqladmin with /master-panel/admin in the redirect
+            new_location = location.replace("/sqladmin", "/master-panel/admin")
+            response.headers["location"] = new_location
+        return response
+
+
+master_app.add_middleware(FixRedirectMiddleware)
 master_app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Setup Master authentication
