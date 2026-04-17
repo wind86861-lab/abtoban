@@ -4,9 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>{% block title %}{{ admin.title }} - Login{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -176,7 +173,7 @@
         </div>
         {% endif %}
 
-        <form id="loginForm" method="POST" action="/master-panel/admin/login?v=2">
+        <form method="POST" action="{{ request.url.path.replace('/login', '') }}/login">
             <div class="form-group">
                 <label for="username">Telefon Raqam</label>
                 <div class="input-wrapper">
@@ -204,16 +201,6 @@
             © 2026 Avtoban Stroy. Barcha huquqlar himoyalangan.
         </div>
     </div>
-    <script>
-        // Force correct form action - prevent cache issues
-        document.addEventListener('DOMContentLoaded', function () {
-            var form = document.getElementById('loginForm');
-            if (form) {
-                form.action = '/master-panel/admin/login';
-                console.log('Form action set to:', form.action);
-            }
-        });
-    </script>
 </body>
 
 </html>
