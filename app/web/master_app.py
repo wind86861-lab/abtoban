@@ -32,7 +32,7 @@ master_admin = Admin(
     engine=engine,
     authentication_backend=master_auth,
     title="🏗 Avtoban Stroy - Master Panel",
-    base_url="/master",
+    base_url="/admin",
     templates_dir=os.path.join(os.path.dirname(__file__), "templates"),
 )
 

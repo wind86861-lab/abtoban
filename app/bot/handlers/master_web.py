@@ -17,7 +17,7 @@ async def master_web_panel(message: Message, lang: str) -> None:
     """Send Master web panel link"""
     
     # Build web panel URL
-    web_url = f"{settings.WEB_URL}/master-panel"
+    web_url = f"{settings.WEB_URL}/master-panel/admin"
     
     # Create inline keyboard with web app button
     builder = InlineKeyboardBuilder()
