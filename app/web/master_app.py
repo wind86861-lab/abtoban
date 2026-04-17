@@ -18,11 +18,6 @@ master_app = FastAPI(title="Master Panel", docs_url=None, redoc_url=None)
 
 master_app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
-# Mount static files
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-os.makedirs(STATIC_DIR, exist_ok=True)
-master_app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
 # Setup Master authentication
 master_auth = MasterAuth(secret_key=settings.SECRET_KEY)
 
