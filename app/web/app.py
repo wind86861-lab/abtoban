@@ -1,8 +1,9 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse, HTMLResponse
 
@@ -23,6 +24,50 @@ from app.web.views import (
 
 app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
 
+
+class RouteMastersAwayMiddleware(BaseHTTPMiddleware):
+    """If a Master user lands on /sqladmin/* (the main admin), redirect them
+    to the equivalent path under /master-panel/admin/.
+
+    This covers the case where a Master opens the main admin login page
+    (e.g. because of cached Telegram WebApp URLs) and still needs to end up
+    in their own panel after signing in.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        session = request.scope.get("session") or {}
+        is_master = session.get("user_role") == "master"
+
+        # After a successful login SQLAdmin issues a 302 to /sqladmin/.
+        # Intercept and send Master users to /master-panel/admin/ instead.
+        response = await call_next(request)
+        if is_master and response.status_code in (301, 302, 303, 307, 308):
+            location = response.headers.get("location", "")
+            if "/sqladmin" in location:
+                new_loc = location.replace("/sqladmin", "/master-panel/admin", 1)
+                response.headers["location"] = new_loc
+            return response
+
+        # Also: if a Master is already signed in but GETs a non-login
+        # /sqladmin page, bounce them over.
+        if (
+            is_master
+            and request.method == "GET"
+            and path.startswith("/sqladmin")
+            and not path.startswith("/sqladmin/login")
+            and not path.startswith("/sqladmin/logout")
+            and not path.startswith("/sqladmin/statics")
+        ):
+            target = path.replace("/sqladmin", "/master-panel/admin", 1)
+            return RedirectResponse(url=target, status_code=302)
+
+        return response
+
+
+# Session middleware must be the OUTER-most so session is available to the
+# redirect middleware above.
+app.add_middleware(RouteMastersAwayMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Static files for uploads and custom CSS
