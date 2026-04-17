@@ -29,6 +29,7 @@ master_admin = Admin(
     title="🏗 Avtoban Stroy - Master Panel",
     base_url="/admin",
     templates_dir=os.path.join(os.path.dirname(__file__), "templates"),
+    login_logo_url=None,
 )
 
 # Add Master views - Dashboard first, then main functionality
