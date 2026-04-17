@@ -184,6 +184,9 @@ class User(Base):
     language: Mapped[Optional[str]] = mapped_column(
         String(10), nullable=True
     )
+    password_hash: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

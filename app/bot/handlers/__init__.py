@@ -5,6 +5,7 @@ from .common import router as common_router
 from .klient import router as klient_router
 from .master import router as master_router
 from .master_web import router as master_web_router
+from .master_password import router as master_password_router
 from .registration import router as registration_router
 from .shofer import router as shofer_router
 from .shop import router as shop_router
@@ -19,6 +20,7 @@ def register_all_routers(dp: Dispatcher) -> None:
     dp.include_router(shop_router)
     dp.include_router(klient_router)
     dp.include_router(master_web_router)
+    dp.include_router(master_password_router)
     dp.include_router(master_router)
     dp.include_router(usta_router)
     dp.include_router(zavod_router)

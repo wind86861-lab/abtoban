@@ -64,6 +64,7 @@ STRINGS = {
     "btn_assign_usta": "👷 Usta tayinlash",
     "btn_add_expense": "💸 Xarajat kiritish",
     "btn_master_web_panel": "🌐 Web Panel",
+    "btn_change_password": "⚙️ Parolni O'zgartirish",
 
     # ── Usta buttons ──
     "btn_usta_my_orders": "📋 Mening zakazlarim",

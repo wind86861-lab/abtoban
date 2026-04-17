@@ -64,6 +64,7 @@ STRINGS = {
     "btn_assign_usta": "👷 Уста тайинлаш",
     "btn_add_expense": "💸 Харажат киритиш",
     "btn_master_web_panel": "🌐 Веб Панель",
+    "btn_change_password": "⚙️ Паролни Ўзгартириш",
 
     # ── Usta buttons ──
     "btn_usta_my_orders": "📋 Менинг буюртмаларим",

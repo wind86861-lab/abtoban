@@ -77,6 +77,7 @@ def get_main_menu(role: UserRole, lang: str = "uz_lat") -> ReplyKeyboardMarkup:
         )
         builder.row(
             KeyboardButton(text=t("btn_master_web_panel", lang)),
+            KeyboardButton(text=t("btn_change_password", lang)),
         )
 
     elif role == UserRole.USTA:

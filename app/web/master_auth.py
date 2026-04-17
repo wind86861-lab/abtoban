@@ -1,3 +1,4 @@
+import hashlib
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 from sqlalchemy import select
@@ -7,13 +8,17 @@ from app.db.models import User, UserRole
 from app.db.session import async_session_maker
 
 
+def hash_password(password: str) -> str:
+    """Hash password using SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
 class MasterAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
         form = await request.form()
         phone = form.get("username", "").strip()
         password = form.get("password", "")
         
-        # Simple password check (you can enhance this)
         if not phone or not password:
             return False
         
@@ -27,13 +32,20 @@ class MasterAuth(AuthenticationBackend):
             )
             user = result.scalar_one_or_none()
             
-            if user and password == "master123":  # Simple password for now
-                request.session.update({
-                    "token": "master_authenticated",
-                    "user_id": user.id,
-                    "user_role": "master"
-                })
-                return True
+            if user:
+                # Check if user has set a password
+                if not user.password_hash:
+                    return False
+                
+                # Verify password hash
+                password_hash = hash_password(password)
+                if password_hash == user.password_hash:
+                    request.session.update({
+                        "token": "master_authenticated",
+                        "user_id": user.id,
+                        "user_role": "master"
+                    })
+                    return True
         
         return False
 
