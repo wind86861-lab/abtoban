@@ -45,7 +45,7 @@ class RouteMastersAwayMiddleware:
             return
 
         async def send_wrapper(message):
-            if message["type"] == "response.start":
+            if message["type"] == "http.response.start":
                 session = scope.get("session") or {}
                 if session.get("user_role") == "master":
                     status = message.get("status", 200)
