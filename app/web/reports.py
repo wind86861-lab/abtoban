@@ -69,7 +69,7 @@ class ReportsView(BaseView):
         orders_with_asphalt = await session.execute(
             select(Order)
             .where(
-                Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.COMPLETED]),
+                Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.DONE]),
                 Order.asphalt_type_id.isnot(None),
                 Order.area_m2.isnot(None)
             )
