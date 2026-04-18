@@ -120,10 +120,56 @@ class Region(Base):
     )
 
 
+class AsphaltCategory(Base):
+    """Main category for organizing asphalt types (e.g., Hot Mix, Cold Mix, etc.)"""
+    __tablename__ = "asphalt_categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    subcategories: Mapped[List["AsphaltSubCategory"]] = relationship(
+        "AsphaltSubCategory", back_populates="category", cascade="all, delete-orphan"
+    )
+
+
+class AsphaltSubCategory(Base):
+    """Sub-category within a main category (e.g., Dense Graded, Open Graded, etc.)"""
+    __tablename__ = "asphalt_subcategories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    category_id: Mapped[int] = mapped_column(Integer, ForeignKey("asphalt_categories.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+
+    category: Mapped["AsphaltCategory"] = relationship("AsphaltCategory", back_populates="subcategories")
+    asphalt_types: Mapped[List["AsphaltType"]] = relationship(
+        "AsphaltType", back_populates="subcategory", cascade="all, delete-orphan"
+    )
+
+
 class AsphaltType(Base):
+    """Specific asphalt material/product within a sub-category"""
     __tablename__ = "asphalt_types"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    subcategory_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("asphalt_subcategories.id"), nullable=True
+    )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     cost_price_per_m2: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True, default=0)
     price_per_m2: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
@@ -135,6 +181,9 @@ class AsphaltType(Base):
         DateTime(timezone=True), onupdate=func.now()
     )
 
+    subcategory: Mapped[Optional["AsphaltSubCategory"]] = relationship(
+        "AsphaltSubCategory", back_populates="asphalt_types"
+    )
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="asphalt_type")
 
 

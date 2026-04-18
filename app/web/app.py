@@ -14,6 +14,8 @@ from app.web.tma_routes import router as tma_router
 from app.web.marketplace_routes import router as marketplace_router
 from app.web.reports import ReportsView
 from app.web.views import (
+    AsphaltCategoryAdmin,
+    AsphaltSubCategoryAdmin,
     AsphaltTypeAdmin,
     ExpenseAdmin,
     MaterialRequestAdmin,
@@ -94,6 +96,8 @@ admin.add_view(UserAdmin)
 admin.add_view(OrderAdmin)
 admin.add_view(ExpenseAdmin)
 admin.add_view(MaterialRequestAdmin)
+admin.add_view(AsphaltCategoryAdmin)
+admin.add_view(AsphaltSubCategoryAdmin)
 admin.add_view(AsphaltTypeAdmin)
 admin.add_view(RegionAdmin)
 admin.add_view(ZavodAdmin)

@@ -1,6 +1,8 @@
 from sqladmin import ModelView
 
 from app.db.models import (
+    AsphaltCategory,
+    AsphaltSubCategory,
     AsphaltType,
     Expense,
     MaterialRequest,
@@ -218,27 +220,118 @@ class MaterialRequestAdmin(ModelView, model=MaterialRequest):
     column_select_related_list = ["order", "usta", "zavod", "assigned_zavod"]
 
 
+class AsphaltCategoryAdmin(ModelView, model=AsphaltCategory):
+    name = "Kategoriya"
+    name_plural = "Kategoriyalar"
+    icon = "fa-solid fa-folder-tree"
+
+    column_list = [
+        AsphaltCategory.id,
+        AsphaltCategory.name,
+        AsphaltCategory.description,
+        AsphaltCategory.is_active,
+        AsphaltCategory.created_at,
+    ]
+    
+    column_searchable_list = [AsphaltCategory.name, AsphaltCategory.description]
+    column_sortable_list = [AsphaltCategory.id, AsphaltCategory.name, AsphaltCategory.is_active]
+    column_filters = [AsphaltCategory.is_active]
+    
+    form_columns = [
+        AsphaltCategory.name,
+        AsphaltCategory.description,
+        AsphaltCategory.is_active
+    ]
+    
+    page_size = 25
+
+
+class AsphaltSubCategoryAdmin(ModelView, model=AsphaltSubCategory):
+    name = "Sub-kategoriya"
+    name_plural = "Sub-kategoriyalar"
+    icon = "fa-solid fa-folder-open"
+
+    column_list = [
+        AsphaltSubCategory.id,
+        AsphaltSubCategory.category_id,
+        AsphaltSubCategory.name,
+        AsphaltSubCategory.description,
+        AsphaltSubCategory.is_active,
+        AsphaltSubCategory.created_at,
+    ]
+    
+    column_searchable_list = [AsphaltSubCategory.name, AsphaltSubCategory.description]
+    column_sortable_list = [AsphaltSubCategory.id, AsphaltSubCategory.name, AsphaltSubCategory.is_active]
+    column_filters = [AsphaltSubCategory.category_id, AsphaltSubCategory.is_active]
+    
+    column_labels = {
+        AsphaltSubCategory.category_id: "Kategoriya"
+    }
+    
+    form_columns = [
+        AsphaltSubCategory.category_id,
+        AsphaltSubCategory.name,
+        AsphaltSubCategory.description,
+        AsphaltSubCategory.is_active
+    ]
+    
+    column_select_related_list = ["category"]
+    
+    column_formatters = {
+        AsphaltSubCategory.category_id: lambda m, a: m.category.name if m.category else "-",
+    }
+    
+    page_size = 25
+
+
 class AsphaltTypeAdmin(ModelView, model=AsphaltType):
-    name = "Asfalt turi"
-    name_plural = "Asfalt turlari"
+    name = "Material"
+    name_plural = "Materiallar"
     icon = "fa-solid fa-road"
 
     column_list = [
         AsphaltType.id,
+        AsphaltType.subcategory_id,
         AsphaltType.name,
         AsphaltType.cost_price_per_m2,
         AsphaltType.price_per_m2,
         AsphaltType.is_active,
         AsphaltType.created_at,
     ]
+    
     column_searchable_list = [AsphaltType.name]
-    column_sortable_list = [AsphaltType.id, AsphaltType.cost_price_per_m2, AsphaltType.price_per_m2, AsphaltType.is_active]
+    column_sortable_list = [
+        AsphaltType.id, 
+        AsphaltType.cost_price_per_m2, 
+        AsphaltType.price_per_m2, 
+        AsphaltType.is_active
+    ]
+    
+    column_filters = [
+        AsphaltType.subcategory_id,
+        AsphaltType.is_active
+    ]
+    
     column_labels = {
+        AsphaltType.subcategory_id: "Sub-kategoriya",
         AsphaltType.cost_price_per_m2: "Tannarxi (so'm/m²)",
         AsphaltType.price_per_m2: "Sotuvdagi narxi (so'm/m²)",
     }
 
-    form_columns = [AsphaltType.name, AsphaltType.cost_price_per_m2, AsphaltType.price_per_m2, AsphaltType.is_active]
+    form_columns = [
+        AsphaltType.subcategory_id,
+        AsphaltType.name, 
+        AsphaltType.cost_price_per_m2, 
+        AsphaltType.price_per_m2, 
+        AsphaltType.is_active
+    ]
+    
+    column_select_related_list = ["subcategory"]
+    
+    column_formatters = {
+        AsphaltType.subcategory_id: lambda m, a: f"{m.subcategory.category.name} → {m.subcategory.name}" if m.subcategory else "-",
+    }
+    
     page_size = 25
 
 
