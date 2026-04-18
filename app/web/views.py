@@ -79,6 +79,9 @@ class OrderAdmin(ModelView, model=Order):
 
     can_create = False
     page_size = 25
+    
+    # Eager load relationships to prevent N+1 queries
+    column_select_related_list = ["master", "usta", "asphalt_type", "region"]
 
 
 class ExpenseAdmin(ModelView, model=Expense):
@@ -132,6 +135,9 @@ class MaterialRequestAdmin(ModelView, model=MaterialRequest):
         MaterialRequest.notes,
     ]
     page_size = 25
+    
+    # Eager load relationships to prevent N+1 queries
+    column_select_related_list = ["order", "usta", "zavod", "assigned_zavod"]
 
 
 class AsphaltTypeAdmin(ModelView, model=AsphaltType):
