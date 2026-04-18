@@ -7,8 +7,6 @@ from sqlalchemy.orm import selectinload
 
 from app.db.models import AuditLog, Order, OrderStatus, User, UserRole
 
-MAX_ACTIVE_ORDERS = 2
-
 
 class UstaService:
     def __init__(self, session: AsyncSession) -> None:
@@ -109,9 +107,7 @@ class UstaService:
         usta = usta_result.scalar_one_or_none()
         if not usta:
             return None
-        active_count = await self.get_active_order_count(usta_id)
-        if active_count >= MAX_ACTIVE_ORDERS:
-            return None
+        # Removed MAX_ACTIVE_ORDERS check - Ustas can now accept unlimited orders
         order.usta_id = usta_id
         await self.session.flush()
         log = AuditLog(
