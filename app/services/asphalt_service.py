@@ -5,6 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import AsphaltType
+from app.services.category_service import CategoryService
+
+__all__ = ["AsphaltService", "CategoryService"]
 
 
 class AsphaltService:

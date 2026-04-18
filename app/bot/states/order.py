@@ -52,6 +52,16 @@ class MasterOrderCreateStates(StatesGroup):
 
 
 class AdminSettingsStates(StatesGroup):
+    # Category states
+    entering_category_name = State()
+    # SubCategory states
+    entering_subcategory_name = State()
+    # Material states
+    entering_material_name = State()
+    entering_material_cost_price = State()
+    entering_material_price = State()
+    updating_material_price = State()
+    # Legacy states (kept for backward compatibility)
     entering_asphalt_name = State()
     entering_asphalt_cost_price = State()
     entering_asphalt_price = State()
