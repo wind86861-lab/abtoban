@@ -21,7 +21,9 @@ from app.web.views import (
     MaterialRequestAdmin,
     OrderAdmin,
     RegionAdmin,
+    TumanAdmin,
     UserAdmin,
+    ViloyatAdmin,
     ZavodAdmin,
 )
 
@@ -99,6 +101,8 @@ admin.add_view(MaterialRequestAdmin)
 admin.add_view(AsphaltCategoryAdmin)
 admin.add_view(AsphaltSubCategoryAdmin)
 admin.add_view(AsphaltTypeAdmin)
+admin.add_view(ViloyatAdmin)
+admin.add_view(TumanAdmin)
 admin.add_view(RegionAdmin)
 admin.add_view(ZavodAdmin)
 

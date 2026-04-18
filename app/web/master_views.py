@@ -16,7 +16,9 @@ class MasterOrderAdmin(ModelView, model=Order):
         Order.order_number,
         Order.client_name,
         Order.client_phone,
-        Order.address,
+        Order.viloyat_id,
+        Order.tuman_id,
+        Order.usta_id,
         Order.area_m2,
         Order.total_price,
         Order.advance_paid,
@@ -26,16 +28,19 @@ class MasterOrderAdmin(ModelView, model=Order):
         Order.work_date,
         Order.created_at,
     ]
-    
+
     column_details_list = [
         Order.id,
         Order.order_number,
         Order.client_name,
         Order.client_phone,
+        Order.viloyat_id,
+        Order.tuman_id,
         Order.region,
         Order.address,
         Order.latitude,
         Order.longitude,
+        Order.usta_id,
         Order.area_m2,
         Order.asphalt_type,
         Order.total_price,
@@ -43,16 +48,21 @@ class MasterOrderAdmin(ModelView, model=Order):
         Order.debt,
         Order.master_commission,
         Order.usta_wage,
+        Order.usta_wage_note,
         Order.status,
         Order.work_date,
         Order.notes,
         Order.created_at,
         Order.updated_at,
+        "expenses",
+        "material_requests",
     ]
     
     form_columns = [
         Order.client_name,
         Order.client_phone,
+        Order.viloyat_id,
+        Order.tuman_id,
         Order.region,
         Order.address,
         Order.latitude,
@@ -67,16 +77,28 @@ class MasterOrderAdmin(ModelView, model=Order):
         Order.notes,
         Order.status,
     ]
-    
-    column_searchable_list = [Order.order_number, Order.client_name, Order.client_phone]
+
+    column_searchable_list = [Order.order_number, Order.client_name, Order.client_phone, Order.address]
     column_sortable_list = [Order.id, Order.status, Order.total_price, Order.created_at, Order.work_date]
-    column_filters = [Order.status, Order.work_date, Order.created_at]
+    column_filters = [
+        Order.status,
+        Order.viloyat_id,
+        Order.tuman_id,
+        Order.usta_id,
+        Order.work_date,
+        Order.created_at,
+    ]
+
+    column_select_related_list = ["viloyat", "tuman_rel", "usta", "asphalt_type", "region"]
     
     column_labels = {
         Order.order_number: "Zakaz №",
         Order.client_name: "Klient Ismi",
         Order.client_phone: "Telefon",
         Order.address: "Manzil",
+        Order.viloyat_id: "Viloyat",
+        Order.tuman_id: "Tuman",
+        Order.usta_id: "Usta",
         Order.area_m2: "Maydon (m²)",
         Order.total_price: "Jami Summa",
         Order.advance_paid: "Oldindan To'lov",
@@ -90,6 +112,39 @@ class MasterOrderAdmin(ModelView, model=Order):
         Order.asphalt_type: "Asfalt Turi",
         Order.created_at: "Yaratilgan",
         Order.updated_at: "O'zgartirilgan",
+    }
+
+    def _fmt_usta(m, a):
+        return f"{m.usta.full_name} ({m.usta.phone})" if m.usta else "-"
+
+    def _fmt_expenses(m, a):
+        items = getattr(m, "expenses", []) or []
+        if not items:
+            return "-"
+        return " | ".join(
+            f"{e.expense_type}: {float(e.amount):,.0f} so'm" for e in items[:20]
+        )
+
+    def _fmt_materials(m, a):
+        items = getattr(m, "material_requests", []) or []
+        if not items:
+            return "-"
+        return " | ".join(
+            f"#{mr.id} {mr.amount_tonnes}t {mr.status}" for mr in items[:20]
+        )
+
+    column_formatters = {
+        Order.viloyat_id: lambda m, a: m.viloyat.name if m.viloyat else "-",
+        Order.tuman_id: lambda m, a: m.tuman_rel.name if m.tuman_rel else "-",
+        Order.usta_id: _fmt_usta,
+    }
+
+    column_formatters_detail = {
+        Order.viloyat_id: lambda m, a: m.viloyat.name if m.viloyat else "-",
+        Order.tuman_id: lambda m, a: m.tuman_rel.name if m.tuman_rel else "-",
+        Order.usta_id: _fmt_usta,
+        "expenses": _fmt_expenses,
+        "material_requests": _fmt_materials,
     }
     
     # Allow Masters to create and edit their own orders

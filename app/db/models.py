@@ -96,6 +96,43 @@ zavod_hududlar = Table(
 )
 
 
+class Viloyat(Base):
+    """Viloyat (province/region)."""
+    __tablename__ = "viloyats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    tumans: Mapped[List["Tuman"]] = relationship(
+        "Tuman", back_populates="viloyat", cascade="all, delete-orphan"
+    )
+    users: Mapped[List["User"]] = relationship("User", back_populates="viloyat")
+    orders: Mapped[List["Order"]] = relationship("Order", back_populates="viloyat")
+
+
+class Tuman(Base):
+    """Tuman (district) within a Viloyat."""
+    __tablename__ = "tumans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    viloyat_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("viloyats.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    viloyat: Mapped["Viloyat"] = relationship("Viloyat", back_populates="tumans")
+    users: Mapped[List["User"]] = relationship("User", back_populates="tuman_rel")
+    orders: Mapped[List["Order"]] = relationship("Order", back_populates="tuman_rel")
+
+
 class Region(Base):
     """Hudud (location): viloyat + tuman + tafsif."""
     __tablename__ = "regions"
@@ -227,6 +264,12 @@ class User(Base):
     region_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("regions.id"), nullable=True
     )
+    viloyat_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("viloyats.id"), nullable=True, index=True
+    )
+    tuman_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tumans.id"), nullable=True, index=True
+    )
     zavod_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("zavods.id"), nullable=True
     )
@@ -245,6 +288,8 @@ class User(Base):
     )
 
     region: Mapped[Optional["Region"]] = relationship("Region", back_populates="users")
+    viloyat: Mapped[Optional["Viloyat"]] = relationship("Viloyat", back_populates="users", foreign_keys=[viloyat_id])
+    tuman_rel: Mapped[Optional["Tuman"]] = relationship("Tuman", back_populates="users", foreign_keys=[tuman_id])
     zavod: Mapped[Optional["Zavod"]] = relationship("Zavod", back_populates="users")
     hududlar: Mapped[List["Region"]] = relationship(
         "Region", secondary=user_hududlar, back_populates="ustas"
@@ -283,6 +328,8 @@ class Order(Base):
     usta_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     zavod_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     region_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("regions.id"), nullable=True)
+    viloyat_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("viloyats.id"), nullable=True, index=True)
+    tuman_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("tumans.id"), nullable=True, index=True)
     asphalt_type_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("asphalt_types.id"), nullable=True)
 
     client_name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -324,6 +371,8 @@ class Order(Base):
     master: Mapped[Optional["User"]] = relationship("User", back_populates="master_orders", foreign_keys=[master_id])
     usta: Mapped[Optional["User"]] = relationship("User", back_populates="usta_orders", foreign_keys=[usta_id])
     region: Mapped[Optional["Region"]] = relationship("Region", back_populates="orders")
+    viloyat: Mapped[Optional["Viloyat"]] = relationship("Viloyat", back_populates="orders", foreign_keys=[viloyat_id])
+    tuman_rel: Mapped[Optional["Tuman"]] = relationship("Tuman", back_populates="orders", foreign_keys=[tuman_id])
     asphalt_type: Mapped[Optional["AsphaltType"]] = relationship("AsphaltType", back_populates="orders")
     expenses: Mapped[List["Expense"]] = relationship("Expense", back_populates="order")
     material_requests: Mapped[List["MaterialRequest"]] = relationship("MaterialRequest", back_populates="order")
