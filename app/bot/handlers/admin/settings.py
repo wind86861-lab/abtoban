@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.filters import RoleFilter
+from app.bot.i18n import ALL_BUTTON_TEXTS
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
 from app.bot.states.order import AdminSettingsStates
 from app.db.models import ADMIN_ROLES, User
@@ -14,7 +15,7 @@ from app.services.category_service import CategoryService
 router = Router()
 
 
-@router.message(F.text == "🔧 Sozlamalar", RoleFilter(*ADMIN_ROLES))
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_settings", set())), RoleFilter(*ADMIN_ROLES))
 async def settings_menu(message: Message) -> None:
     builder = InlineKeyboardBuilder()
     builder.button(text="📁 Kategoriyalar", callback_data="category_list")
@@ -220,7 +221,7 @@ async def handle_material_cost_price(message: Message, state: FSMContext) -> Non
         return
     
     data = await state.get_data()
-    await state.update_data(material_cost_price=cost_price)
+    await state.update_data(material_cost_price=str(cost_price))
     await state.set_state(AdminSettingsStates.entering_material_price)
     await message.answer(
         f"💰 <b>{data['material_name']}</b> uchun sotish narxini kiriting (so'm/m²):\n"
@@ -242,7 +243,7 @@ async def handle_material_price(message: Message, state: FSMContext, session, us
         return
 
     data = await state.get_data()
-    cost_price = data.get("material_cost_price", Decimal("0"))
+    cost_price = Decimal(str(data.get("material_cost_price", "0")))
     subcategory_id = data["subcategory_id"]
     
     cat_svc = CategoryService(session)
