@@ -20,6 +20,7 @@ from app.web.views import (
     OrderAdmin,
     RegionAdmin,
     UserAdmin,
+    ZavodAdmin,
 )
 
 app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
@@ -95,6 +96,7 @@ admin.add_view(ExpenseAdmin)
 admin.add_view(MaterialRequestAdmin)
 admin.add_view(AsphaltTypeAdmin)
 admin.add_view(RegionAdmin)
+admin.add_view(ZavodAdmin)
 
 # Mount Master Panel
 from app.web.master_app import master_app

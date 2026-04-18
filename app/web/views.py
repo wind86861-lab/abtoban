@@ -7,6 +7,7 @@ from app.db.models import (
     Order,
     Region,
     User,
+    Zavod,
 )
 
 
@@ -22,19 +23,51 @@ class UserAdmin(ModelView, model=User):
         User.username,
         User.phone,
         User.role,
+        User.region_id,
         User.is_active,
         User.created_at,
     ]
+    
     column_searchable_list = [User.full_name, User.username, User.phone]
-    column_sortable_list = [User.id, User.role, User.is_active, User.created_at]
-    column_filters = [User.role, User.is_active]
+    
+    column_sortable_list = [
+        User.id, 
+        User.role, 
+        User.is_active, 
+        User.created_at,
+        User.full_name
+    ]
+    
+    column_filters = [
+        User.role, 
+        User.is_active,
+        User.region_id,
+        User.created_at
+    ]
+    
+    column_labels = {
+        User.region_id: "Viloyat"
+    }
 
-    form_columns = [User.full_name, User.username, User.phone, User.role, User.is_active, User.region_id]
+    form_columns = [
+        User.full_name, 
+        User.username, 
+        User.phone, 
+        User.role, 
+        User.is_active, 
+        User.region_id
+    ]
+    
     form_include_pk = False
-
     can_create = False
     can_delete = False
     page_size = 25
+    
+    column_select_related_list = ["region"]
+    
+    column_formatters = {
+        User.region_id: lambda m, a: m.region.name if m.region else "-",
+    }
 
 
 class OrderAdmin(ModelView, model=Order):
@@ -47,7 +80,12 @@ class OrderAdmin(ModelView, model=Order):
         Order.order_number,
         Order.client_name,
         Order.client_phone,
+        Order.region_id,
+        Order.tuman,
         Order.address,
+        Order.master_id,
+        Order.usta_id,
+        Order.asphalt_type_id,
         Order.area_m2,
         Order.total_price,
         Order.advance_paid,
@@ -56,13 +94,47 @@ class OrderAdmin(ModelView, model=Order):
         Order.work_date,
         Order.created_at,
     ]
-    column_searchable_list = [Order.order_number, Order.client_name, Order.client_phone, Order.address]
-    column_sortable_list = [Order.id, Order.status, Order.total_price, Order.created_at]
-    column_filters = [Order.status]
+    
+    column_searchable_list = [
+        Order.order_number, 
+        Order.client_name, 
+        Order.client_phone, 
+        Order.address,
+        Order.tuman
+    ]
+    
+    column_sortable_list = [
+        Order.id, 
+        Order.status, 
+        Order.total_price, 
+        Order.created_at,
+        Order.work_date
+    ]
+    
+    column_filters = [
+        Order.status,
+        Order.region_id,
+        Order.tuman,
+        Order.master_id,
+        Order.usta_id,
+        Order.asphalt_type_id,
+        Order.work_date,
+        Order.created_at
+    ]
+    
+    column_labels = {
+        Order.region_id: "Viloyat",
+        Order.tuman: "Tuman",
+        Order.master_id: "Master",
+        Order.usta_id: "Usta",
+        Order.asphalt_type_id: "Asfalt turi"
+    }
 
     form_columns = [
         Order.client_name,
         Order.client_phone,
+        Order.region_id,
+        Order.tuman,
         Order.address,
         Order.area_m2,
         Order.total_price,
@@ -74,7 +146,6 @@ class OrderAdmin(ModelView, model=Order):
         Order.master_id,
         Order.usta_id,
         Order.asphalt_type_id,
-        Order.region_id,
     ]
 
     can_create = False
@@ -82,6 +153,13 @@ class OrderAdmin(ModelView, model=Order):
     
     # Eager load relationships to prevent N+1 queries
     column_select_related_list = ["master", "usta", "asphalt_type", "region"]
+    
+    column_formatters = {
+        Order.master_id: lambda m, a: f"{m.master.full_name} ({m.master.phone})" if m.master else "-",
+        Order.usta_id: lambda m, a: f"{m.usta.full_name} ({m.usta.phone})" if m.usta else "-",
+        Order.region_id: lambda m, a: m.region.name if m.region else "-",
+        Order.asphalt_type_id: lambda m, a: m.asphalt_type.name if m.asphalt_type else "-",
+    }
 
 
 class ExpenseAdmin(ModelView, model=Expense):
@@ -174,4 +252,25 @@ class RegionAdmin(ModelView, model=Region):
     column_sortable_list = [Region.id, Region.name, Region.is_active]
 
     form_columns = [Region.name, Region.is_active]
+    page_size = 25
+
+
+class ZavodAdmin(ModelView, model=Zavod):
+    name = "Zavod"
+    name_plural = "Zavodlar"
+    icon = "fa-solid fa-industry"
+
+    column_list = [
+        Zavod.id,
+        Zavod.name,
+        Zavod.tafsif,
+        Zavod.is_active,
+        Zavod.created_at,
+    ]
+    
+    column_searchable_list = [Zavod.name, Zavod.tafsif]
+    column_sortable_list = [Zavod.id, Zavod.name, Zavod.is_active, Zavod.created_at]
+    column_filters = [Zavod.is_active, Zavod.created_at]
+
+    form_columns = [Zavod.name, Zavod.tafsif, Zavod.is_active]
     page_size = 25
