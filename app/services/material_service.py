@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import MaterialRequest, MaterialRequestStatus, Order
+from app.db.models import MaterialRequest, MaterialRequestStatus, Order, User
 
 
 class MaterialService:
@@ -34,9 +34,10 @@ class MaterialService:
         result = await self.session.execute(
             select(MaterialRequest)
             .options(
-                selectinload(MaterialRequest.order),
-                selectinload(MaterialRequest.usta),
+                selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.usta).selectinload(User.region),
                 selectinload(MaterialRequest.zavod),
+                selectinload(MaterialRequest.assigned_zavod),
             )
             .where(MaterialRequest.id == req_id)
         )
@@ -48,7 +49,7 @@ class MaterialService:
             select(MaterialRequest)
             .options(
                 selectinload(MaterialRequest.order).selectinload(Order.region),
-                selectinload(MaterialRequest.usta)
+                selectinload(MaterialRequest.usta).selectinload(User.region),
             )
             .where(MaterialRequest.status == MaterialRequestStatus.ADMIN_PENDING)
         )
@@ -177,7 +178,12 @@ class MaterialService:
     async def approve(self, req_id: int) -> Optional[MaterialRequest]:
         """Admin approves material request, forwarding it to zavod."""
         result = await self.session.execute(
-            select(MaterialRequest).where(MaterialRequest.id == req_id)
+            select(MaterialRequest)
+            .options(
+                selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.usta).selectinload(User.region),
+            )
+            .where(MaterialRequest.id == req_id)
         )
         req = result.scalar_one_or_none()
         if not req or req.status != MaterialRequestStatus.ADMIN_PENDING:
@@ -189,7 +195,9 @@ class MaterialService:
     async def reject(self, req_id: int) -> Optional[MaterialRequest]:
         """Admin rejects material request."""
         result = await self.session.execute(
-            select(MaterialRequest).where(MaterialRequest.id == req_id)
+            select(MaterialRequest)
+            .options(selectinload(MaterialRequest.usta))
+            .where(MaterialRequest.id == req_id)
         )
         req = result.scalar_one_or_none()
         if not req or req.status != MaterialRequestStatus.ADMIN_PENDING:

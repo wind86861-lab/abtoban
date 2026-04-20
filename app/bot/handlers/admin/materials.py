@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.bot.filters import RoleFilter
 from app.bot.keyboards.finance import get_admin_material_requests_keyboard, get_admin_material_detail_keyboard
 from app.bot.keyboards.menus import get_main_menu
-from app.db.models import MANAGEMENT_ROLES, User, UserRole
+from app.db.models import MANAGEMENT_ROLES, MaterialRequestStatus, User, UserRole
 from app.services.material_service import MaterialService
 from app.services.user_service import UserService
 
@@ -56,14 +56,13 @@ async def admin_approve_material(callback: CallbackQuery, session) -> None:
         await callback.answer("❌ So'rov allaqachon tasdiqlangan yoki topilmadi", show_alert=True)
         return
 
-    req_full = await mat_svc.get_by_id(req_id)
-    # Use order region if available, fallback to usta region for old orders
-    if req_full and req_full.order and req_full.order.region_id:
-        order_region_id = req_full.order.region_id
-        region_name = req_full.order.region.name
-    elif req_full and req_full.usta and req_full.usta.region_id:
-        order_region_id = req_full.usta.region_id
-        region_name = req_full.usta.region.name if req_full.usta.region else "—"
+    # approve() now eagerly loads order.region and usta.region
+    if req.order and req.order.region_id:
+        order_region_id = req.order.region_id
+        region_name = req.order.region.name
+    elif req.usta and req.usta.region_id:
+        order_region_id = req.usta.region_id
+        region_name = req.usta.region.name if req.usta.region else "—"
     else:
         order_region_id = None
         region_name = "—"
@@ -206,20 +205,27 @@ async def pick_zavod_for_material(callback: CallbackQuery, session) -> None:
 async def admin_reject_material(callback: CallbackQuery, session) -> None:
     req_id = int(callback.data.split(":")[1])
     mat_svc = MaterialService(session)
-    req = await mat_svc.reject(req_id)
     
-    if not req:
+    # Load full request with usta before rejecting (delete)
+    req_full = await mat_svc.get_by_id(req_id)
+    if not req_full or req_full.status != MaterialRequestStatus.ADMIN_PENDING:
         await callback.answer("❌ So'rov topilmadi", show_alert=True)
         return
     
+    # Capture usta info before deletion
+    usta_tid = req_full.usta.telegram_id if req_full.usta else None
+    amount = req_full.amount_tonnes
+    
+    await mat_svc.reject(req_id)
+    
     # Notify usta
-    from app.bot.loader import bot
-    if req.usta:
+    if usta_tid:
+        from app.bot.loader import bot
         try:
             await bot.send_message(
-                req.usta.telegram_id,
+                usta_tid,
                 f"❌ <b>Material so'rov rad etildi</b>\n\n"
-                f"📦 {req.amount_tonnes} tonna\n"
+                f"📦 {amount} tonna\n"
                 f"Admin tomonidan rad etildi."
             )
         except Exception:
