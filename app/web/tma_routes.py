@@ -12,7 +12,7 @@ from starlette.requests import Request
 
 from app.db.models import (
     ROLE_LABELS, MaterialRequest, MaterialRequestStatus, Order, OrderStatus,
-    Region, User, UserRole, Zavod, zavod_hududlar, user_hududlar,
+    Region, Tuman, User, UserRole, Viloyat, Zavod, zavod_hududlar, user_hududlar,
 )
 from app.db.session import async_session_maker
 
@@ -56,12 +56,19 @@ async def tma_stats():
 
 
 @router.get("/tma-api/orders")
-async def tma_orders(limit: int = 10, status: Optional[str] = None):
-    """Get orders with optional status filter."""
+async def tma_orders(limit: int = 10, status: Optional[str] = None, viloyat_id: Optional[int] = None):
+    """Get orders with optional status and viloyat filter."""
     async with async_session_maker() as session:
-        q = select(Order).order_by(Order.created_at.desc()).limit(limit)
+        q = (
+            select(Order)
+            .options(selectinload(Order.viloyat), selectinload(Order.tuman_rel))
+            .order_by(Order.created_at.desc())
+            .limit(limit)
+        )
         if status:
             q = q.where(Order.status == status)
+        if viloyat_id:
+            q = q.where(Order.viloyat_id == viloyat_id)
         result = await session.execute(q)
         orders = result.scalars().all()
     
@@ -77,6 +84,9 @@ async def tma_orders(limit: int = 10, status: Optional[str] = None):
             "status": o.status.value,
             "latitude": o.latitude,
             "longitude": o.longitude,
+            "viloyat_id": o.viloyat_id,
+            "viloyat_name": o.viloyat.name if o.viloyat else None,
+            "tuman_name": o.tuman_rel.name if o.tuman_rel else None,
         }
         for o in orders
     ]
@@ -102,17 +112,23 @@ async def update_order_status(order_id: int, body: UpdateStatusRequest):
 
 
 @router.get("/tma-api/users")
-async def tma_users(limit: int = 100, role: Optional[str] = None):
-    """Get users with optional role filter."""
+async def tma_users(limit: int = 100, role: Optional[str] = None, viloyat_id: Optional[int] = None):
+    """Get users with optional role and viloyat filter."""
     async with async_session_maker() as session:
         q = (
             select(User)
-            .options(selectinload(User.region), selectinload(User.zavod), selectinload(User.hududlar))
+            .options(
+                selectinload(User.region), selectinload(User.zavod),
+                selectinload(User.hududlar), selectinload(User.viloyat),
+                selectinload(User.tuman_rel),
+            )
             .order_by(User.created_at.desc())
             .limit(limit)
         )
         if role:
             q = q.where(User.role == role)
+        if viloyat_id:
+            q = q.where(User.viloyat_id == viloyat_id)
         result = await session.execute(q)
         users = result.scalars().all()
     
@@ -126,6 +142,9 @@ async def tma_users(limit: int = 100, role: Optional[str] = None):
             "role_label": ROLE_LABELS.get(u.role, u.role.value),
             "region": u.region.name if u.region else None,
             "region_id": u.region_id,
+            "viloyat_id": u.viloyat_id,
+            "viloyat_name": u.viloyat.name if u.viloyat else None,
+            "tuman_name": u.tuman_rel.name if u.tuman_rel else None,
             "zavod_id": u.zavod_id,
             "zavod_name": u.zavod.name if u.zavod else None,
             "hududlar": [{"id": h.id, "viloyat": h.viloyat or h.name, "tuman": h.tuman or ""} for h in u.hududlar],
@@ -280,6 +299,31 @@ async def reject_material(req_id: int):
         await session.delete(req)
         await session.commit()
     return {"ok": True}
+
+
+@router.get("/tma-api/viloyatlar")
+async def tma_viloyatlar():
+    """Get all active viloyats with their tumans."""
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(Viloyat)
+            .options(selectinload(Viloyat.tumans))
+            .where(Viloyat.is_active == True)
+            .order_by(Viloyat.name)
+        )
+        viloyats = result.scalars().all()
+    return [
+        {
+            "id": v.id,
+            "name": v.name,
+            "tumans": [
+                {"id": t.id, "name": t.name}
+                for t in sorted(v.tumans, key=lambda x: x.name)
+                if t.is_active
+            ],
+        }
+        for v in viloyats
+    ]
 
 
 @router.get("/tma-api/roles")

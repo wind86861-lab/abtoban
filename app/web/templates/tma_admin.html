@@ -803,6 +803,7 @@
             <div class="sec">📋 Zakazlar</div>
           </div>
           <div class="pills" id="order-pills"></div>
+          <div class="pills" id="order-viloyat-pills" style="margin-bottom:14px"></div>
           <div class="cards" id="orders-list"></div>
         </div>
       </div>
@@ -814,6 +815,7 @@
             <div class="sec">👥 Foydalanuvchilar</div>
           </div>
           <div class="pills" id="user-pills"></div>
+          <div class="pills" id="user-viloyat-pills" style="margin-bottom:14px"></div>
           <div class="cards" id="users-list"></div>
         </div>
       </div>
@@ -1139,6 +1141,8 @@
 
     const S = {
       tab: 'dashboard', orderFilter: '', userFilter: '',
+      orderViloyatFilter: '', userViloyatFilter: '',
+      viloyatlar: [],
       orders: [], users: [], hududlar: [], zavodlar: [], roles: [],
       editHududId: null, editZavodId: null,
       editZavodHIds: [], editUserHIds: [],
@@ -1223,29 +1227,39 @@
     const STATUS_FULL = { new: '🆕 Yangi', confirmed: '✅ Tasdiqlangan', in_work: '🔧 Ishda', done: '🏁 Tugagan', cancelled: '❌ Bekor' };
 
     function orderCard(o) {
+      const loc = o.viloyat_name ? `📍 ${o.viloyat_name}${o.tuman_name ? ', ' + o.tuman_name : ''}` : '📍 —';
       return `<div class="card" onclick="showOrder(${o.id})">
     <div class="card-head"><div class="card-title">${o.number}</div><span class="badge badge-${o.status}">${STATUS_LABELS[o.status] || o.status}</span></div>
-    <div class="card-sub">👤 ${o.client}${o.phone ? ' · 📱' + o.phone : ''}<br>📍 ${o.address || '—'}<br>📐 ${o.area || '—'} m² · 💰 ${fmt(o.total)} so'm</div>
+    <div class="card-sub">👤 ${o.client}${o.phone ? ' · 📱' + o.phone : ''}<br>${loc}<br>📐 ${o.area || '—'} m² · 💰 ${fmt(o.total)} so'm</div>
   </div>`;
     }
 
     async function loadOrders() {
+      if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
       const fs = [{ v: '', l: 'Barchasi' }, { v: 'new', l: '🆕 Yangi' }, { v: 'confirmed', l: '✅ Tasdiqlangan' }, { v: 'in_work', l: '🔧 Ishda' }, { v: 'done', l: '🏁 Tugagan' }];
       document.getElementById('order-pills').innerHTML = fs.map(f => `<button class="pill${S.orderFilter === f.v ? ' active' : ''}" onclick="filterOrders('${f.v}')">${f.l}</button>`).join('');
+      const vPills = [{ v: '', l: '🗺 Barcha viloyat' }, ...S.viloyatlar.map(v => ({ v: v.id, l: '📍 ' + v.name }))];
+      document.getElementById('order-viloyat-pills').innerHTML = vPills.map(f => `<button class="pill${S.orderViloyatFilter == f.v ? ' active' : ''}" onclick="filterOrderViloyat('${f.v}')">${f.l}</button>`).join('');
       try {
-        S.orders = await fetch('/tma-api/orders?limit=100' + (S.orderFilter ? '&status=' + S.orderFilter : '')).then(r => r.json());
+        let url = '/tma-api/orders?limit=100';
+        if (S.orderFilter) url += '&status=' + S.orderFilter;
+        if (S.orderViloyatFilter) url += '&viloyat_id=' + S.orderViloyatFilter;
+        S.orders = await fetch(url).then(r => r.json());
         document.getElementById('orders-list').innerHTML = S.orders.length ? S.orders.map(orderCard).join('') : empty('📋', 'Zakazlar topilmadi');
       } catch (e) { console.error(e); }
     }
     function filterOrders(v) { S.orderFilter = v; loadOrders(); }
+    function filterOrderViloyat(v) { S.orderViloyatFilter = v; loadOrders(); }
 
     function showOrder(id) {
       const o = S.orders.find(x => x.id === id); if (!o) return;
       document.getElementById('om-title').textContent = o.number;
+      const oLoc = o.viloyat_name ? `${o.viloyat_name}${o.tuman_name ? ', ' + o.tuman_name : ''}` : '—';
       document.getElementById('om-body').innerHTML = `
     <table class="info-tbl">
       <tr><td>Mijoz</td><td>${o.client}</td></tr>
       <tr><td>Telefon</td><td>${o.phone || '—'}</td></tr>
+      <tr><td>Viloyat / Tuman</td><td>${oLoc}</td></tr>
       <tr><td>Manzil</td><td>${o.address || '—'}</td></tr>
       <tr><td>📍 Lokatsiya</td><td>${o.latitude ? `<a href="https://www.google.com/maps?q=${o.latitude},${o.longitude}" target="_blank" style="color:#3563e9;text-decoration:underline">🗺 Xaritada ko'rish</a>` : '—'}</td></tr>
       <tr><td>Maydon</td><td>${o.area || '—'} m²</td></tr>
@@ -1267,6 +1281,10 @@
     /* ══ USERS ══ */
     function userCard(u) {
       const hs = u.hududlar || [];
+      const locParts = [];
+      if (u.viloyat_name) locParts.push(u.viloyat_name);
+      if (u.tuman_name) locParts.push(u.tuman_name);
+      const locStr = locParts.length ? locParts.join(', ') : (hs.length ? hs.map(h => h.viloyat).join(', ') : (u.region || 'Hudud biriktirilmagan'));
       return `<div class="card" onclick="showUser(${u.id})">
     <div class="card-head">
       <div><div class="card-title">${u.name}</div><div style="font-size:11px;color:var(--hint);margin-top:2px">${u.role_label}</div></div>
@@ -1274,20 +1292,27 @@
     </div>
     <div class="card-sub">
       📱 ${u.phone || '—'}<br>
-      📍 ${hs.length ? hs.map(h => h.viloyat).join(', ') : (u.region || 'Hudud biriktirilmagan')}${hs.length > 1 ? ` <span class="badge badge-active" style="font-size:9px">${hs.length} hudud</span>` : ''}
+      📍 ${locStr}${hs.length > 1 ? ` <span class="badge badge-active" style="font-size:9px">${hs.length} hudud</span>` : ''}
     </div>
   </div>`;
     }
 
     async function loadUsers() {
+      if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
       const fs = [{ v: '', l: 'Barchasi' }, { v: 'master', l: 'Master' }, { v: 'usta', l: 'Usta' }, { v: 'zavod', l: 'Zavod' }, { v: 'shofer', l: 'Shofer' }, { v: 'admin', l: 'Admin' }];
       document.getElementById('user-pills').innerHTML = fs.map(f => `<button class="pill${S.userFilter === f.v ? ' active' : ''}" onclick="filterUsers('${f.v}')">${f.l}</button>`).join('');
+      const vPills = [{ v: '', l: '🗺 Barcha viloyat' }, ...S.viloyatlar.map(v => ({ v: v.id, l: '📍 ' + v.name }))];
+      document.getElementById('user-viloyat-pills').innerHTML = vPills.map(f => `<button class="pill${S.userViloyatFilter == f.v ? ' active' : ''}" onclick="filterUserViloyat('${f.v}')">${f.l}</button>`).join('');
       try {
-        S.users = await fetch('/tma-api/users?limit=100' + (S.userFilter ? '&role=' + S.userFilter : '')).then(r => r.json());
+        let url = '/tma-api/users?limit=100';
+        if (S.userFilter) url += '&role=' + S.userFilter;
+        if (S.userViloyatFilter) url += '&viloyat_id=' + S.userViloyatFilter;
+        S.users = await fetch(url).then(r => r.json());
         document.getElementById('users-list').innerHTML = S.users.length ? S.users.map(userCard).join('') : empty('👥', 'Foydalanuvchilar topilmadi');
       } catch (e) { console.error(e); }
     }
     function filterUsers(v) { S.userFilter = v; loadUsers(); }
+    function filterUserViloyat(v) { S.userViloyatFilter = v; loadUsers(); }
 
     async function showUser(id) {
       const u = S.users.find(x => x.id === id); if (!u) return;
@@ -1310,11 +1335,13 @@
       ].join('');
       const hChips = S.hududlar.map(h => `<div class="hchip${S.editUserHIds.includes(h.id) ? ' sel' : ''}" onclick="toggleUH(${h.id},this)"><strong>${h.viloyat}</strong><br><small>${h.tuman}</small></div>`).join('');
 
+      const uLoc = u.viloyat_name ? `${u.viloyat_name}${u.tuman_name ? ', ' + u.tuman_name : ''}` : '—';
       document.getElementById('um-body').innerHTML = `
     <table class="info-tbl">
       <tr><td>Telegram ID</td><td><code>${u.telegram_id}</code></td></tr>
       <tr><td>Telefon</td><td>${u.phone || '—'}</td></tr>
       <tr><td>Rol</td><td><span class="badge badge-role">${u.role_label}</span></td></tr>
+      <tr><td>Viloyat / Tuman</td><td>${uLoc}</td></tr>
       <tr><td>Zavod</td><td>${u.zavod_name || '—'}</td></tr>
       <tr><td>Holat</td><td>${u.is_active ? '🟢 Faol' : '🔴 Bloklangan'}</td></tr>
     </table>
