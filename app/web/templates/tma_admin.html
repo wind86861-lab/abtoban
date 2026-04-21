@@ -848,6 +848,30 @@
       <div class="content tab-content" id="tab-ustalar" style="display:none">
         <div class="inner">
           <div class="sec">🔨 Ustalar</div>
+          <!-- Search -->
+          <div style="position:relative;margin-bottom:12px">
+            <input type="text" id="usta-search" placeholder="Ism yoki telefon bo'yicha qidirish..."
+              oninput="filterUstalar()"
+              style="width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none;transition:border .2s">
+            <span
+              style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--hint)">🔍</span>
+          </div>
+          <!-- Viloyat / Tuman selects -->
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <select id="usta-viloyat-filter" onchange="onUstaViloyatChange()"
+              style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+              <option value="">🗺 Barcha viloyat</option>
+            </select>
+            <select id="usta-tuman-filter" onchange="filterUstalar()"
+              style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+              <option value="">🏘 Barcha tuman</option>
+            </select>
+          </div>
+          <!-- Status pills -->
+          <div class="pills" id="usta-status-pills" style="margin-bottom:14px"></div>
+          <!-- Summary -->
+          <div id="usta-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+          <!-- List -->
           <div class="cards" id="ustalar-list"></div>
         </div>
       </div>
@@ -1455,30 +1479,101 @@
     }
 
     /* ══ USTALAR ══ */
+    let _allUstalar = [];
+    let _ustaStatusFilter = '';
+
     async function loadUstalar() {
+      if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
+      // Populate viloyat select
+      const vSel = document.getElementById('usta-viloyat-filter');
+      if (vSel.options.length <= 1) {
+        S.viloyatlar.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = '📍 ' + v.name; vSel.appendChild(o); });
+      }
+      // Status pills
+      const statuses = [
+        { v: '', l: '🔨 Barchasi' },
+        { v: 'active', l: '🟢 Faol' },
+        { v: 'inactive', l: '🔴 Nofaol' },
+        { v: 'has_orders', l: '📋 Zakazli' },
+        { v: 'no_orders', l: '📭 Zakazziz' },
+      ];
+      document.getElementById('usta-status-pills').innerHTML = statuses.map(s =>
+        `<button class="pill${_ustaStatusFilter === s.v ? ' active' : ''}" onclick="_ustaStatusFilter='${s.v}';filterUstalar()">${s.l}</button>`
+      ).join('');
       try {
-        const data = await fetch('/tma-api/ustalar').then(r => r.json());
-        if (!data.length) {
-          document.getElementById('ustalar-list').innerHTML = empty('🔨', 'Ustalar yo\'q');
-          return;
-        }
-        document.getElementById('ustalar-list').innerHTML = data.map(u => {
-          const loc = u.viloyat_name ? `📍 ${u.viloyat_name}${u.tuman_name ? ', ' + u.tuman_name : ''}` : '';
-          return `<div class="card" onclick="showUstaOrders(${u.id}, '${esc(u.name)}')">
-            <div class="card-head">
-              <div class="card-title">🔨 ${u.name}</div>
-              <span class="badge ${u.is_active ? 'badge-confirmed' : 'badge-cancelled'}">${u.is_active ? 'Faol' : 'Nofaol'}</span>
-            </div>
-            <div class="card-sub">${u.phone || '—'}${loc ? '<br>' + loc : ''}</div>
-            <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
-              <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:12px">📋 Jami: <strong>${u.total_orders}</strong></div>
-              <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:12px">🔧 Faol: <strong>${u.active_orders}</strong></div>
-              <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:12px">✅ Tugagan: <strong>${u.done_orders}</strong></div>
-              <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:12px">💰 Jami haqi: <strong>${fmt(u.total_wage)}</strong></div>
-            </div>
-          </div>`;
-        }).join('');
+        _allUstalar = await fetch('/tma-api/ustalar').then(r => r.json());
+        filterUstalar();
       } catch (e) { console.error(e); }
+    }
+
+    function onUstaViloyatChange() {
+      const vName = document.getElementById('usta-viloyat-filter').value;
+      const tSel = document.getElementById('usta-tuman-filter');
+      tSel.innerHTML = '<option value="">🏘 Barcha tuman</option>';
+      if (vName) {
+        const v = S.viloyatlar.find(x => x.name === vName);
+        if (v && v.tumans) v.tumans.forEach(t => { const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; tSel.appendChild(o); });
+      }
+      filterUstalar();
+    }
+
+    function filterUstalar() {
+      const q = (document.getElementById('usta-search').value || '').toLowerCase().trim();
+      const vName = document.getElementById('usta-viloyat-filter').value;
+      const tName = document.getElementById('usta-tuman-filter').value;
+      const sf = _ustaStatusFilter;
+      // Re-render status pills active state
+      document.querySelectorAll('#usta-status-pills .pill').forEach(btn => {
+        const bv = btn.getAttribute('onclick').match(/_ustaStatusFilter='([^']*)'/)?.[1] || '';
+        btn.classList.toggle('active', bv === sf);
+      });
+
+      let list = _allUstalar;
+      if (q) list = list.filter(u => (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q));
+      if (vName) list = list.filter(u => u.viloyat_name === vName);
+      if (tName) list = list.filter(u => u.tuman_name === tName);
+      if (sf === 'active') list = list.filter(u => u.is_active);
+      if (sf === 'inactive') list = list.filter(u => !u.is_active);
+      if (sf === 'has_orders') list = list.filter(u => u.total_orders > 0);
+      if (sf === 'no_orders') list = list.filter(u => u.total_orders === 0);
+
+      // Summary
+      const totU = list.length;
+      const totOrders = list.reduce((s, u) => s + u.total_orders, 0);
+      const totActive = list.reduce((s, u) => s + u.active_orders, 0);
+      const totDone = list.reduce((s, u) => s + u.done_orders, 0);
+      const totWage = list.reduce((s, u) => s + u.total_wage, 0);
+      document.getElementById('usta-summary').innerHTML = `
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Ustalar</div><strong style="font-size:16px">${totU}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Jami zakaz</div><strong style="font-size:16px">${totOrders}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Faol</div><strong style="font-size:16px;color:#f59e0b">${totActive}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Tugagan</div><strong style="font-size:16px;color:#43a047">${totDone}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:100px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Jami haqi</div><strong style="font-size:14px;color:var(--accent)">${fmt(totWage)}</strong></div>`;
+
+      if (!list.length) {
+        document.getElementById('ustalar-list').innerHTML = empty('🔨', 'Ustalar topilmadi');
+        return;
+      }
+      document.getElementById('ustalar-list').innerHTML = list.map(u => {
+        const loc = u.viloyat_name ? `📍 ${u.viloyat_name}${u.tuman_name ? ', ' + u.tuman_name : ''}` : '';
+        const pct = u.total_orders ? Math.round(u.done_orders / u.total_orders * 100) : 0;
+        return `<div class="card" onclick="showUstaOrders(${u.id}, '${esc(u.name)}')" style="cursor:pointer">
+          <div class="card-head">
+            <div>
+              <div class="card-title">🔨 ${u.name}</div>
+              <div style="font-size:11px;color:var(--hint);margin-top:2px">${u.phone || '—'}${loc ? ' · ' + loc : ''}</div>
+            </div>
+            <span class="badge ${u.is_active ? 'badge-confirmed' : 'badge-cancelled'}">${u.is_active ? 'Faol' : 'Nofaol'}</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            <div style="background:var(--bg);padding:5px 10px;border-radius:8px;font-size:11px">📋 <strong>${u.total_orders}</strong></div>
+            <div style="background:var(--bg);padding:5px 10px;border-radius:8px;font-size:11px">🔧 <strong>${u.active_orders}</strong></div>
+            <div style="background:var(--bg);padding:5px 10px;border-radius:8px;font-size:11px">✅ <strong>${u.done_orders}</strong></div>
+            <div style="background:var(--bg);padding:5px 10px;border-radius:8px;font-size:11px">💰 <strong>${fmt(u.total_wage)}</strong></div>
+          </div>
+          ${u.total_orders ? `<div style="margin-top:8px;background:var(--border);border-radius:6px;height:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct === 100 ? '#43a047' : 'var(--accent)'};border-radius:6px;transition:width .3s"></div></div><div style="font-size:10px;color:var(--hint);margin-top:3px;text-align:right">${pct}% bajarilgan</div>` : ''}
+        </div>`;
+      }).join('');
     }
 
     let _ustaOrders = [];
