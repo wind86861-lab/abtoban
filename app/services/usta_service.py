@@ -15,12 +15,15 @@ class UstaService:
     async def get_available_ustas(
         self,
         region_id: Optional[int] = None,
+        viloyat_id: Optional[int] = None,
     ) -> List[Tuple[User, int]]:
         """Returns (usta, active_order_count) sorted by lowest workload first.
 
-        If region_id is given, only returns ustas assigned to that region.
-        If no ustas found in the region, falls back to ustas with no region set.
-        No order limit — ustas can handle multiple orders simultaneously.
+        Matching priority:
+        1. By viloyat_id (User.viloyat_id matches order viloyat)
+        2. By region_id or user_hududlar (legacy)
+        3. By viloyat name similarity fallback
+        4. Ustas with no region/hudud assigned
         """
         active_sq = (
             select(Order.usta_id, func.count(Order.id).label("cnt"))
@@ -41,8 +44,25 @@ class UstaService:
             )
         )
 
+        def _dedup(rows):
+            seen = set()
+            results = []
+            for row in rows.all():
+                if row[0].id not in seen:
+                    seen.add(row[0].id)
+                    results.append((row[0], int(row[1])))
+            return results
+
+        # Step 1: match by viloyat_id (new system)
+        if viloyat_id:
+            viloyat_query = base_query.where(User.viloyat_id == viloyat_id)
+            rows = await self.session.execute(viloyat_query)
+            results = _dedup(rows)
+            if results:
+                return results
+
+        # Step 2: match by region_id or user_hududlar
         if region_id:
-            # Step 1: exact region match (region_id or user_hududlar)
             hudud_subq = (
                 select(user_hududlar.c.user_id)
                 .where(user_hududlar.c.hudud_id == region_id)
@@ -54,23 +74,16 @@ class UstaService:
                 )
             )
             rows = await self.session.execute(region_query)
-            seen = set()
-            results = []
-            for row in rows.all():
-                if row[0].id not in seen:
-                    seen.add(row[0].id)
-                    results.append((row[0], int(row[1])))
+            results = _dedup(rows)
             if results:
                 return results
 
-            # Step 2: viloyat-level fallback — find all regions in same viloyat
-            # e.g. "Toshkent shahar" (id=1) and "Toshkent shahri" (id=7) are same area
+            # Step 2b: viloyat-level fallback — find sibling regions by name prefix
             region_row = await self.session.execute(
                 select(Region).where(Region.id == region_id)
             )
             region_obj = region_row.scalar_one_or_none()
             if region_obj:
-                # Find sibling regions by name similarity (same viloyat root)
                 name_root = region_obj.name.split()[0] if region_obj.name else None
                 if name_root:
                     sibling_ids_q = await self.session.execute(
@@ -89,19 +102,17 @@ class UstaService:
                             )
                         )
                         rows = await self.session.execute(sib_query)
-                        seen = set()
-                        results = []
-                        for row in rows.all():
-                            if row[0].id not in seen:
-                                seen.add(row[0].id)
-                                results.append((row[0], int(row[1])))
+                        results = _dedup(rows)
                         if results:
                             return results
 
-            # Step 3: fallback — ustas with no region and no hududlar
+        # Step 3: no region/viloyat or no match — return all ustas
+        if region_id or viloyat_id:
+            # Fallback: ustas with no region and no hududlar
             no_hudud_subq = select(user_hududlar.c.user_id)
             fallback_query = base_query.where(
                 User.region_id == None,
+                User.viloyat_id == None,
                 ~User.id.in_(no_hudud_subq),
             )
             rows = await self.session.execute(fallback_query)

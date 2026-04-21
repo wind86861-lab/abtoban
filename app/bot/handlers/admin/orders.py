@@ -14,6 +14,8 @@ from app.bot.keyboards.order import (
     get_order_confirm_keyboard,
     get_regions_keyboard,
     get_status_selection_keyboard,
+    get_tumanlar_keyboard,
+    get_viloyatlar_keyboard,
 )
 from app.bot.states.order import AdminOrderCreateStates
 from app.db.models import (
@@ -248,7 +250,7 @@ async def admin_change_usta_prompt(callback: CallbackQuery, user: User, session)
         return
 
     usta_svc = UstaService(session)
-    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id)
+    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id, viloyat_id=order.viloyat_id)
     if not ustas_with_count:
         await callback.answer("⚠️ Mavjud ustalar yo'q", show_alert=True)
         return
@@ -385,13 +387,13 @@ async def admin_order_phone(message: Message, state: FSMContext, session) -> Non
             client_name=found_user.full_name or "Nomsiz",
         )
         user_svc2 = UserService(session)
-        regions = await user_svc2.get_regions()
-        if regions:
-            await state.set_state(AdminOrderCreateStates.selecting_region)
+        viloyatlar = await user_svc2.get_viloyatlar()
+        if viloyatlar:
+            await state.set_state(AdminOrderCreateStates.selecting_viloyat)
             await message.answer(
                 f"✅ Klient topildi: <b>{found_user.full_name or 'Nomsiz'}</b>\n\n"
                 f"2/6 — Viloyatni tanlang:",
-                reply_markup=get_regions_keyboard(regions),
+                reply_markup=get_viloyatlar_keyboard(viloyatlar),
             )
         else:
             await state.set_state(AdminOrderCreateStates.entering_address)
@@ -434,13 +436,13 @@ async def admin_order_name(message: Message, state: FSMContext, session) -> None
 
     await state.update_data(client_id=new_user.id, client_name=name)
     user_svc2 = UserService(session)
-    regions = await user_svc2.get_regions()
-    if regions:
-        await state.set_state(AdminOrderCreateStates.selecting_region)
+    viloyatlar = await user_svc2.get_viloyatlar()
+    if viloyatlar:
+        await state.set_state(AdminOrderCreateStates.selecting_viloyat)
         await message.answer(
             f"✅ Klient yaratildi: <b>{name}</b>\n\n"
             f"2/6 — Viloyatni tanlang:",
-            reply_markup=get_regions_keyboard(regions),
+            reply_markup=get_viloyatlar_keyboard(viloyatlar),
         )
     else:
         await state.set_state(AdminOrderCreateStates.entering_address)
@@ -451,13 +453,34 @@ async def admin_order_name(message: Message, state: FSMContext, session) -> None
         )
 
 
-@router.callback_query(AdminOrderCreateStates.selecting_region, F.data.startswith("region:"), RoleFilter(*MANAGEMENT_ROLES))
-async def admin_order_region(callback: CallbackQuery, state: FSMContext) -> None:
-    region_id = int(callback.data.split(":")[1])
-    await state.update_data(region_id=region_id)
+@router.callback_query(AdminOrderCreateStates.selecting_viloyat, F.data.startswith("viloyat:"), RoleFilter(*MANAGEMENT_ROLES))
+async def admin_order_viloyat(callback: CallbackQuery, state: FSMContext, session) -> None:
+    viloyat_id = int(callback.data.split(":")[1])
+    await state.update_data(viloyat_id=viloyat_id)
+    user_svc = UserService(session)
+    tumanlar = await user_svc.get_tumanlar(viloyat_id)
+    if not tumanlar:
+        await state.set_state(AdminOrderCreateStates.entering_address)
+        await callback.message.edit_text(
+            "✅ Viloyat tanlandi!\n\n"
+            "3/6 — Manzilni kiriting:",
+        )
+    else:
+        await state.set_state(AdminOrderCreateStates.selecting_tuman)
+        await callback.message.edit_text(
+            "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
+            reply_markup=get_tumanlar_keyboard(tumanlar),
+        )
+    await callback.answer()
+
+
+@router.callback_query(AdminOrderCreateStates.selecting_tuman, F.data.startswith("tuman:"), RoleFilter(*MANAGEMENT_ROLES))
+async def admin_order_tuman(callback: CallbackQuery, state: FSMContext) -> None:
+    tuman_id = int(callback.data.split(":")[1])
+    await state.update_data(tuman_id=tuman_id)
     await state.set_state(AdminOrderCreateStates.entering_address)
     await callback.message.edit_text(
-        "✅ Viloyat tanlandi!\n\n"
+        "✅ Tuman tanlandi!\n\n"
         "3/6 — Manzilni kiriting:",
     )
     await callback.answer()
@@ -544,6 +567,8 @@ async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: U
         area_m2=Decimal(data["area_m2"]),
         asphalt_type_id=data.get("asphalt_type_id"),
         region_id=data.get("region_id"),
+        viloyat_id=data.get("viloyat_id"),
+        tuman_id=data.get("tuman_id"),
     )
 
     # Notify masters

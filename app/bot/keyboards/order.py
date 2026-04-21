@@ -7,7 +7,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from app.db.models import ORDER_STATUS_LABELS, AsphaltType, Order, OrderStatus, Region
+from app.db.models import ORDER_STATUS_LABELS, AsphaltType, Order, OrderStatus, Region, Tuman, Viloyat
 
 
 def get_regions_keyboard(regions: List[Region]) -> InlineKeyboardMarkup:
@@ -16,6 +16,28 @@ def get_regions_keyboard(regions: List[Region]) -> InlineKeyboardMarkup:
         builder.button(
             text=f"📍 {region.name}",
             callback_data=f"region:{region.id}",
+        )
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_viloyatlar_keyboard(viloyatlar: List[Viloyat]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for v in viloyatlar:
+        builder.button(
+            text=f"📍 {v.name}",
+            callback_data=f"viloyat:{v.id}",
+        )
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_tumanlar_keyboard(tumanlar: List[Tuman]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for t in tumanlar:
+        builder.button(
+            text=f"🏘 {t.name}",
+            callback_data=f"tuman:{t.id}",
         )
     builder.adjust(2)
     return builder.as_markup()

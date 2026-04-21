@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import AuditLog, Region, User, UserRole
+from app.db.models import AuditLog, Region, Tuman, User, UserRole, Viloyat
 
 
 class UserService:
@@ -200,6 +200,21 @@ class UserService:
     async def get_regions(self) -> List[Region]:
         result = await self.session.execute(
             select(Region).where(Region.is_active == True).order_by(Region.name)
+        )
+        return list(result.scalars().all())
+
+    async def get_viloyatlar(self) -> List[Viloyat]:
+        result = await self.session.execute(
+            select(Viloyat).where(Viloyat.is_active == True).order_by(Viloyat.name)
+        )
+        return list(result.scalars().all())
+
+    async def get_tumanlar(self, viloyat_id: int) -> List[Tuman]:
+        result = await self.session.execute(
+            select(Tuman)
+            .where(Tuman.viloyat_id == viloyat_id)
+            .where(Tuman.is_active == True)
+            .order_by(Tuman.name)
         )
         return list(result.scalars().all())
 

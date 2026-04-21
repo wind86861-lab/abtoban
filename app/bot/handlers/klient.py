@@ -12,6 +12,8 @@ from app.bot.keyboards.order import (
     get_asphalt_keyboard,
     get_order_confirm_keyboard,
     get_regions_keyboard,
+    get_tumanlar_keyboard,
+    get_viloyatlar_keyboard,
 )
 from app.bot.states.order import KlientOrderStates, PriceCalculatorStates
 from app.db.models import ORDER_STATUS_LABELS, User, UserRole
@@ -30,40 +32,44 @@ async def order_create_start(message: Message, state: FSMContext, user: User, se
     if not user.phone:
         await message.answer(t("order_no_phone", lang))
         return
-    from app.services.user_service import UserService
     user_svc = UserService(session)
-    regions = await user_svc.get_regions()
-    if not regions:
+    viloyatlar = await user_svc.get_viloyatlar()
+    if not viloyatlar:
         await message.answer(t("no_regions", lang))
         return
-    await state.set_state(KlientOrderStates.selecting_region)
+    await state.set_state(KlientOrderStates.selecting_viloyat)
     await message.answer(
         t("order_start", lang),
-        reply_markup=get_regions_keyboard(regions),
+        reply_markup=get_viloyatlar_keyboard(viloyatlar),
     )
 
 
-@router.callback_query(KlientOrderStates.selecting_region, F.data.startswith("region:"))
-async def handle_region_select(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    region_id = int(callback.data.split(":")[1])
-    await state.update_data(region_id=region_id)
-    await state.set_state(KlientOrderStates.entering_district)
-    await callback.message.edit_text(t("region_selected", lang))
+@router.callback_query(KlientOrderStates.selecting_viloyat, F.data.startswith("viloyat:"))
+async def handle_viloyat_select(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    viloyat_id = int(callback.data.split(":")[1])
+    await state.update_data(viloyat_id=viloyat_id)
+    user_svc = UserService(session)
+    tumanlar = await user_svc.get_tumanlar(viloyat_id)
+    if not tumanlar:
+        await state.set_state(KlientOrderStates.entering_street)
+        await callback.message.edit_text(t("region_selected", lang))
+        await callback.answer()
+        return
+    await state.set_state(KlientOrderStates.selecting_tuman)
+    await callback.message.edit_text(
+        "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
+        reply_markup=get_tumanlar_keyboard(tumanlar),
+    )
     await callback.answer()
 
 
-@router.message(KlientOrderStates.entering_district)
-async def handle_district(message: Message, state: FSMContext, lang: str) -> None:
-    district = message.text.strip() if message.text else ""
-    if len(district) < 2:
-        await message.answer(t("district_too_short", lang))
-        return
-    await state.update_data(district=district)
+@router.callback_query(KlientOrderStates.selecting_tuman, F.data.startswith("tuman:"))
+async def handle_tuman_select(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    tuman_id = int(callback.data.split(":")[1])
+    await state.update_data(tuman_id=tuman_id)
     await state.set_state(KlientOrderStates.entering_street)
-    await message.answer(
-        t("enter_street", lang),
-        reply_markup=get_cancel_keyboard(lang),
-    )
+    await callback.message.edit_text(t("region_selected", lang))
+    await callback.answer()
 
 
 @router.message(KlientOrderStates.entering_street)
@@ -193,6 +199,8 @@ async def submit_order(callback: CallbackQuery, state: FSMContext, user: User, s
         latitude=data.get("latitude"),
         longitude=data.get("longitude"),
         region_id=data.get("region_id"),
+        viloyat_id=data.get("viloyat_id"),
+        tuman_id=data.get("tuman_id"),
     )
 
     # Notify all masters

@@ -18,6 +18,8 @@ from app.bot.keyboards.order import (
     get_order_confirm_keyboard,
     get_orders_list_keyboard,
     get_regions_keyboard,
+    get_tumanlar_keyboard,
+    get_viloyatlar_keyboard,
 )
 from app.bot.keyboards.finance import (
     get_expense_type_keyboard,
@@ -155,43 +157,43 @@ async def master_order_client_name(message: Message, state: FSMContext, session,
         return
     await state.update_data(client_name=text)
     user_svc = UserService(session)
-    regions = await user_svc.get_regions()
-    if not regions:
+    viloyatlar = await user_svc.get_viloyatlar()
+    if not viloyatlar:
         await message.answer(t("no_regions", lang))
         await state.clear()
         return
-    await state.set_state(MasterOrderCreateStates.selecting_region)
+    await state.set_state(MasterOrderCreateStates.selecting_viloyat)
     await message.answer(
         t("select_region", lang),
-        reply_markup=get_regions_keyboard(regions),
+        reply_markup=get_viloyatlar_keyboard(viloyatlar),
     )
 
 
-@router.callback_query(MasterOrderCreateStates.selecting_region, F.data.startswith("region:"))
-async def master_order_region(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    region_id = int(callback.data.split(":")[1])
-    await state.update_data(region_id=region_id)
-    await state.set_state(MasterOrderCreateStates.entering_district)
-    await callback.message.edit_text(t("region_selected", lang))
+@router.callback_query(MasterOrderCreateStates.selecting_viloyat, F.data.startswith("viloyat:"))
+async def master_order_viloyat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    viloyat_id = int(callback.data.split(":")[1])
+    await state.update_data(viloyat_id=viloyat_id)
+    user_svc = UserService(session)
+    tumanlar = await user_svc.get_tumanlar(viloyat_id)
+    if not tumanlar:
+        await state.set_state(MasterOrderCreateStates.entering_street)
+        await callback.message.edit_text(t("region_selected", lang))
+    else:
+        await state.set_state(MasterOrderCreateStates.selecting_tuman)
+        await callback.message.edit_text(
+            "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
+            reply_markup=get_tumanlar_keyboard(tumanlar),
+        )
     await callback.answer()
 
 
-@router.message(MasterOrderCreateStates.entering_district)
-async def master_order_district(message: Message, state: FSMContext, lang: str) -> None:
-    text = (message.text or "").strip()
-    if text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
-        await state.clear()
-        await message.answer(t("action_cancelled", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
-        return
-    if len(text) < 2:
-        await message.answer(t("district_too_short", lang))
-        return
-    await state.update_data(district=text)
+@router.callback_query(MasterOrderCreateStates.selecting_tuman, F.data.startswith("tuman:"))
+async def master_order_tuman(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    tuman_id = int(callback.data.split(":")[1])
+    await state.update_data(tuman_id=tuman_id)
     await state.set_state(MasterOrderCreateStates.entering_street)
-    await message.answer(
-        t("enter_street", lang),
-        reply_markup=get_cancel_keyboard(lang),
-    )
+    await callback.message.edit_text(t("region_selected", lang))
+    await callback.answer()
 
 
 @router.message(MasterOrderCreateStates.entering_street)
@@ -298,6 +300,8 @@ async def master_order_submit(callback: CallbackQuery, state: FSMContext, user: 
         area_m2=Decimal(data["area_m2"]),
         region_id=data.get("region_id"),
         asphalt_type_id=data.get("asphalt_type_id"),
+        viloyat_id=data.get("viloyat_id"),
+        tuman_id=data.get("tuman_id"),
     )
     await callback.message.edit_text(
         t("master_order_created", lang,
@@ -707,7 +711,7 @@ async def pick_order_for_usta(callback: CallbackQuery, session, lang: str) -> No
         return
 
     usta_svc = UstaService(session)
-    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id)
+    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id, viloyat_id=order.viloyat_id)
     if not ustas_with_count:
         await callback.message.edit_text(t("no_ustas_available", lang))
         await callback.answer()
@@ -817,7 +821,7 @@ async def change_usta_prompt(callback: CallbackQuery, user: User, session, lang:
         return
 
     usta_svc = UstaService(session)
-    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id)
+    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id, viloyat_id=order.viloyat_id)
     if not ustas_with_count:
         await callback.answer("⚠️ Mavjud ustalar yo'q", show_alert=True)
         return

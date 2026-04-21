@@ -60,7 +60,7 @@ async def _auto_assign_async(order_id: int) -> dict:
 
             usta_svc = UstaService(session)
             user_svc = UserService(session)
-            available = await usta_svc.get_available_ustas()
+            available = await usta_svc.get_available_ustas(region_id=order.region_id, viloyat_id=order.viloyat_id)
 
             if not available:
                 # No ustas — alert admins and master

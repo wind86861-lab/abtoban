@@ -2,8 +2,8 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class KlientOrderStates(StatesGroup):
-    selecting_region = State()      # Viloyat
-    entering_district = State()     # Tuman
+    selecting_viloyat = State()     # Viloyat
+    selecting_tuman = State()       # Tuman
     entering_street = State()       # Ko'cha
     entering_target = State()       # Orientir/mo'ljal
     sharing_location = State()      # GPS lokatsiya
@@ -32,7 +32,8 @@ class MasterConfirmStates(StatesGroup):
 class AdminOrderCreateStates(StatesGroup):
     entering_client_phone = State()
     entering_client_name = State()
-    selecting_region = State()
+    selecting_viloyat = State()
+    selecting_tuman = State()
     entering_address = State()
     entering_area = State()
     selecting_asphalt = State()
@@ -42,8 +43,8 @@ class AdminOrderCreateStates(StatesGroup):
 class MasterOrderCreateStates(StatesGroup):
     entering_client_phone = State()
     entering_client_name = State()
-    selecting_region = State()
-    entering_district = State()
+    selecting_viloyat = State()
+    selecting_tuman = State()
     entering_street = State()
     entering_target = State()
     entering_area = State()
