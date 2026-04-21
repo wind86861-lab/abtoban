@@ -106,18 +106,26 @@ class UstaService:
                         if results:
                             return results
 
-        # Step 3: no region/viloyat or no match — return all ustas
-        if region_id or viloyat_id:
-            # Fallback: ustas with no region and no hududlar
-            no_hudud_subq = select(user_hududlar.c.user_id)
-            fallback_query = base_query.where(
-                User.region_id == None,
-                User.viloyat_id == None,
-                ~User.id.in_(no_hudud_subq),
+        # Step 3: match by hududlar region viloyat name (user selected Buxoro in hududlar)
+        if viloyat_id:
+            from app.db.models import Viloyat
+            viloyat_row = await self.session.execute(
+                select(Viloyat).where(Viloyat.id == viloyat_id)
             )
-            rows = await self.session.execute(fallback_query)
-            return [(row[0], int(row[1])) for row in rows.all()]
+            viloyat_obj = viloyat_row.scalar_one_or_none()
+            if viloyat_obj:
+                hudud_viloyat_subq = (
+                    select(user_hududlar.c.user_id)
+                    .join(Region, Region.id == user_hududlar.c.hudud_id)
+                    .where(Region.name.ilike(f"%{viloyat_obj.name.split()[0]}%"))
+                )
+                hud_viloyat_query = base_query.where(User.id.in_(hudud_viloyat_subq))
+                rows = await self.session.execute(hud_viloyat_query)
+                results = _dedup(rows)
+                if results:
+                    return results
 
+        # Step 4: final fallback — return ALL active ustas so admin can always assign
         rows = await self.session.execute(base_query)
         return [(row[0], int(row[1])) for row in rows.all()]
 
