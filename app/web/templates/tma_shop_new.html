@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="uz">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
@@ -262,8 +263,13 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
     }
 
     .modal.show {
@@ -283,8 +289,13 @@
     }
 
     @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
+      from {
+        transform: translateY(100%);
+      }
+
+      to {
+        transform: translateY(0);
+      }
     }
 
     .modal-header {
@@ -441,6 +452,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Header -->
   <div class="header">
@@ -461,18 +473,9 @@
 
   <!-- Categories -->
   <div class="categories">
-    <div class="categories-scroll">
-      <div class="category-chip active" onclick="filterCategory('all')">
+    <div class="categories-scroll" id="categoriesScroll">
+      <div class="category-chip active" onclick="filterCategory('all', this)">
         <i class="fas fa-th"></i> Hammasi
-      </div>
-      <div class="category-chip" onclick="filterCategory('asphalt')">
-        <i class="fas fa-road"></i> Asfalt
-      </div>
-      <div class="category-chip" onclick="filterCategory('materials')">
-        <i class="fas fa-boxes"></i> Materiallar
-      </div>
-      <div class="category-chip" onclick="filterCategory('equipment')">
-        <i class="fas fa-tools"></i> Jihozlar
       </div>
     </div>
   </div>
@@ -513,49 +516,48 @@
   <script>
     let cart = [];
     let products = [];
+    let allProducts = [];
+    let currentFilter = 'all';
 
-    // Sample products data
-    const sampleProducts = [
-      {
-        id: 1,
-        name: "Issiq Asfalt",
-        description: "Yuqori sifatli issiq asfalt, 1 tonna",
-        price: 850000,
-        category: "asphalt",
-        image: "/static/placeholder.jpg"
-      },
-      {
-        id: 2,
-        name: "Sovuq Asfalt",
-        description: "Sovuq asfalt, 1 tonna",
-        price: 750000,
-        category: "asphalt",
-        image: "/static/placeholder.jpg"
-      },
-      {
-        id: 3,
-        name: "Qum",
-        description: "Qurilish qumi, 1 m³",
-        price: 120000,
-        category: "materials",
-        image: "/static/placeholder.jpg"
-      },
-      {
-        id: 4,
-        name: "Sheben",
-        description: "Qurilish shebeni, 1 m³",
-        price: 150000,
-        category: "materials",
-        image: "/static/placeholder.jpg"
+    async function loadShopData() {
+      try {
+        const [cats, prods] = await Promise.all([
+          fetch('/market-api/categories?active_only=true').then(r => r.json()),
+          fetch('/market-api/products?active_only=true&limit=500').then(r => r.json()),
+        ]);
+
+        // Build category chips
+        const scroll = document.getElementById('categoriesScroll');
+        cats.forEach(cat => {
+          const chip = document.createElement('div');
+          chip.className = 'category-chip';
+          chip.innerHTML = `<i class="fas fa-tag"></i> ${cat.name_uz || cat.name_en || cat.name_ru || 'Kategoriya'}`;
+          chip.onclick = function () { filterCategory(cat.id, this); };
+          scroll.appendChild(chip);
+        });
+
+        allProducts = prods.map(p => ({
+          id: p.id,
+          name: p.name_uz || p.name_en || p.name_ru || 'Mahsulot',
+          description: p.description_uz || p.description_en || '',
+          price: p.sale_price || p.price,
+          original_price: p.price,
+          category_id: p.category_id,
+          image: (p.images && p.images.length) ? p.images[0] : null,
+          stock: p.stock,
+        }));
+        products = allProducts;
+        renderProducts();
+      } catch (e) {
+        console.error('Shop load error:', e);
+        document.getElementById('productsGrid').innerHTML = '<p style="padding:20px;color:#888">Mahsulotlar yuklanmadi</p>';
       }
-    ];
+    }
 
-    products = sampleProducts;
-
-    function renderProducts(filter = 'all') {
+    function renderProducts() {
       const grid = document.getElementById('productsGrid');
-      const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
-      
+      const filtered = currentFilter === 'all' ? products : products.filter(p => p.category_id == currentFilter);
+
       grid.innerHTML = filtered.map(product => `
         <div class="product-card" onclick="addToCart(${product.id})">
           <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%23FF6B00%22%3E🏗%3C/text%3E%3C/svg%3E'">
@@ -573,24 +575,23 @@
       `).join('');
     }
 
-    function filterCategory(category) {
-      document.querySelectorAll('.category-chip').forEach(chip => {
-        chip.classList.remove('active');
-      });
-      event.target.closest('.category-chip').classList.add('active');
-      renderProducts(category);
+    function filterCategory(categoryId, el) {
+      document.querySelectorAll('.category-chip').forEach(chip => chip.classList.remove('active'));
+      el.classList.add('active');
+      currentFilter = categoryId;
+      renderProducts();
     }
 
     function addToCart(productId) {
       const product = products.find(p => p.id === productId);
       const existing = cart.find(item => item.id === productId);
-      
+
       if (existing) {
         existing.quantity++;
       } else {
         cart.push({ ...product, quantity: 1 });
       }
-      
+
       updateCartCount();
       showNotification('Savatga qo\'shildi!');
     }
@@ -611,7 +612,7 @@
 
     function renderCart() {
       const container = document.getElementById('cartItems');
-      
+
       if (cart.length === 0) {
         container.innerHTML = `
           <div class="empty-cart">
@@ -623,7 +624,7 @@
         document.getElementById('cartTotal').textContent = '0 so\'m';
         return;
       }
-      
+
       container.innerHTML = cart.map(item => `
         <div class="cart-item">
           <img src="${item.image}" alt="${item.name}" class="cart-item-image" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23f5f5f5%22 width=%2280%22 height=%2280%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2230%22%3E🏗%3C/text%3E%3C/svg%3E'">
@@ -638,7 +639,7 @@
           </div>
         </div>
       `).join('');
-      
+
       const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       document.getElementById('cartTotal').textContent = formatPrice(total);
     }
@@ -646,13 +647,13 @@
     function changeQuantity(productId, delta) {
       const item = cart.find(i => i.id === productId);
       if (!item) return;
-      
+
       item.quantity += delta;
-      
+
       if (item.quantity <= 0) {
         cart = cart.filter(i => i.id !== productId);
       }
-      
+
       updateCartCount();
       renderCart();
     }
@@ -662,14 +663,14 @@
         showNotification('Savat bo\'sh!', 'error');
         return;
       }
-      
+
       // Send order via Telegram WebApp
       if (window.Telegram?.WebApp) {
         const orderData = {
           items: cart,
           total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
         };
-        
+
         window.Telegram.WebApp.sendData(JSON.stringify(orderData));
         window.Telegram.WebApp.close();
       } else {
@@ -689,9 +690,9 @@
       alert(message);
     }
 
-    // Initialize
-    renderProducts();
-    
+    // Initialize — load real products from API
+    loadShopData();
+
     // Telegram WebApp setup
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
@@ -699,4 +700,5 @@
     }
   </script>
 </body>
+
 </html>
