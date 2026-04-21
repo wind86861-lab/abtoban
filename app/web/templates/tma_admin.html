@@ -1518,7 +1518,7 @@
       <tr><td>Telefon</td><td>${u.phone || '—'}</td></tr>
       <tr><td>Rol</td><td><span class="badge badge-role">${u.role_label}</span></td></tr>
       <tr><td>Viloyat / Tuman</td><td>${uLoc}</td></tr>
-      <tr><td>Zavod</td><td>${u.zavod_name || '—'}</td></tr>
+      ${isZS ? `<tr><td>Zavod</td><td>${u.zavod_name || '—'}</td></tr>` : ''}
       <tr><td>Holat</td><td>${u.is_active ? '🟢 Faol' : '🔴 Bloklangan'}</td></tr>
     </table>
     <div class="divider"></div>
@@ -1526,11 +1526,11 @@
     <div class="sub-sec">👤 Rolni o'zgartirish</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">${roleBtns}</div>
 
-    <div class="${isZS ? 'highlight-box' : 'info-box'}">
-      <div class="sub-sec" style="margin-top:0">${u.role === 'shofer' ? '🚛 Haydovchi zavodi (majburiy)' : u.role === 'zavod' ? '🏭 Zavod (majburiy)' : '🏭 Zavod'}</div>
-      ${isZS ? '<p style="font-size:11px;color:var(--hint);margin-bottom:10px">⚠️ Bu rol uchun zavod biriktirish majburiy</p>' : ''}
+    ${isZS ? `<div class="highlight-box">
+      <div class="sub-sec" style="margin-top:0">${u.role === 'shofer' ? '🚛 Haydovchi zavodi (majburiy)' : '🏭 Zavod (majburiy)'}</div>
+      <p style="font-size:11px;color:var(--hint);margin-bottom:10px">⚠️ Bu rol uchun zavod biriktirish majburiy</p>
       <div class="pills">${zavodBtns}</div>
-    </div>
+    </div>` : ''}
 
     <div class="info-box">
       <div class="sub-sec" style="margin-top:0">📍 Hududlar &nbsp;<span style="font-size:11px;font-weight:400;color:var(--hint)">(birdan ko'p tanlash mumkin)</span></div>
