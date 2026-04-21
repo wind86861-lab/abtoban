@@ -173,7 +173,11 @@ class OrderService:
     ) -> List[Order]:
         result = await self.session.execute(
             select(Order)
-            .options(selectinload(Order.asphalt_type))
+            .options(
+                selectinload(Order.asphalt_type),
+                selectinload(Order.master),
+                selectinload(Order.usta),
+            )
             .where(Order.client_id == client_id)
             .order_by(Order.created_at.desc())
             .limit(limit)

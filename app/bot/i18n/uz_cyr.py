@@ -145,6 +145,31 @@ STRINGS = {
     "my_orders_header": "📋 <b>Менинг буюртмаларим:</b>\n",
     "new_order_notify": "🆕 <b>Янги буюртма!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} м²\n🏗 {asphalt}",
 
+    # ── Client notifications ──
+    "client_order_confirmed_notify": (
+        "✅ <b>Буюртмангиз тасдиқланди!</b>\n\n"
+        "🔢 #{number}\n"
+        "👷 Мастер: {master}\n"
+        "📍 Манзил: {address}\n"
+        "📐 Майдон: {area} м²\n"
+        "🏗 Асфалт: {asphalt}\n"
+        "📅 Иш санаси: {date}\n"
+        "💰 Жами нарх: {total} сўм\n"
+        "💵 Олдиндан тўлов: {advance} сўм\n"
+        "💳 Қарз: {debt} сўм"
+    ),
+    "client_usta_assigned_notify": (
+        "👷 <b>Буюртмангизга уста тайинланди!</b>\n\n"
+        "🔢 #{number}\n"
+        "🔨 Уста: {usta}\n"
+        "📅 Иш санаси: {date}"
+    ),
+    "client_status_changed_notify": (
+        "🔄 <b>Буюртма статуси ўзгарди!</b>\n\n"
+        "🔢 #{number}\n"
+        "📊 Янги статус: {status}"
+    ),
+
     # ── Price calculator ──
     "calc_start": "🧮 <b>Нарх ҳисоблаш</b>\n\n📐 Майдон ҳажмини киритинг (м²):\nМисол: <code>300</code>",
     "calc_invalid": "❌ Нотўғри формат. Рақам киритинг:",

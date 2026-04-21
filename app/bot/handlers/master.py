@@ -583,6 +583,30 @@ async def submit_confirmation(callback: CallbackQuery, state: FSMContext, user: 
         except Exception:
             pass
 
+    # Notify client
+    order_full = await order_svc.get_by_id_full(order.id)
+    if order_full and order_full.client:
+        try:
+            cl = _gl(order_full.client)
+            asphalt_name = order_full.asphalt_type.name if order_full.asphalt_type else "—"
+            work_date_str = order_full.work_date.strftime("%d.%m.%Y") if order_full.work_date else "—"
+            debt_val = float(order_full.debt) if order_full.debt else 0
+            await bot.send_message(
+                order_full.client.telegram_id,
+                t("client_order_confirmed_notify", cl,
+                  number=order_full.order_number,
+                  master=user.full_name or str(user.telegram_id),
+                  address=order_full.address or "—",
+                  area=order_full.area_m2,
+                  asphalt=asphalt_name,
+                  date=work_date_str,
+                  total=f"{float(order_full.total_price):,.0f}",
+                  advance=f"{float(order_full.advance_paid):,.0f}",
+                  debt=f"{debt_val:,.0f}"),
+            )
+        except Exception:
+            pass
+
     # Schedule Celery auto-assign task at deadline
     try:
         from app.tasks import auto_assign_usta
@@ -630,6 +654,22 @@ async def master_set_status(callback: CallbackQuery, user: User, session, lang: 
         usta_name = order.usta.full_name if order.usta else t("not_assigned", lang)
         status_label = ORDER_STATUS_LABELS.get(order.status, order.status.value)
         work_date = order.work_date.strftime("%d.%m.%Y") if order.work_date else "—"
+
+        # Notify client about status change
+        if order.client:
+            from app.bot.loader import bot
+            from app.bot.i18n import get_lang as _gl
+            try:
+                cl = _gl(order.client)
+                await bot.send_message(
+                    order.client.telegram_id,
+                    t("client_status_changed_notify", cl,
+                      number=order.order_number,
+                      status=status_label),
+                )
+            except Exception:
+                pass
+
         await callback.message.edit_text(
             f"📋 <b>{t('order', lang)}: {order.order_number}</b>\n\n"
             f"📐 {t('area', lang)}: {order.area_m2} m²\n"
@@ -728,6 +768,21 @@ async def do_assign_usta(callback: CallbackQuery, user: User, session, lang: str
         pass
 
     usta_name = usta.full_name or str(usta.telegram_id)
+
+    # Notify client about usta assignment
+    if order_full.client:
+        try:
+            cl = _gl(order_full.client)
+            await bot.send_message(
+                order_full.client.telegram_id,
+                t("client_usta_assigned_notify", cl,
+                  number=order_full.order_number,
+                  usta=usta_name,
+                  date=work_date),
+            )
+        except Exception:
+            pass
+
     await callback.message.edit_text(
         t("usta_assigned_success", lang,
           number=order_full.order_number,
@@ -823,6 +878,21 @@ async def do_reassign_usta(callback: CallbackQuery, user: User, session, lang: s
         pass
 
     usta_name = new_usta.full_name or str(new_usta.telegram_id)
+
+    # Notify client about usta reassignment
+    if order_full.client:
+        try:
+            cl = _gl(order_full.client)
+            await bot.send_message(
+                order_full.client.telegram_id,
+                t("client_usta_assigned_notify", cl,
+                  number=order_full.order_number,
+                  usta=usta_name,
+                  date=work_date),
+            )
+        except Exception:
+            pass
+
     await callback.message.edit_text(
         f"✅ <b>Usta o'zgartirildi!</b>\n\n"
         f"📋 Zakaz: #{order_full.order_number}\n"

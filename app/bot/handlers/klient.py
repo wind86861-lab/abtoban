@@ -251,10 +251,23 @@ async def my_orders(message: Message, user: User, session, lang: str) -> None:
     for o in orders:
         status_label = ORDER_STATUS_LABELS.get(o.status, o.status.value)
         price_str = f"{float(o.total_price):,.0f}" if o.total_price else "—"
+        advance_str = f"{float(o.advance_paid):,.0f}" if o.advance_paid else "0"
         debt_str = f"{float(o.debt):,.0f}" if o.debt else "0"
+        asphalt = o.asphalt_type.name if o.asphalt_type else "—"
+        master_name = o.master.full_name if o.master else "—"
+        usta_name = o.usta.full_name if o.usta else "—"
+        work_date = o.work_date.strftime("%d.%m.%Y") if o.work_date else "—"
+        loc = location_link(o.latitude, o.longitude)
         lines.append(
             f"\n🔢 <code>{o.order_number}</code> — {status_label}\n"
-            f"  📐 {o.area_m2 or '?'} m²  💰 {price_str}  💳 {debt_str}"
+            f"  � {o.address or '—'}\n"
+            f"  {loc}"
+            f"  🏗 {asphalt}  �📐 {o.area_m2 or '?'} m²\n"
+            f"  📅 Ish sanasi: {work_date}\n"
+            f"  👷 Master: {master_name}\n"
+            f"  � Usta: {usta_name}\n"
+            f"  �💰 Narx: {price_str}  � Oldindan: {advance_str}\n"
+            f"  �💳 Qarz: <b>{debt_str}</b>"
         )
 
     await message.answer("\n".join(lines))

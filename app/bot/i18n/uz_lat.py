@@ -145,6 +145,31 @@ STRINGS = {
     "my_orders_header": "📋 <b>Mening zakazlarim:</b>\n",
     "new_order_notify": "🆕 <b>Yangi zakaz!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} m²\n🏗 {asphalt}",
 
+    # ── Client notifications ──
+    "client_order_confirmed_notify": (
+        "✅ <b>Zakazingiz tasdiqlandi!</b>\n\n"
+        "🔢 #{number}\n"
+        "👷 Master: {master}\n"
+        "📍 Manzil: {address}\n"
+        "📐 Maydon: {area} m²\n"
+        "🏗 Asfalt: {asphalt}\n"
+        "📅 Ish sanasi: {date}\n"
+        "💰 Jami narx: {total} so'm\n"
+        "💵 Oldindan to'lov: {advance} so'm\n"
+        "💳 Qarz: {debt} so'm"
+    ),
+    "client_usta_assigned_notify": (
+        "👷 <b>Zakazingizga usta tayinlandi!</b>\n\n"
+        "🔢 #{number}\n"
+        "🔨 Usta: {usta}\n"
+        "📅 Ish sanasi: {date}"
+    ),
+    "client_status_changed_notify": (
+        "🔄 <b>Zakaz statusi o'zgardi!</b>\n\n"
+        "🔢 #{number}\n"
+        "📊 Yangi status: {status}"
+    ),
+
     # ── Price calculator ──
     "calc_start": "🧮 <b>Narx hisoblash</b>\n\n📐 Maydon hajmini kiriting (m²):\nMisol: <code>300</code>",
     "calc_invalid": "❌ Noto'g'ri format. Raqam kiriting:",

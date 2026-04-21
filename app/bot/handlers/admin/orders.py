@@ -205,6 +205,22 @@ async def set_order_status(callback: CallbackQuery, user: User, session) -> None
     await callback.answer(f"✅ Status: {status_label}")
     # Refresh detail view
     order_full = await order_svc.get_by_id_full(order_id)
+
+    # Notify client about status change
+    if order_full and order_full.client:
+        from app.bot.loader import bot
+        from app.bot.i18n import get_lang as _gl, t
+        try:
+            cl = _gl(order_full.client)
+            await bot.send_message(
+                order_full.client.telegram_id,
+                t("client_status_changed_notify", cl,
+                  number=order_full.order_number,
+                  status=status_label),
+            )
+        except Exception:
+            pass
+
     await callback.message.edit_text(
         _fmt_order_detail(order_full),
         reply_markup=get_admin_order_detail_keyboard(order_id),
@@ -284,6 +300,21 @@ async def admin_do_reassign_usta(callback: CallbackQuery, user: User, session) -
         pass
 
     usta_name = new_usta.full_name or str(new_usta.telegram_id)
+
+    # Notify client about usta reassignment
+    if order_full.client:
+        try:
+            cl = _gl(order_full.client)
+            await bot.send_message(
+                order_full.client.telegram_id,
+                t("client_usta_assigned_notify", cl,
+                  number=order_full.order_number,
+                  usta=usta_name,
+                  date=work_date),
+            )
+        except Exception:
+            pass
+
     await callback.message.edit_text(
         f"✅ <b>Usta o'zgartirildi!</b>\n\n"
         f"📋 Zakaz: #{order_full.order_number}\n"

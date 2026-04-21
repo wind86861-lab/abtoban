@@ -145,6 +145,31 @@ STRINGS = {
     "my_orders_header": "📋 <b>Мои заказы:</b>\n",
     "new_order_notify": "🆕 <b>Новый заказ!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} м²\n🏗 {asphalt}",
 
+    # ── Client notifications ──
+    "client_order_confirmed_notify": (
+        "✅ <b>Ваш заказ подтверждён!</b>\n\n"
+        "🔢 #{number}\n"
+        "👷 Мастер: {master}\n"
+        "📍 Адрес: {address}\n"
+        "📐 Площадь: {area} м²\n"
+        "🏗 Асфальт: {asphalt}\n"
+        "📅 Дата работ: {date}\n"
+        "💰 Общая сумма: {total} сум\n"
+        "💵 Предоплата: {advance} сум\n"
+        "💳 Долг: {debt} сум"
+    ),
+    "client_usta_assigned_notify": (
+        "👷 <b>Мастер назначен на ваш заказ!</b>\n\n"
+        "🔢 #{number}\n"
+        "🔨 Мастер: {usta}\n"
+        "📅 Дата работ: {date}"
+    ),
+    "client_status_changed_notify": (
+        "🔄 <b>Статус заказа изменён!</b>\n\n"
+        "🔢 #{number}\n"
+        "📊 Новый статус: {status}"
+    ),
+
     # ── Price calculator ──
     "calc_start": "🧮 <b>Расчёт цены</b>\n\n📐 Введите площадь (м²):\nПример: <code>300</code>",
     "calc_invalid": "❌ Неправильный формат. Введите число:",
