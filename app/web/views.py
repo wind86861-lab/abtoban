@@ -73,6 +73,13 @@ class UserAdmin(ModelView, model=User):
         User.region_id: "Hudud",
         User.zavod_id: "Zavod",
     }
+    
+    form_args = {
+        "viloyat": {"label": "Viloyat"},
+        "tuman_rel": {"label": "Tuman"},
+        "region": {"label": "Hudud (eski)"},
+        "zavod": {"label": "Zavod"},
+    }
 
     form_columns = [
         User.full_name,
@@ -80,10 +87,10 @@ class UserAdmin(ModelView, model=User):
         User.phone,
         User.role,
         User.is_active,
-        User.viloyat_id,
-        User.tuman_id,
-        User.region_id,
-        User.zavod_id,
+        "viloyat",
+        "tuman_rel",
+        "region",
+        "zavod",
     ]
 
     form_include_pk = False
