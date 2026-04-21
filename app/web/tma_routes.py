@@ -61,7 +61,11 @@ async def tma_orders(limit: int = 10, status: Optional[str] = None, viloyat_id: 
     async with async_session_maker() as session:
         q = (
             select(Order)
-            .options(selectinload(Order.viloyat), selectinload(Order.tuman_rel))
+            .options(
+                selectinload(Order.viloyat), selectinload(Order.tuman_rel),
+                selectinload(Order.master), selectinload(Order.usta),
+                selectinload(Order.asphalt_type),
+            )
             .order_by(Order.created_at.desc())
             .limit(limit)
         )
@@ -81,12 +85,22 @@ async def tma_orders(limit: int = 10, status: Optional[str] = None, viloyat_id: 
             "address": o.address,
             "area": float(o.area_m2) if o.area_m2 else None,
             "total": float(o.total_price) if o.total_price else None,
+            "advance": float(o.advance_paid) if o.advance_paid else 0,
+            "debt": float(o.debt) if o.debt else 0,
+            "usta_wage": float(o.usta_wage) if o.usta_wage else None,
+            "master_commission": float(o.master_commission) if o.master_commission else None,
             "status": o.status.value,
             "latitude": o.latitude,
             "longitude": o.longitude,
             "viloyat_id": o.viloyat_id,
             "viloyat_name": o.viloyat.name if o.viloyat else None,
             "tuman_name": o.tuman_rel.name if o.tuman_rel else None,
+            "master_name": o.master.full_name if o.master else None,
+            "usta_name": o.usta.full_name if o.usta else None,
+            "asphalt": o.asphalt_type.name if o.asphalt_type else None,
+            "work_date": o.work_date.strftime("%d.%m.%Y") if o.work_date else None,
+            "created_at": o.created_at.strftime("%d.%m.%Y %H:%M") if o.created_at else None,
+            "notes": o.notes,
         }
         for o in orders
     ]
