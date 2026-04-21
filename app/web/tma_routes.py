@@ -462,6 +462,25 @@ async def update_user_region(user_id: int, body: UpdateRegionRequest):
     return {"ok": True}
 
 
+class UpdateViloyatRequest(BaseModel):
+    viloyat_id: Optional[int]
+    tuman_id: Optional[int]
+
+
+@router.patch("/tma-api/users/{user_id}/viloyat")
+async def update_user_viloyat(user_id: int, body: UpdateViloyatRequest):
+    """Update user viloyat and tuman."""
+    async with async_session_maker() as session:
+        result = await session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        user.viloyat_id = body.viloyat_id
+        user.tuman_id = body.tuman_id
+        await session.commit()
+    return {"ok": True}
+
+
 @router.patch("/tma-api/users/{user_id}/toggle")
 async def toggle_user(user_id: int):
     """Toggle user active status."""

@@ -1529,6 +1529,23 @@
       <div class="pills">${zavodBtns}</div>
     </div>` : ''}
 
+    <div class="info-box" style="margin-bottom:12px">
+      <div class="sub-sec" style="margin-top:0">📍 Viloyat / Tuman belgilash</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+        <select id="um-viloyat-sel" onchange="onUmViloyatChange(${id})"
+          style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none">
+          <option value="">— Viloyat tanlanmagan</option>
+          ${S.viloyatlar.map(v => `<option value="${v.id}" ${u.viloyat_id === v.id ? 'selected' : ''}>${v.name}</option>`).join('')}
+        </select>
+        <select id="um-tuman-sel"
+          style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none">
+          <option value="">— Tuman tanlanmagan</option>
+          ${u.viloyat_id ? (S.viloyatlar.find(v => v.id === u.viloyat_id)?.tumans || []).map(t => `<option value="${t.id}" ${u.tuman_id === t.id ? 'selected' : ''}>${t.name}</option>`).join('') : ''}
+        </select>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveUserViloyat(${id})">💾 Joylashuvni saqlash</button>
+    </div>
+
     <div class="info-box">
       <div class="sub-sec" style="margin-top:0">📍 Hududlar &nbsp;<span style="font-size:11px;font-weight:400;color:var(--hint)">(birdan ko'p tanlash mumkin)</span></div>
       <p style="font-size:12px;color:var(--hint);margin-bottom:10px">Tanlangan: <strong id="uh-count">${S.editUserHIds.length}</strong> ta</p>
@@ -1626,6 +1643,42 @@
           <span class="badge badge-${o.status}">${STATUS_FULL[o.status] || o.status}</span>
         </div>`;
       openModal('usta-order-detail-modal');
+    }
+
+    function onUmViloyatChange(userId) {
+      const vId = parseInt(document.getElementById('um-viloyat-sel').value) || null;
+      const tSel = document.getElementById('um-tuman-sel');
+      tSel.innerHTML = '<option value="">— Tuman tanlanmagan</option>';
+      if (vId) {
+        const v = S.viloyatlar.find(x => x.id === vId);
+        if (v && v.tumans) v.tumans.forEach(t => {
+          const o = document.createElement('option');
+          o.value = t.id; o.textContent = t.name; tSel.appendChild(o);
+        });
+      }
+    }
+    async function saveUserViloyat(userId) {
+      const viloyat_id = parseInt(document.getElementById('um-viloyat-sel').value) || null;
+      const tuman_id = parseInt(document.getElementById('um-tuman-sel').value) || null;
+      const r = await fetch(`/tma-api/users/${userId}/viloyat`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ viloyat_id, tuman_id })
+      });
+      if (r.ok) {
+        notify();
+        const u = S.users.find(x => x.id === userId);
+        if (u) {
+          u.viloyat_id = viloyat_id;
+          u.tuman_id = tuman_id;
+          u.viloyat_name = viloyat_id ? S.viloyatlar.find(v => v.id === viloyat_id)?.name : null;
+          const v = S.viloyatlar.find(v => v.id === viloyat_id);
+          u.tuman_name = tuman_id && v ? (v.tumans || []).find(t => t.id === tuman_id)?.name : null;
+        }
+        const btn = event.target;
+        btn.textContent = '✅ Saqlandi!';
+        setTimeout(() => { btn.textContent = '💾 Joylashuvni saqlash'; loadUsers(); }, 1500);
+      } else notify('error');
     }
 
     function toggleUH(hId, el) {
