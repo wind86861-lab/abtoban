@@ -83,6 +83,7 @@ def get_master_order_detail_keyboard(order_id: int) -> InlineKeyboardMarkup:
 def get_master_confirmed_order_keyboard(order_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="🔧 Ishga olish", callback_data=f"set_status:{order_id}:in_work")
+    builder.button(text="👷 Usta o'zgartirish", callback_data=f"change_usta:{order_id}")
     builder.button(text="⬅️ Orqaga", callback_data="back_my_orders")
     builder.adjust(1)
     return builder.as_markup()
@@ -137,6 +138,7 @@ def get_admin_order_detail_keyboard(order_id: int) -> InlineKeyboardMarkup:
         text="🔄 Status o'zgartirish",
         callback_data=f"order_change_status:{order_id}",
     )
+    builder.button(text="👷 Usta o'zgartirish", callback_data=f"change_usta:{order_id}")
     builder.button(text="💵 To'lov", callback_data=f"order_payment:{order_id}")
     builder.button(text="💸 Xarajatlar", callback_data=f"view_expenses:{order_id}")
     builder.button(text="⬅️ Orqaga", callback_data="admin_orders_list:0")

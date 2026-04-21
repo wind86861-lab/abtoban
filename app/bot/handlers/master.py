@@ -26,6 +26,7 @@ from app.bot.keyboards.finance import (
 from app.bot.keyboards.usta import (
     get_usta_assignment_orders_keyboard,
     get_ustas_for_assignment_keyboard,
+    get_ustas_for_reassignment_keyboard,
 )
 from app.bot.states.finance import ExpenseAddStates
 from app.bot.states.order import MasterConfirmStates, MasterOrderCreateStates
@@ -746,6 +747,120 @@ async def back_to_usta_orders(callback: CallbackQuery, user: User, session, lang
             t("usta_assign_list", lang, count=len(orders)),
             reply_markup=get_usta_assignment_orders_keyboard(orders),
         )
+    await callback.answer()
+
+
+# ── Change usta on order ──────────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("change_usta:"))
+async def change_usta_prompt(callback: CallbackQuery, user: User, session, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    order_svc = OrderService(session)
+    order = await order_svc.get_by_id_full(order_id)
+    if not order:
+        await callback.answer(t("order_not_found", lang), show_alert=True)
+        return
+
+    usta_svc = UstaService(session)
+    ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id)
+    if not ustas_with_count:
+        await callback.answer("⚠️ Mavjud ustalar yo'q", show_alert=True)
+        return
+
+    current_usta = order.usta.full_name if order.usta else "Tayinlanmagan"
+    asphalt = order.asphalt_type.name if order.asphalt_type else "—"
+    await callback.message.edit_text(
+        f"👷 <b>Usta o'zgartirish</b>\n\n"
+        f"📋 Zakaz: #{order.order_number}\n"
+        f"📐 {order.area_m2} m² · 🏗 {asphalt}\n"
+        f"👷 Hozirgi usta: <b>{current_usta}</b>\n\n"
+        f"Yangi ustani tanlang ({len(ustas_with_count)} ta mavjud):",
+        reply_markup=get_ustas_for_reassignment_keyboard(
+            ustas_with_count, order_id, order.usta_id
+        ),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("reassign_usta:"))
+async def do_reassign_usta(callback: CallbackQuery, user: User, session, lang: str) -> None:
+    parts = callback.data.split(":")
+    order_id, new_usta_id = int(parts[1]), int(parts[2])
+
+    usta_svc = UstaService(session)
+    order = await usta_svc.reassign_usta(
+        order_id=order_id, new_usta_id=new_usta_id, assigned_by_id=user.id
+    )
+    if not order:
+        await callback.answer("❌ Xatolik: zakaz topilmadi yoki usta noto'g'ri", show_alert=True)
+        return
+
+    user_svc = UserService(session)
+    new_usta = await user_svc.get_by_id(new_usta_id)
+    order_full = await OrderService(session).get_by_id_full(order_id)
+
+    # Notify new usta
+    from app.bot.loader import bot
+    from app.bot.i18n import get_lang as _gl
+    from app.bot.keyboards.usta import get_usta_notification_keyboard
+    asphalt = order_full.asphalt_type.name if order_full.asphalt_type else "—"
+    wage = float(order_full.usta_wage) if order_full.usta_wage else 0
+    work_date = order_full.work_date.strftime("%d.%m.%Y") if order_full.work_date else "—"
+    try:
+        ul = _gl(new_usta)
+        await bot.send_message(
+            new_usta.telegram_id,
+            t("usta_assignment_notify", ul,
+              number=order_full.order_number,
+              address=order_full.address or "—",
+              area=order_full.area_m2,
+              asphalt=asphalt,
+              date=work_date,
+              wage=f"{wage:,.0f}"),
+            reply_markup=get_usta_notification_keyboard(order_id),
+        )
+    except Exception:
+        pass
+
+    usta_name = new_usta.full_name or str(new_usta.telegram_id)
+    await callback.message.edit_text(
+        f"✅ <b>Usta o'zgartirildi!</b>\n\n"
+        f"📋 Zakaz: #{order_full.order_number}\n"
+        f"👷 Yangi usta: {usta_name}\n\n"
+        f"Usta bildirishnoma oldi."
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("back_order_detail:"))
+async def back_to_order_detail(callback: CallbackQuery, user: User, session, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    order_svc = OrderService(session)
+    order = await order_svc.get_by_id_full(order_id)
+    if not order:
+        await callback.message.edit_text(t("order_not_found", lang))
+        await callback.answer()
+        return
+    status_label = ORDER_STATUS_LABELS.get(order.status, order.status.value)
+    asphalt = order.asphalt_type.name if order.asphalt_type else "—"
+    usta_name = order.usta.full_name if order.usta else t("not_assigned", lang)
+    loc = location_link(order.latitude, order.longitude)
+    text = (
+        f"📋 <b>{t('order', lang)}: {order.order_number}</b>\n\n"
+        f"👤 {t('client', lang)}: <b>{order.client_name}</b> | {order.client_phone}\n"
+        f"📍 {t('address', lang)}: <b>{order.address or '—'}</b>\n"
+        f"{loc}"
+        f"📐 {t('area', lang)}: <b>{order.area_m2 or '?'} m²</b>\n"
+        f"🏗 {t('asphalt', lang)}: <b>{asphalt}</b>\n"
+        f"💰 {t('total', lang)}: <b>{float(order.total_price):,.0f}</b>\n"
+        f"💵 {t('advance', lang)}: <b>{float(order.advance_paid):,.0f}</b>\n"
+        f"💳 {t('debt', lang)}: <b>{float(order.debt):,.0f}</b>\n"
+        f"👷 {t('usta', lang)}: <b>{usta_name}</b>\n"
+        f"📅 {t('status', lang)}: <b>{status_label}</b>"
+    )
+    await callback.message.edit_text(
+        text, reply_markup=get_master_confirmed_order_keyboard(order_id)
+    )
     await callback.answer()
 
 

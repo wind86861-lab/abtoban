@@ -119,6 +119,45 @@ class UstaService:
         await self.session.flush()
         return order
 
+    async def reassign_usta(
+        self,
+        order_id: int,
+        new_usta_id: int,
+        assigned_by_id: int,
+    ) -> Optional[Order]:
+        """Replace usta on an active order (master/admin can change usta)."""
+        result = await self.session.execute(
+            select(Order).where(Order.id == order_id)
+        )
+        order = result.scalar_one_or_none()
+        if not order:
+            return None
+        if order.status not in [OrderStatus.CONFIRMED, OrderStatus.IN_WORK]:
+            return None
+        usta_result = await self.session.execute(
+            select(User)
+            .where(User.id == new_usta_id)
+            .where(User.role == UserRole.USTA)
+            .where(User.is_active == True)
+        )
+        usta = usta_result.scalar_one_or_none()
+        if not usta:
+            return None
+        old_usta_id = order.usta_id
+        order.usta_id = new_usta_id
+        await self.session.flush()
+        log = AuditLog(
+            user_id=assigned_by_id,
+            action="usta_reassigned",
+            entity_type="order",
+            entity_id=order_id,
+            old_value=str(old_usta_id) if old_usta_id else None,
+            new_value=str(new_usta_id),
+        )
+        self.session.add(log)
+        await self.session.flush()
+        return order
+
     async def release_usta(self, order_id: int, usta_id: int) -> Optional[Order]:
         """Usta declines — remove assignment from order."""
         result = await self.session.execute(
