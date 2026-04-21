@@ -154,6 +154,13 @@ class UserAdmin(ModelView, model=User):
         "master_orders": _fmt_orders,
         "client_orders": _fmt_orders,
     }
+    
+    async def on_model_change(self, data: dict, model: User, is_created: bool, request) -> None:
+        """Called when model is updated. Ensure changes are committed."""
+        # Update timestamp
+        from datetime import datetime
+        model.updated_at = datetime.utcnow()
+        await super().on_model_change(data, model, is_created, request)
 
 
 class OrderAdmin(ModelView, model=Order):
