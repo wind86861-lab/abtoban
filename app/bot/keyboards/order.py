@@ -23,11 +23,15 @@ def get_regions_keyboard(regions: List[Region]) -> InlineKeyboardMarkup:
 
 def get_viloyatlar_keyboard(viloyatlar: List[Viloyat]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    # Deduplicate by ID to avoid repeats
+    seen_ids = set()
     for v in viloyatlar:
-        builder.button(
-            text=f"📍 {v.name}",
-            callback_data=f"viloyat:{v.id}",
-        )
+        if v.id not in seen_ids:
+            seen_ids.add(v.id)
+            builder.button(
+                text=f"📍 {v.name}",
+                callback_data=f"viloyat:{v.id}",
+            )
     builder.adjust(2)
     return builder.as_markup()
 

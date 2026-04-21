@@ -46,21 +46,29 @@ async def order_create_start(message: Message, state: FSMContext, user: User, se
 
 @router.callback_query(KlientOrderStates.selecting_viloyat, F.data.startswith("viloyat:"))
 async def handle_viloyat_select(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
-    viloyat_id = int(callback.data.split(":")[1])
-    await state.update_data(viloyat_id=viloyat_id)
-    user_svc = UserService(session)
-    tumanlar = await user_svc.get_tumanlar(viloyat_id)
-    if not tumanlar:
-        await state.set_state(KlientOrderStates.entering_street)
-        await callback.message.edit_text(t("region_selected", lang))
+    try:
+        viloyat_id = int(callback.data.split(":")[1])
+        await state.update_data(viloyat_id=viloyat_id)
+        user_svc = UserService(session)
+        tumanlar = await user_svc.get_tumanlar(viloyat_id)
+        
+        if not tumanlar:
+            await state.set_state(KlientOrderStates.entering_street)
+            await callback.message.edit_text("✅ Viloyat tanlandi!\n\n📍 Ko'cha nomini kiriting:")
+            await callback.message.answer(
+                "📍 Ko'cha nomini kiriting:",
+                reply_markup=get_cancel_keyboard(lang),
+            )
+        else:
+            await state.set_state(KlientOrderStates.selecting_tuman)
+            await callback.message.edit_text(
+                "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
+                reply_markup=get_tumanlar_keyboard(tumanlar),
+            )
         await callback.answer()
-        return
-    await state.set_state(KlientOrderStates.selecting_tuman)
-    await callback.message.edit_text(
-        "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
-        reply_markup=get_tumanlar_keyboard(tumanlar),
-    )
-    await callback.answer()
+    except Exception as e:
+        print(f"Error in viloyat select: {e}")
+        await callback.answer("❌ Xatolik yuz berdi", show_alert=True)
 
 
 @router.callback_query(KlientOrderStates.selecting_tuman, F.data.startswith("tuman:"))

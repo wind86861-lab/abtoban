@@ -455,23 +455,27 @@ async def admin_order_name(message: Message, state: FSMContext, session) -> None
 
 @router.callback_query(AdminOrderCreateStates.selecting_viloyat, F.data.startswith("viloyat:"), RoleFilter(*MANAGEMENT_ROLES))
 async def admin_order_viloyat(callback: CallbackQuery, state: FSMContext, session) -> None:
-    viloyat_id = int(callback.data.split(":")[1])
-    await state.update_data(viloyat_id=viloyat_id)
-    user_svc = UserService(session)
-    tumanlar = await user_svc.get_tumanlar(viloyat_id)
-    if not tumanlar:
-        await state.set_state(AdminOrderCreateStates.entering_address)
-        await callback.message.edit_text(
-            "✅ Viloyat tanlandi!\n\n"
-            "3/6 — Manzilni kiriting:",
-        )
-    else:
-        await state.set_state(AdminOrderCreateStates.selecting_tuman)
-        await callback.message.edit_text(
-            "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
-            reply_markup=get_tumanlar_keyboard(tumanlar),
-        )
-    await callback.answer()
+    try:
+        viloyat_id = int(callback.data.split(":")[1])
+        await state.update_data(viloyat_id=viloyat_id)
+        user_svc = UserService(session)
+        tumanlar = await user_svc.get_tumanlar(viloyat_id)
+        if not tumanlar:
+            await state.set_state(AdminOrderCreateStates.entering_address)
+            await callback.message.edit_text(
+                "✅ Viloyat tanlandi!\n\n"
+                "3/6 — Manzilni kiriting:",
+            )
+        else:
+            await state.set_state(AdminOrderCreateStates.selecting_tuman)
+            await callback.message.edit_text(
+                "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
+                reply_markup=get_tumanlar_keyboard(tumanlar),
+            )
+        await callback.answer()
+    except Exception as e:
+        print(f"Error in admin viloyat select: {e}")
+        await callback.answer("❌ Xatolik yuz berdi", show_alert=True)
 
 
 @router.callback_query(AdminOrderCreateStates.selecting_tuman, F.data.startswith("tuman:"), RoleFilter(*MANAGEMENT_ROLES))

@@ -171,20 +171,28 @@ async def master_order_client_name(message: Message, state: FSMContext, session,
 
 @router.callback_query(MasterOrderCreateStates.selecting_viloyat, F.data.startswith("viloyat:"))
 async def master_order_viloyat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
-    viloyat_id = int(callback.data.split(":")[1])
-    await state.update_data(viloyat_id=viloyat_id)
-    user_svc = UserService(session)
-    tumanlar = await user_svc.get_tumanlar(viloyat_id)
-    if not tumanlar:
-        await state.set_state(MasterOrderCreateStates.entering_street)
-        await callback.message.edit_text(t("region_selected", lang))
-    else:
-        await state.set_state(MasterOrderCreateStates.selecting_tuman)
-        await callback.message.edit_text(
-            "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
-            reply_markup=get_tumanlar_keyboard(tumanlar),
-        )
-    await callback.answer()
+    try:
+        viloyat_id = int(callback.data.split(":")[1])
+        await state.update_data(viloyat_id=viloyat_id)
+        user_svc = UserService(session)
+        tumanlar = await user_svc.get_tumanlar(viloyat_id)
+        if not tumanlar:
+            await state.set_state(MasterOrderCreateStates.entering_street)
+            await callback.message.edit_text(t("region_selected", lang))
+            await callback.message.answer(
+                t("enter_street", lang),
+                reply_markup=get_cancel_keyboard(lang),
+            )
+        else:
+            await state.set_state(MasterOrderCreateStates.selecting_tuman)
+            await callback.message.edit_text(
+                "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
+                reply_markup=get_tumanlar_keyboard(tumanlar),
+            )
+        await callback.answer()
+    except Exception as e:
+        print(f"Error in master viloyat select: {e}")
+        await callback.answer("❌ Xatolik yuz berdi", show_alert=True)
 
 
 @router.callback_query(MasterOrderCreateStates.selecting_tuman, F.data.startswith("tuman:"))
