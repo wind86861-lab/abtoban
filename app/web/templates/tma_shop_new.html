@@ -549,128 +549,292 @@
       font-size: 14px;
     }
 
-    /* ── DETAIL MODAL ── */
-    .detail-ov {
+    /* ── FULL-SCREEN DETAIL PAGE ── */
+    .detail-page {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .55);
-      z-index: 200;
-      align-items: flex-end;
-      justify-content: center;
-    }
-
-    .detail-ov.show {
-      display: flex;
-    }
-
-    .detail-sheet {
-      background: #fff;
-      border-radius: 20px 20px 0 0;
-      width: 100%;
-      max-height: 90vh;
+      z-index: 300;
+      background: #f7f8fa;
       overflow-y: auto;
-      padding-bottom: 24px;
-      animation: slideUp .25s ease;
+      animation: pageSlideIn .32s cubic-bezier(.4, 0, .2, 1);
     }
 
-    @keyframes slideUp {
+    .detail-page.show {
+      display: block;
+    }
+
+    @keyframes pageSlideIn {
       from {
-        transform: translateY(60px);
-        opacity: 0;
+        transform: translateX(100%);
       }
 
       to {
-        transform: translateY(0);
-        opacity: 1;
+        transform: translateX(0);
       }
     }
 
-    .detail-close {
-      display: flex;
-      justify-content: flex-end;
-      padding: 12px 16px 0;
-    }
-
-    .detail-close button {
-      background: #f0f0f0;
-      border: none;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .detail-imgs {
+    /* Hero gallery */
+    .dp-gallery {
+      position: relative;
       width: 100%;
-      overflow-x: auto;
-      display: flex;
-      gap: 8px;
-      padding: 0 16px 12px;
-      scroll-snap-type: x mandatory;
+      background: #1a1a1a;
     }
 
-    .detail-imgs img {
-      flex: 0 0 auto;
-      width: calc(100% - 32px);
-      max-height: 240px;
-      object-fit: cover;
-      border-radius: 12px;
+    .dp-slides {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+
+    .dp-slides::-webkit-scrollbar {
+      display: none;
+    }
+
+    .dp-slide {
+      flex: 0 0 100%;
       scroll-snap-align: start;
     }
 
-    .detail-body {
-      padding: 0 16px;
+    .dp-slide img {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      display: block;
     }
 
-    .detail-title {
-      font-size: 20px;
+    .dp-back {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .45);
+      backdrop-filter: blur(6px);
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    .dp-share {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, .45);
+      backdrop-filter: blur(6px);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    .dp-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 0 4px;
+      background: #1a1a1a;
+    }
+
+    .dp-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .35);
+      transition: all .2s;
+    }
+
+    .dp-dot.active {
+      background: var(--primary-orange);
+      width: 18px;
+      border-radius: 4px;
+    }
+
+    /* Content card */
+    .dp-card {
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      margin-top: -20px;
+      padding: 24px 20px 120px;
+      min-height: 60vh;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, .08);
+    }
+
+    .dp-badge {
+      display: inline-block;
+      background: var(--red);
+      color: #fff;
+      font-size: 11px;
       font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .detail-price {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 4px;
-    }
-
-    .detail-orig {
-      font-size: 14px;
-      color: #aaa;
-      text-decoration: line-through;
+      padding: 3px 10px;
+      border-radius: 20px;
       margin-bottom: 10px;
     }
 
-    .detail-desc {
-      font-size: 14px;
-      color: #555;
-      line-height: 1.6;
+    .dp-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1a1a1a;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .dp-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
       margin-bottom: 16px;
     }
 
-    .detail-meta {
+    .dp-price {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary-orange);
+    }
+
+    .dp-orig {
+      font-size: 15px;
+      color: #bbb;
+      text-decoration: line-through;
+    }
+
+    .dp-divider {
+      height: 1px;
+      background: #f0f0f0;
+      margin: 16px 0;
+    }
+
+    .dp-section-title {
       font-size: 13px;
-      color: #777;
-      margin-bottom: 16px;
+      font-weight: 700;
+      color: #999;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
     }
 
-    .detail-add-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
+    .dp-desc {
+      font-size: 15px;
+      color: #444;
+      line-height: 1.7;
+    }
+
+    .dp-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .dp-tag {
+      background: #f0f4ff;
+      color: #3563e9;
+      font-size: 12px;
       font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+
+    /* Fixed bottom bar */
+    .dp-bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      padding: 12px 16px 22px;
+      box-shadow: 0 -2px 16px rgba(0, 0, 0, .1);
+      z-index: 301;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .dp-qty-box {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 2px solid var(--primary-orange);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .dp-qty-btn {
+      width: 40px;
+      height: 48px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary-orange);
       cursor: pointer;
     }
 
-    .detail-add-btn:active {
+    .dp-qty-val {
+      width: 36px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .dp-add-btn {
+      flex: 1;
+      height: 52px;
+      background: linear-gradient(90deg, var(--primary-orange), var(--secondary-orange));
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(255, 107, 0, .35);
+      transition: opacity .2s;
+    }
+
+    .dp-add-btn:active {
       opacity: .85;
+    }
+
+    /* PF full-screen */
+    .pf-page {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: #f7f8fa;
+      overflow-y: auto;
+      animation: pageSlideIn .32s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .pf-page.show {
+      display: block;
+    }
+
+    .pf-page .dp-card {
+      padding-bottom: 40px;
+    }
+
+    .pf-card {
+      cursor: pointer;
+      transition: transform .2s;
+    }
+
+    .pf-card:hover {
+      transform: translateY(-3px);
     }
 
     /* ── TOAST ── */
@@ -991,32 +1155,50 @@
     </button>
   </nav>
 
-  <!-- Product Detail Modal -->
-  <div class="detail-ov" id="prodDetailOv" onclick="if(event.target===this)closeProdDetail()">
-    <div class="detail-sheet">
-      <div class="detail-close"><button onclick="closeProdDetail()">✕</button></div>
-      <div class="detail-imgs" id="prodDetailImgs"></div>
-      <div class="detail-body">
-        <div class="detail-title" id="prodDetailName"></div>
-        <div class="detail-price" id="prodDetailPrice"></div>
-        <div class="detail-orig" id="prodDetailOrig"></div>
-        <div class="detail-desc" id="prodDetailDesc"></div>
-        <div class="detail-meta" id="prodDetailMeta"></div>
-        <button class="detail-add-btn" id="prodDetailAddBtn">🛒 Savatga qo'shish</button>
+  <!-- Product Detail Full-Screen Page -->
+  <div class="detail-page" id="prodDetailPage">
+    <div class="dp-gallery">
+      <button class="dp-back" onclick="closeProdDetail()"><i class="fas fa-arrow-left"></i></button>
+      <div class="dp-slides" id="dpSlides" onscroll="onDpScroll()"></div>
+      <div class="dp-dots" id="dpDots"></div>
+    </div>
+    <div class="dp-card">
+      <div id="dpBadge"></div>
+      <div class="dp-name" id="dpName"></div>
+      <div class="dp-price-row">
+        <span class="dp-price" id="dpPrice"></span>
+        <span class="dp-orig" id="dpOrig"></span>
       </div>
+      <div class="dp-divider"></div>
+      <div class="dp-section-title">Tavsif</div>
+      <div class="dp-desc" id="dpDesc"></div>
+      <div class="dp-divider"></div>
+      <div class="dp-tags" id="dpTags"></div>
+    </div>
+    <div class="dp-bottom">
+      <div class="dp-qty-box">
+        <button class="dp-qty-btn" onclick="dpQty(-1)">−</button>
+        <span class="dp-qty-val" id="dpQtyVal">1</span>
+        <button class="dp-qty-btn" onclick="dpQty(1)">+</button>
+      </div>
+      <button class="dp-add-btn" id="dpAddBtn">
+        <i class="fas fa-shopping-cart"></i> Savatga qo'shish
+      </button>
     </div>
   </div>
 
-  <!-- Portfolio Detail Modal -->
-  <div class="detail-ov" id="pfDetailOv" onclick="if(event.target===this)closePfDetail()">
-    <div class="detail-sheet">
-      <div class="detail-close"><button onclick="closePfDetail()">✕</button></div>
-      <div class="detail-imgs" id="pfDetailImgs"></div>
-      <div class="detail-body">
-        <div class="detail-title" id="pfDetailTitle"></div>
-        <div class="detail-desc" id="pfDetailDesc"></div>
-        <div class="detail-meta" id="pfDetailMeta"></div>
-      </div>
+  <!-- Portfolio Detail Full-Screen Page -->
+  <div class="pf-page" id="pfDetailPage">
+    <div class="dp-gallery">
+      <button class="dp-back" onclick="closePfDetail()"><i class="fas fa-arrow-left"></i></button>
+      <div class="dp-slides" id="pfSlides" onscroll="onPfScroll()"></div>
+      <div class="dp-dots" id="pfDots"></div>
+    </div>
+    <div class="dp-card">
+      <div class="dp-name" id="pfDetailTitle"></div>
+      <div class="dp-desc" id="pfDetailDesc" style="margin-top:10px"></div>
+      <div class="dp-divider"></div>
+      <div class="dp-tags" id="pfDetailTags"></div>
     </div>
   </div>
 
@@ -1147,36 +1329,90 @@
       }).join('');
     }
 
+    let dpCurrentId = null, dpQtyCount = 1;
+
+    function buildSlides(slidesEl, dotsEl, imgs, placeholder) {
+      slidesEl.innerHTML = imgs.map(src =>
+        `<div class="dp-slide"><img src="${src}" onerror="this.src='${placeholder}'"></div>`
+      ).join('');
+      dotsEl.innerHTML = imgs.map((_, i) =>
+        `<div class="dp-dot${i === 0 ? ' active' : ''}"></div>`
+      ).join('');
+    }
+
+    function syncDots(dotsEl, slidesEl) {
+      const idx = Math.round(slidesEl.scrollLeft / slidesEl.offsetWidth);
+      dotsEl.querySelectorAll('.dp-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+    }
+
+    function onDpScroll() { syncDots(document.getElementById('dpDots'), document.getElementById('dpSlides')); }
+    function onPfScroll() { syncDots(document.getElementById('pfDots'), document.getElementById('pfSlides')); }
+
     function openProdDetail(id) {
       const p = products.find(x => x.id === id); if (!p) return;
-      const placeholder = `data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2230%22 fill=%22%23FF6B00%22%3E%F0%9F%9B%8D%3C/text%3E%3C/svg%3E`;
-      const imgs = p.images && p.images.length ? p.images : [p.image || placeholder];
-      document.getElementById('prodDetailImgs').innerHTML = imgs.map(src => `<img src="${src || placeholder}" onerror="this.src='${placeholder}'">`).join('');
-      document.getElementById('prodDetailName').textContent = p.name;
-      document.getElementById('prodDetailPrice').textContent = formatPrice(p.price);
-      const origEl = document.getElementById('prodDetailOrig');
-      if (p.original_price && p.original_price > p.price) {
-        origEl.textContent = formatPrice(p.original_price); origEl.style.display = 'block';
-      } else { origEl.style.display = 'none'; }
-      document.getElementById('prodDetailDesc').textContent = p.description || '';
-      const meta = [p.stock != null ? `📦 Ombor: ${p.stock} dona` : ''].filter(Boolean).join('  ');
-      document.getElementById('prodDetailMeta').textContent = meta;
-      document.getElementById('prodDetailAddBtn').onclick = () => { addToCart(id); closeProdDetail(); };
-      document.getElementById('prodDetailOv').classList.add('show');
+      dpCurrentId = id; dpQtyCount = 1;
+      const ph = `data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22300%22%3E%3Crect fill=%22%231a1a1a%22 width=%22300%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2260%22%3E%F0%9F%9B%8D%3C/text%3E%3C/svg%3E`;
+      const imgs = p.images && p.images.length ? p.images : (p.image ? [p.image] : [ph]);
+      buildSlides(document.getElementById('dpSlides'), document.getElementById('dpDots'), imgs, ph);
+      document.getElementById('dpDots').style.display = imgs.length > 1 ? 'flex' : 'none';
+      const hasDisc = p.original_price && p.original_price > p.price;
+      const discPct = hasDisc ? Math.round((1 - p.price / p.original_price) * 100) : 0;
+      document.getElementById('dpBadge').innerHTML = hasDisc ? `<span class="dp-badge">🔥 -${discPct}% chegirma</span>` : '';
+      document.getElementById('dpName').textContent = p.name;
+      document.getElementById('dpPrice').textContent = formatPrice(p.price);
+      document.getElementById('dpOrig').textContent = hasDisc ? formatPrice(p.original_price) : '';
+      document.getElementById('dpDesc').textContent = p.description || 'Tavsif mavjud emas';
+      document.getElementById('dpQtyVal').textContent = '1';
+      const tags = [];
+      if (p.stock != null) tags.push(`📦 Ombor: ${p.stock} dona`);
+      document.getElementById('dpTags').innerHTML = tags.map(t => `<span class="dp-tag">${t}</span>`).join('');
+      document.getElementById('dpAddBtn').onclick = () => {
+        for (let i = 0; i < dpQtyCount; i++) addToCart(id);
+        showToast(`✅ ${dpQtyCount} ta savatga qo'shildi`, 'success');
+        closeProdDetail();
+      };
+      document.getElementById('prodDetailPage').classList.add('show');
+      document.getElementById('prodDetailPage').scrollTop = 0;
     }
-    function closeProdDetail() { document.getElementById('prodDetailOv').classList.remove('show'); }
+
+    function dpQty(delta) {
+      dpQtyCount = Math.max(1, dpQtyCount + delta);
+      document.getElementById('dpQtyVal').textContent = dpQtyCount;
+    }
+
+    function closeProdDetail() {
+      const el = document.getElementById('prodDetailPage');
+      el.style.animation = 'none';
+      el.style.transform = 'translateX(100%)';
+      el.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+      setTimeout(() => { el.classList.remove('show'); el.style.transform = ''; el.style.transition = ''; }, 280);
+    }
 
     function openPfDetail(p) {
-      const placeholder = `data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2230%22%3E%F0%9F%8F%97%3C/text%3E%3C/svg%3E`;
-      const imgs = p.images && p.images.length ? p.images : [];
-      document.getElementById('pfDetailImgs').innerHTML = imgs.length ? imgs.map(src => `<img src="${src}" onerror="this.style.display='none'">`).join('') : `<div style="width:100%;height:180px;display:flex;align-items:center;justify-content:center;font-size:60px">🏗</div>`;
+      const ph = `data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22300%22%3E%3Crect fill=%22%231a1a1a%22 width=%22300%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2260%22%3E%F0%9F%8F%97%3C/text%3E%3C/svg%3E`;
+      const imgs = p.images && p.images.length ? p.images : [ph];
+      buildSlides(document.getElementById('pfSlides'), document.getElementById('pfDots'), imgs, ph);
+      document.getElementById('pfDots').style.display = imgs.length > 1 ? 'flex' : 'none';
       document.getElementById('pfDetailTitle').textContent = p.title_uz || p.title_en || p.title_ru || '—';
       document.getElementById('pfDetailDesc').textContent = p.description_uz || p.description_en || '';
-      const meta = [p.year ? `📅 ${p.year}` : '', p.location ? `📍 ${p.location}` : '', p.area ? `📐 ${p.area} m²` : ''].filter(Boolean).join('   ');
-      document.getElementById('pfDetailMeta').textContent = meta;
-      document.getElementById('pfDetailOv').classList.add('show');
+      const tags = [
+        p.year ? `📅 ${p.year}` : '',
+        p.location ? `📍 ${p.location}` : '',
+        p.area ? `📐 ${p.area} m²` : '',
+        p.client_name ? `👤 ${p.client_name}` : '',
+      ].filter(Boolean);
+      document.getElementById('pfDetailTags').innerHTML = tags.map(t => `<span class="dp-tag">${t}</span>`).join('');
+      document.getElementById('pfDetailPage').classList.add('show');
+      document.getElementById('pfDetailPage').scrollTop = 0;
     }
-    function closePfDetail() { document.getElementById('pfDetailOv').classList.remove('show'); }
+
+    function closePfDetail() {
+      const el = document.getElementById('pfDetailPage');
+      el.style.animation = 'none';
+      el.style.transform = 'translateX(100%)';
+      el.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+      setTimeout(() => { el.classList.remove('show'); el.style.transform = ''; el.style.transition = ''; }, 280);
+    }
 
     function filterCategory(categoryId, el) {
       document.querySelectorAll('.category-chip').forEach(chip => chip.classList.remove('active'));
