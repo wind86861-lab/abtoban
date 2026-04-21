@@ -125,14 +125,14 @@ class UstaService:
         new_usta_id: int,
         assigned_by_id: int,
     ) -> Optional[Order]:
-        """Replace usta on an active order (master/admin can change usta)."""
+        """Assign or replace usta on an order (master/admin can change usta)."""
         result = await self.session.execute(
             select(Order).where(Order.id == order_id)
         )
         order = result.scalar_one_or_none()
         if not order:
             return None
-        if order.status not in [OrderStatus.CONFIRMED, OrderStatus.IN_WORK]:
+        if order.status in [OrderStatus.DONE, OrderStatus.CANCELLED]:
             return None
         usta_result = await self.session.execute(
             select(User)
