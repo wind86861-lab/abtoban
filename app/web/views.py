@@ -75,10 +75,10 @@ class UserAdmin(ModelView, model=User):
     }
     
     form_args = {
-        "viloyat": {"label": "Viloyat"},
-        "tuman_rel": {"label": "Tuman"},
-        "region": {"label": "Hudud (eski)"},
-        "zavod": {"label": "Zavod"},
+        "viloyat_id": {"label": "Viloyat"},
+        "tuman_id": {"label": "Tuman"},
+        "region_id": {"label": "Hudud (eski)"},
+        "zavod_id": {"label": "Zavod"},
     }
 
     form_columns = [
@@ -87,15 +87,35 @@ class UserAdmin(ModelView, model=User):
         User.phone,
         User.role,
         User.is_active,
-        "viloyat",
-        "tuman_rel",
-        "region",
-        "zavod",
+        User.viloyat_id,
+        User.tuman_id,
+        User.region_id,
+        User.zavod_id,
     ]
+    
+    form_ajax_refs = {
+        "viloyat_id": {
+            "fields": ("name",),
+            "order_by": "name",
+        },
+        "tuman_id": {
+            "fields": ("name",),
+            "order_by": "name",
+        },
+        "region_id": {
+            "fields": ("name",),
+            "order_by": "name",
+        },
+        "zavod_id": {
+            "fields": ("name",),
+            "order_by": "name",
+        },
+    }
 
     form_include_pk = False
     can_create = False
     can_delete = False
+    can_edit = True
     page_size = 25
 
     column_select_related_list = ["viloyat", "tuman_rel", "region", "zavod"]
