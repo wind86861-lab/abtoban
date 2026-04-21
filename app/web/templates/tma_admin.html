@@ -1226,8 +1226,8 @@
     function openModal(id) { document.getElementById(id).classList.add('show'); }
     function closeModal(id) { document.getElementById(id).classList.remove('show'); }
     function bgClose(e, id) { if (e.target.id === id) closeModal(id); }
-    function haptic(t = 'light') { tg?.HapticFeedback?.impactOccurred(t); }
-    function notify(t = 'success') { tg?.HapticFeedback?.notificationOccurred(t); }
+    function haptic(t = 'light') { try { tg?.HapticFeedback?.impactOccurred(t); } catch (e) { } }
+    function notify(t = 'success') { try { tg?.HapticFeedback?.notificationOccurred(t); } catch (e) { } }
 
     function switchTab(tab, btn) {
       S.tab = tab;
