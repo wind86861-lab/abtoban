@@ -20,6 +20,7 @@ class UstaService:
 
         If region_id is given, only returns ustas assigned to that region.
         If no ustas found in the region, falls back to ustas with no region set.
+        No order limit — ustas can handle multiple orders simultaneously.
         """
         active_sq = (
             select(Order.usta_id, func.count(Order.id).label("cnt"))
@@ -34,9 +35,6 @@ class UstaService:
             .outerjoin(active_sq, User.id == active_sq.c.usta_id)
             .where(User.role == UserRole.USTA)
             .where(User.is_active == True)
-            .where(
-                (active_sq.c.cnt == None) | (active_sq.c.cnt < MAX_ACTIVE_ORDERS)
-            )
             .order_by(
                 func.coalesce(active_sq.c.cnt, 0).asc(),
                 User.id.asc(),

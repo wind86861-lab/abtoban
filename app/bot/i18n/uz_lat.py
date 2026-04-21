@@ -239,7 +239,7 @@ STRINGS = {
     # ── Usta assignment ──
     "no_usta_orders": "👷 <b>Usta tayinlash</b>\n\nHozircha usta tayin qilinishi kerak bo'lgan zakazlar yo'q.\n(Yangi zakazni tasdiqlagandan so'ng shu yerda ko'rinadi)",
     "usta_orders_header": "👷 <b>Usta tayinlash</b>\n\n{count} ta zakaz usta kutmoqda.\nTanlang:",
-    "no_available_ustas": "⚠️ <b>Mavjud usta yo'q</b>\n\nBarcha ustalar band (2/2 zakaz) yoki faol emas.\n30 daqiqa o'tsa avtomatik tayinlanadi.",
+    "no_available_ustas": "⚠️ <b>Mavjud usta yo'q</b>\n\nBarcha ustalar faol emas.\n30 daqiqa o'tsa avtomatik tayinlanadi.",
     "select_usta": "👷 <b>Usta tanlang</b>\n\nZakaz: #{number}\n📐 {area} m²  🏗 {asphalt}\n\nMavjud ustalar ({count} ta):",
     "usta_assigned": "✅ <b>Usta tayinlandi!</b>\n\nZakaz: #{number}\n👷 Usta: {usta}\n\nUsta bildirishnoma oldi.",
     "usta_assigned_notify": "👷 <b>Sizga zakaz tayinlandi!</b>\n\n🔢 #{number}\n📍 {address}\n📐 {area} m²  🏗 {asphalt}\n📅 Ish sanasi: {date}\n💰 Usta haqi: {wage} so'm\n\nQabul qilasizmi?",
