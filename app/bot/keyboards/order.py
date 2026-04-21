@@ -35,8 +35,11 @@ def get_viloyatlar_keyboard(viloyatlar: List[Viloyat]) -> InlineKeyboardMarkup:
 def get_tumanlar_keyboard(tumanlar: List[Tuman]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for t in tumanlar:
+        # Show viloyat name with tuman: "Viloyat — Tuman"
+        viloyat_name = t.viloyat.name if t.viloyat else ""
+        display_text = f"📍 {viloyat_name} — {t.name}" if viloyat_name else f"🏘 {t.name}"
         builder.button(
-            text=f"🏘 {t.name}",
+            text=display_text,
             callback_data=f"tuman:{t.id}",
         )
     builder.adjust(2)

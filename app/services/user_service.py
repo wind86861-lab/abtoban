@@ -212,6 +212,7 @@ class UserService:
     async def get_tumanlar(self, viloyat_id: int) -> List[Tuman]:
         result = await self.session.execute(
             select(Tuman)
+            .options(selectinload(Tuman.viloyat))
             .where(Tuman.viloyat_id == viloyat_id)
             .where(Tuman.is_active == True)
             .order_by(Tuman.name)
