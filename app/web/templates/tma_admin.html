@@ -817,6 +817,27 @@
               <option value="">🏘 Barcha tuman</option>
             </select>
           </div>
+          <!-- Maydon (area) filter -->
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:13px;color:var(--hint);white-space:nowrap">📐 Maydon (m²):</span>
+            <select id="order-area-preset" onchange="onAreaPreset()"
+              style="flex:1;min-width:160px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+              <option value="">Barcha maydon</option>
+              <option value="0-99">0 – 100 m²</option>
+              <option value="100-299">100 – 300 m²</option>
+              <option value="300-699">300 – 700 m²</option>
+              <option value="700-1499">700 – 1500 m²</option>
+              <option value="1500-">1500 m²+</option>
+              <option value="custom">O'zgartirish (qo'lda)</option>
+            </select>
+            <div id="area-custom-inputs" style="display:none;gap:6px;align-items:center;flex:1;min-width:180px">
+              <input type="number" id="order-area-min" placeholder="Min m²" min="0" oninput="renderFilteredOrders()"
+                style="width:80px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none">
+              <span style="color:var(--hint)">–</span>
+              <input type="number" id="order-area-max" placeholder="Max m²" min="0" oninput="renderFilteredOrders()"
+                style="width:80px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none">
+            </div>
+          </div>
           <div class="pills" id="order-pills"></div>
           <div id="order-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
           <div class="cards" id="orders-list"></div>
@@ -1330,22 +1351,51 @@
 
     function filterOrders(v) { S.orderFilter = v; document.querySelectorAll('#order-pills .pill').forEach(b => { const bv = b.getAttribute('onclick').match(/filterOrders\('([^']*)'\)/)?.[1] || ''; b.classList.toggle('active', bv === v); }); renderFilteredOrders(); }
 
+    function onAreaPreset() {
+      const val = document.getElementById('order-area-preset').value;
+      const customBox = document.getElementById('area-custom-inputs');
+      if (val === 'custom') {
+        customBox.style.display = 'flex';
+      } else {
+        customBox.style.display = 'none';
+        document.getElementById('order-area-min').value = '';
+        document.getElementById('order-area-max').value = '';
+      }
+      renderFilteredOrders();
+    }
+
     function renderFilteredOrders() {
       const q = (document.getElementById('order-search').value || '').toLowerCase().trim();
       const vName = document.getElementById('order-viloyat-sel').value;
       const tName = document.getElementById('order-tuman-sel').value;
+      const areaPreset = document.getElementById('order-area-preset').value;
+      let areaMin = null, areaMax = null;
+      if (areaPreset === 'custom') {
+        const minVal = document.getElementById('order-area-min').value;
+        const maxVal = document.getElementById('order-area-max').value;
+        if (minVal !== '') areaMin = parseFloat(minVal);
+        if (maxVal !== '') areaMax = parseFloat(maxVal);
+      } else if (areaPreset && areaPreset !== '') {
+        const parts = areaPreset.split('-');
+        areaMin = parseFloat(parts[0]);
+        areaMax = parts[1] !== '' ? parseFloat(parts[1]) : null;
+      }
       let list = _allOrders;
       if (q) list = list.filter(o => (o.number || '').toLowerCase().includes(q) || (o.client || '').toLowerCase().includes(q) || (o.phone || '').includes(q));
       if (S.orderFilter) list = list.filter(o => o.status === S.orderFilter);
       if (vName) list = list.filter(o => o.viloyat_name === vName);
       if (tName) list = list.filter(o => o.tuman_name === tName);
+      if (areaMin !== null) list = list.filter(o => parseFloat(o.area) >= areaMin);
+      if (areaMax !== null) list = list.filter(o => parseFloat(o.area) <= areaMax);
       S.orders = list;
       // Summary
       const tot = list.length;
       const totPrice = list.reduce((s, o) => s + (o.total || 0), 0);
       const totDebt = list.reduce((s, o) => s + (o.debt || 0), 0);
+      const totArea = list.reduce((s, o) => s + (parseFloat(o.area) || 0), 0);
       document.getElementById('order-summary').innerHTML = `
         <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Zakazlar</div><strong style="font-size:16px">${tot}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">📐 Jami maydon</div><strong style="font-size:14px;color:#7b5ea7">${fmt(totArea)} m²</strong></div>
         <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Jami narx</div><strong style="font-size:14px;color:var(--accent)">${fmt(totPrice)}</strong></div>
         <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Jami qarz</div><strong style="font-size:14px;color:#e53935">${fmt(totDebt)}</strong></div>`;
       document.getElementById('orders-list').innerHTML = list.length ? list.map(orderCard).join('') : empty('📋', 'Zakazlar topilmadi');
