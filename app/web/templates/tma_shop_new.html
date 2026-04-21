@@ -450,6 +450,104 @@
         font-size: 1.2rem;
       }
     }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      display: flex;
+      border-top: 1px solid #eee;
+      z-index: 100;
+    }
+
+    .bottom-nav button {
+      flex: 1;
+      padding: 12px 0;
+      background: none;
+      border: none;
+      font-size: 12px;
+      color: #888;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .bottom-nav button.active {
+      color: var(--primary);
+    }
+
+    .bottom-nav button i {
+      font-size: 18px;
+    }
+
+    body {
+      padding-bottom: 60px;
+    }
+
+    /* ── PORTFOLIO ── */
+    .pf-section {
+      display: none;
+      padding: 16px;
+    }
+
+    .pf-section.active {
+      display: block;
+    }
+
+    .shop-section {
+      display: block;
+    }
+
+    .shop-section.hidden {
+      display: none;
+    }
+
+    .pf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .pf-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+      overflow: hidden;
+    }
+
+    .pf-img {
+      width: 100%;
+      height: 130px;
+      object-fit: cover;
+      background: #f5f5f5;
+    }
+
+    .pf-body {
+      padding: 10px;
+    }
+
+    .pf-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .pf-meta {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .pf-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -480,12 +578,30 @@
     </div>
   </div>
 
-  <!-- Products Grid -->
-  <div class="products-container">
-    <div class="products-grid" id="productsGrid">
-      <!-- Products will be loaded here -->
+  <!-- Shop Section -->
+  <div class="shop-section" id="shopSection">
+    <!-- Products Grid -->
+    <div class="products-container">
+      <div class="products-grid" id="productsGrid">
+        <!-- Products will be loaded here -->
+      </div>
     </div>
   </div>
+
+  <!-- Portfolio Section -->
+  <div class="pf-section" id="portfolioSection">
+    <div class="pf-grid" id="pfGrid"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="active" id="navShop" onclick="switchTab('shop')">
+      <i class="fas fa-shopping-bag"></i> Do'kon
+    </button>
+    <button id="navPortfolio" onclick="switchTab('portfolio')">
+      <i class="fas fa-building"></i> Portfolio
+    </button>
+  </nav>
 
   <!-- Cart Modal -->
   <div class="modal" id="cartModal">
@@ -688,6 +804,58 @@
     function showNotification(message, type = 'success') {
       // Simple notification (you can enhance this)
       alert(message);
+    }
+
+    let pfLoaded = false;
+
+    function switchTab(tab) {
+      const shopEl = document.getElementById('shopSection');
+      const shopCats = document.querySelector('.categories');
+      const pfEl = document.getElementById('portfolioSection');
+      const navShop = document.getElementById('navShop');
+      const navPf = document.getElementById('navPortfolio');
+      if (tab === 'shop') {
+        shopEl.classList.remove('hidden');
+        shopCats.style.display = '';
+        pfEl.classList.remove('active');
+        navShop.classList.add('active');
+        navPf.classList.remove('active');
+      } else {
+        shopEl.classList.add('hidden');
+        shopCats.style.display = 'none';
+        pfEl.classList.add('active');
+        navShop.classList.remove('active');
+        navPf.classList.add('active');
+        if (!pfLoaded) loadPortfolios();
+      }
+    }
+
+    async function loadPortfolios() {
+      try {
+        const items = await fetch('/market-api/portfolios?active_only=true').then(r => r.json());
+        pfLoaded = true;
+        const grid = document.getElementById('pfGrid');
+        if (!items.length) {
+          grid.innerHTML = '<div class="pf-empty">🏗 Hozircha loyihalar yo\'q</div>';
+          return;
+        }
+        grid.innerHTML = items.map(p => {
+          const img = (p.images && p.images.length) ? p.images[0] : null;
+          const title = p.title_uz || p.title_en || p.title_ru || '—';
+          const year = p.year || '';
+          const loc = p.location || '';
+          return `
+            <div class="pf-card">
+              ${img ? `<img src="${img}" class="pf-img" onerror="this.style.display='none'">` : '<div class="pf-img" style="display:flex;align-items:center;justify-content:center;font-size:40px">🏗</div>'}
+              <div class="pf-body">
+                <div class="pf-title">${title}</div>
+                <div class="pf-meta">${[year, loc].filter(Boolean).join(' · ')}</div>
+              </div>
+            </div>`;
+        }).join('');
+      } catch (e) {
+        document.getElementById('pfGrid').innerHTML = '<div class="pf-empty">Yuklanmadi</div>';
+      }
     }
 
     // Initialize — load real products from API
