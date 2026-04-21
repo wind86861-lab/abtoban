@@ -22,12 +22,11 @@ from app.services.order_service import OrderService
 from app.services.user_service import UserService
 
 router = Router()
-router.message.filter(RoleFilter(UserRole.KLIENT))
 
 
 # ── Order creation ────────────────────────────────────────────────────────────
 
-@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_order_create", set())))
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_order_create", set())), RoleFilter(UserRole.KLIENT))
 async def order_create_start(message: Message, state: FSMContext, user: User, session, lang: str) -> None:
     if not user.phone:
         await message.answer(t("order_no_phone", lang))
@@ -84,7 +83,7 @@ async def handle_tuman_select(callback: CallbackQuery, state: FSMContext, lang: 
     await callback.answer()
 
 
-@router.message(KlientOrderStates.entering_street)
+@router.message(KlientOrderStates.entering_street, RoleFilter(UserRole.KLIENT))
 async def handle_street(message: Message, state: FSMContext, lang: str) -> None:
     street = message.text.strip() if message.text else ""
     if len(street) < 3:
@@ -98,7 +97,7 @@ async def handle_street(message: Message, state: FSMContext, lang: str) -> None:
     )
 
 
-@router.message(KlientOrderStates.entering_target)
+@router.message(KlientOrderStates.entering_target, RoleFilter(UserRole.KLIENT))
 async def handle_target(message: Message, state: FSMContext, lang: str) -> None:
     target = message.text.strip() if message.text else ""
     if len(target) < 3:
@@ -114,7 +113,7 @@ async def handle_target(message: Message, state: FSMContext, lang: str) -> None:
     )
 
 
-@router.message(KlientOrderStates.sharing_location, F.location)
+@router.message(KlientOrderStates.sharing_location, F.location, RoleFilter(UserRole.KLIENT))
 async def handle_location(message: Message, state: FSMContext, lang: str) -> None:
     await state.update_data(
         latitude=message.location.latitude,
@@ -127,12 +126,12 @@ async def handle_location(message: Message, state: FSMContext, lang: str) -> Non
     )
 
 
-@router.message(KlientOrderStates.sharing_location)
+@router.message(KlientOrderStates.sharing_location, RoleFilter(UserRole.KLIENT))
 async def handle_invalid_location(message: Message, lang: str) -> None:
     await message.answer(t("invalid_location", lang))
 
 
-@router.message(KlientOrderStates.entering_area)
+@router.message(KlientOrderStates.entering_area, RoleFilter(UserRole.KLIENT))
 async def handle_order_area(message: Message, state: FSMContext, session, lang: str) -> None:
     raw = (message.text or "").strip().replace(",", ".")
     try:
@@ -258,7 +257,7 @@ async def cancel_order_creation(callback: CallbackQuery, state: FSMContext, lang
 
 # ── My orders ─────────────────────────────────────────────────────────────────
 
-@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_my_orders", set())))
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_my_orders", set())), RoleFilter(UserRole.KLIENT))
 async def my_orders(message: Message, user: User, session, lang: str) -> None:
     order_svc = OrderService(session)
     orders = await order_svc.get_by_client(user.id)
@@ -295,7 +294,7 @@ async def my_orders(message: Message, user: User, session, lang: str) -> None:
 
 # ── Price calculator ───────────────────────────────────────────────────────────
 
-@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_calc_price", set())))
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_calc_price", set())), RoleFilter(UserRole.KLIENT))
 async def calculator_start(message: Message, state: FSMContext, session, lang: str) -> None:
     asphalt_svc = AsphaltService(session)
     types = await asphalt_svc.get_all_active()
@@ -355,11 +354,11 @@ async def calculator_result(callback: CallbackQuery, state: FSMContext, session,
 
 # ── Static pages ──────────────────────────────────────────────────────────────
 
-@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_consultation", set())))
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_consultation", set())), RoleFilter(UserRole.KLIENT))
 async def consultation(message: Message, lang: str) -> None:
     await message.answer(t("consultation", lang))
 
 
-@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_about", set())))
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_about", set())), RoleFilter(UserRole.KLIENT))
 async def about_company(message: Message, lang: str) -> None:
     await message.answer(t("about_company", lang))
