@@ -226,6 +226,115 @@ async def update_user_role(user_id: int, body: UpdateRoleRequest):
     return {"ok": True}
 
 
+@router.get("/tma-api/ustalar")
+async def tma_ustalar():
+    """Get all ustas with order statistics."""
+    async with async_session_maker() as session:
+        ustas = (await session.execute(
+            select(User)
+            .options(selectinload(User.viloyat), selectinload(User.tuman_rel))
+            .where(User.role == UserRole.USTA)
+            .order_by(User.full_name.asc())
+        )).scalars().all()
+
+        usta_ids = [u.id for u in ustas]
+        if usta_ids:
+            # Total orders per usta
+            total_q = (await session.execute(
+                select(Order.usta_id, func.count(Order.id).label("cnt"))
+                .where(Order.usta_id.in_(usta_ids))
+                .group_by(Order.usta_id)
+            )).all()
+            total_map = {r[0]: r[1] for r in total_q}
+
+            # Active orders
+            active_q = (await session.execute(
+                select(Order.usta_id, func.count(Order.id).label("cnt"))
+                .where(Order.usta_id.in_(usta_ids))
+                .where(Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.IN_WORK]))
+                .group_by(Order.usta_id)
+            )).all()
+            active_map = {r[0]: r[1] for r in active_q}
+
+            # Completed orders
+            done_q = (await session.execute(
+                select(Order.usta_id, func.count(Order.id).label("cnt"))
+                .where(Order.usta_id.in_(usta_ids))
+                .where(Order.status == OrderStatus.DONE)
+                .group_by(Order.usta_id)
+            )).all()
+            done_map = {r[0]: r[1] for r in done_q}
+
+            # Total usta_wage earned
+            wage_q = (await session.execute(
+                select(Order.usta_id, func.sum(Order.usta_wage).label("total_wage"))
+                .where(Order.usta_id.in_(usta_ids))
+                .where(Order.status == OrderStatus.DONE)
+                .group_by(Order.usta_id)
+            )).all()
+            wage_map = {r[0]: float(r[1]) if r[1] else 0 for r in wage_q}
+        else:
+            total_map = active_map = done_map = wage_map = {}
+
+    return [
+        {
+            "id": u.id,
+            "name": u.full_name or str(u.telegram_id),
+            "phone": u.phone,
+            "is_active": u.is_active,
+            "viloyat_name": u.viloyat.name if u.viloyat else None,
+            "tuman_name": u.tuman_rel.name if u.tuman_rel else None,
+            "total_orders": total_map.get(u.id, 0),
+            "active_orders": active_map.get(u.id, 0),
+            "done_orders": done_map.get(u.id, 0),
+            "total_wage": wage_map.get(u.id, 0),
+        }
+        for u in ustas
+    ]
+
+
+@router.get("/tma-api/ustalar/{usta_id}/orders")
+async def tma_usta_orders(usta_id: int):
+    """Get all orders for a specific usta with full details."""
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(Order)
+            .options(
+                selectinload(Order.master), selectinload(Order.usta),
+                selectinload(Order.asphalt_type), selectinload(Order.client),
+                selectinload(Order.viloyat), selectinload(Order.tuman_rel),
+            )
+            .where(Order.usta_id == usta_id)
+            .order_by(Order.created_at.desc())
+        )
+        orders = result.scalars().all()
+
+    return [
+        {
+            "id": o.id,
+            "number": o.order_number,
+            "client": o.client_name,
+            "phone": o.client_phone,
+            "address": o.address,
+            "area": float(o.area_m2) if o.area_m2 else None,
+            "total": float(o.total_price) if o.total_price else None,
+            "advance": float(o.advance_paid) if o.advance_paid else 0,
+            "debt": float(o.debt) if o.debt else 0,
+            "usta_wage": float(o.usta_wage) if o.usta_wage else None,
+            "master_commission": float(o.master_commission) if o.master_commission else None,
+            "status": o.status.value,
+            "master_name": o.master.full_name if o.master else None,
+            "usta_name": o.usta.full_name if o.usta else None,
+            "asphalt": o.asphalt_type.name if o.asphalt_type else None,
+            "work_date": o.work_date.strftime("%d.%m.%Y") if o.work_date else None,
+            "created_at": o.created_at.strftime("%d.%m.%Y %H:%M") if o.created_at else None,
+            "viloyat_name": o.viloyat.name if o.viloyat else None,
+            "tuman_name": o.tuman_rel.name if o.tuman_rel else None,
+        }
+        for o in orders
+    ]
+
+
 class UpdateRegionRequest(BaseModel):
     region_id: Optional[int]
 
