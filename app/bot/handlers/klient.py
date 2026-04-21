@@ -68,7 +68,11 @@ async def handle_tuman_select(callback: CallbackQuery, state: FSMContext, lang: 
     tuman_id = int(callback.data.split(":")[1])
     await state.update_data(tuman_id=tuman_id)
     await state.set_state(KlientOrderStates.entering_street)
-    await callback.message.edit_text(t("region_selected", lang))
+    await callback.message.edit_text("✅ Tuman tanlandi!")
+    await callback.message.answer(
+        "📍 Ko'cha nomini kiriting:",
+        reply_markup=get_cancel_keyboard(lang),
+    )
     await callback.answer()
 
 
@@ -93,7 +97,7 @@ async def handle_target(message: Message, state: FSMContext, lang: str) -> None:
         await message.answer(t("target_too_short", lang))
         return
     data = await state.get_data()
-    full_address = f"{data.get('district', '')}, {data.get('street', '')}, {target}"
+    full_address = f"{data.get('street', '')}, {target}"
     await state.update_data(address=full_address, target=target)
     await state.set_state(KlientOrderStates.sharing_location)
     await message.answer(
