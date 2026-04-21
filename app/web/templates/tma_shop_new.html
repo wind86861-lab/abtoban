@@ -672,6 +672,270 @@
     .detail-add-btn:active {
       opacity: .85;
     }
+
+    /* ── TOAST ── */
+    #toast-container {
+      position: fixed;
+      bottom: 74px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: #222;
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .3s, transform .3s;
+      pointer-events: none;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.success {
+      background: linear-gradient(90deg, #1a9e3f, #28c75a);
+    }
+
+    .toast.error {
+      background: linear-gradient(90deg, #c0392b, #e74c3c);
+    }
+
+    .toast.info {
+      background: linear-gradient(90deg, #2980b9, #3498db);
+    }
+
+    /* ── DISCOUNT BADGE ── */
+    .product-card {
+      position: relative;
+    }
+
+    .discount-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: var(--red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      z-index: 1;
+    }
+
+    /* ── PHONE MODAL ── */
+    #phoneModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      z-index: 500;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    #phoneModal.show {
+      display: flex;
+    }
+
+    .phone-sheet {
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      padding: 24px 20px 32px;
+      animation: slideUp .25s ease;
+    }
+
+    .phone-sheet h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .phone-sheet p {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 18px;
+    }
+
+    .phone-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      outline: none;
+      transition: border .2s;
+    }
+
+    .phone-input:focus {
+      border-color: var(--primary-orange);
+    }
+
+    .phone-confirm-btn {
+      width: 100%;
+      margin-top: 14px;
+      padding: 15px;
+      background: linear-gradient(90deg, var(--primary-orange), var(--secondary-orange));
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+
+    .phone-confirm-btn:active {
+      opacity: .85;
+    }
+
+    /* ── SUCCESS SCREEN ── */
+    #successScreen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0f9e3f 0%, #1dbf5a 50%, #29d665 100%);
+      z-index: 600;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn .4s ease;
+    }
+
+    #successScreen.show {
+      display: flex;
+    }
+
+    .success-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+      animation: popIn .5s cubic-bezier(.175, .885, .32, 1.275) .2s both;
+    }
+
+    @keyframes popIn {
+      from {
+        transform: scale(0);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .success-checkmark {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: draw .6s ease forwards .5s;
+    }
+
+    @keyframes draw {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .success-title {
+      color: #fff;
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      text-align: center;
+      animation: fadeSlideUp .4s ease .4s both;
+    }
+
+    .success-sub {
+      color: rgba(255, 255, 255, .85);
+      font-size: 15px;
+      text-align: center;
+      margin-bottom: 8px;
+      animation: fadeSlideUp .4s ease .5s both;
+    }
+
+    .success-total {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+      margin-top: 6px;
+      margin-bottom: 32px;
+      animation: fadeSlideUp .4s ease .6s both;
+    }
+
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .success-btn {
+      background: rgba(255, 255, 255, .25);
+      border: 2px solid rgba(255, 255, 255, .6);
+      color: #fff;
+      padding: 14px 40px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      animation: fadeSlideUp .4s ease .7s both;
+      transition: background .2s;
+    }
+
+    .success-btn:hover {
+      background: rgba(255, 255, 255, .4);
+    }
+
+    /* ── CONFETTI ── */
+    .confetti-piece {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      z-index: 601;
+      animation: confettiFall linear forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(-20px) rotate(0deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 
@@ -782,6 +1046,33 @@
     </div>
   </div>
 
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Phone Modal -->
+  <div id="phoneModal" onclick="if(event.target===this)closePhoneModal()">
+    <div class="phone-sheet">
+      <h3>📞 Telefon raqamingiz</h3>
+      <p>Buyurtmangizni tasdiqlash uchun telefon raqamingizni kiriting</p>
+      <input id="phoneInput" class="phone-input" type="tel" placeholder="+998 90 123 45 67" />
+      <button class="phone-confirm-btn" onclick="submitOrder()">✅ Buyurtmani tasdiqlash</button>
+    </div>
+  </div>
+
+  <!-- Success Screen -->
+  <div id="successScreen">
+    <div class="success-circle">
+      <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+        <path class="success-checkmark" d="M12 30 L25 43 L48 18" stroke="white" stroke-width="5" stroke-linecap="round"
+          stroke-linejoin="round" fill="none" />
+      </svg>
+    </div>
+    <div class="success-title">Buyurtma qabul qilindi!</div>
+    <div class="success-sub">Tez orada siz bilan bog'lanamiz</div>
+    <div class="success-total" id="successTotal"></div>
+    <button class="success-btn" onclick="closeSuccess()">🏠 Bosh sahifa</button>
+  </div>
+
   <script>
     let cart = [];
     let products = [];
@@ -828,21 +1119,32 @@
       const filtered = currentFilter === 'all' ? products : products.filter(p => p.category_id == currentFilter);
 
       const placeholder = `data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2220%22 fill=%22%23FF6B00%22%3E%F0%9F%8F%97%3C/text%3E%3C/svg%3E`;
-      grid.innerHTML = filtered.map(product => `
+      if (!filtered.length) {
+        grid.innerHTML = '<p style="padding:40px 20px;text-align:center;color:#aaa;font-size:15px">Mahsulotlar topilmadi</p>';
+        return;
+      }
+      grid.innerHTML = filtered.map(product => {
+        const hasDiscount = product.original_price && product.original_price > product.price;
+        const discPct = hasDiscount ? Math.round((1 - product.price / product.original_price) * 100) : 0;
+        return `
         <div class="product-card" onclick="openProdDetail(${product.id})">
+          ${hasDiscount ? `<span class="discount-badge">-${discPct}%</span>` : ''}
           <img src="${product.image || placeholder}" alt="${product.name}" class="product-image" onerror="this.src='${placeholder}'">
           <div class="product-info">
             <div class="product-name">${product.name}</div>
             <div class="product-description">${product.description}</div>
             <div class="product-footer">
-              <div class="product-price">${formatPrice(product.price)}</div>
-              <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart(${product.id})">
+              <div>
+                <div class="product-price">${formatPrice(product.price)}</div>
+                ${hasDiscount ? `<div style="font-size:11px;color:#aaa;text-decoration:line-through">${formatPrice(product.original_price)}</div>` : ''}
+              </div>
+              <button class="add-to-cart-btn" id="add-btn-${product.id}" onclick="event.stopPropagation(); addToCart(${product.id})">
                 <i class="fas fa-plus"></i>
               </button>
             </div>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
     function openProdDetail(id) {
@@ -885,16 +1187,17 @@
 
     function addToCart(productId) {
       const product = products.find(p => p.id === productId);
+      if (!product) return;
       const existing = cart.find(item => item.id === productId);
-
-      if (existing) {
-        existing.quantity++;
-      } else {
-        cart.push({ ...product, quantity: 1 });
-      }
-
+      if (existing) { existing.quantity++; }
+      else { cart.push({ ...product, quantity: 1 }); }
       updateCartCount();
-      showNotification('Savatga qo\'shildi!');
+      showToast('✅ Savatga qo\'shildi!', 'success');
+      const btn = document.getElementById('add-btn-' + productId);
+      if (btn) {
+        btn.style.transform = 'scale(1.35)';
+        setTimeout(() => { btn.style.transform = ''; }, 250);
+      }
     }
 
     function updateCartCount() {
@@ -960,25 +1263,65 @@
     }
 
     function checkout() {
-      if (cart.length === 0) {
-        showNotification('Savat bo\'sh!', 'error');
-        return;
-      }
+      if (cart.length === 0) { showToast('🛒 Savat bo\'sh!', 'error'); return; }
+      closeCart();
+      setTimeout(() => document.getElementById('phoneModal').classList.add('show'), 200);
+    }
 
-      // Send order via Telegram WebApp
-      if (window.Telegram?.WebApp) {
-        const orderData = {
-          items: cart,
-          total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    function closePhoneModal() { document.getElementById('phoneModal').classList.remove('show'); }
+
+    async function submitOrder() {
+      const phone = document.getElementById('phoneInput').value.trim();
+      if (!phone || phone.length < 7) { showToast('📞 Telefon raqamini kiriting', 'error'); return; }
+      const btn = document.querySelector('.phone-confirm-btn');
+      btn.textContent = '⏳ Yuborilmoqda...';
+      btn.disabled = true;
+      try {
+        const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+        const body = {
+          customer_phone: phone,
+          items: cart.map(i => ({ product_id: i.id, quantity: i.quantity }))
         };
-
-        window.Telegram.WebApp.sendData(JSON.stringify(orderData));
-        window.Telegram.WebApp.close();
-      } else {
-        showNotification('Buyurtma yuborildi!', 'success');
+        const r = await fetch('/market-api/shop/checkout', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        closePhoneModal();
+        document.getElementById('successTotal').textContent = 'Jami: ' + formatPrice(total);
+        document.getElementById('successScreen').classList.add('show');
+        launchConfetti();
         cart = [];
         updateCartCount();
-        closeCart();
+        try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch (e) { }
+      } catch (e) {
+        showToast('Xatolik yuz berdi, qayta urining', 'error');
+      } finally {
+        btn.textContent = '✅ Buyurtmani tasdiqlash';
+        btn.disabled = false;
+      }
+    }
+
+    function closeSuccess() {
+      document.getElementById('successScreen').classList.remove('show');
+      document.querySelectorAll('.confetti-piece').forEach(el => el.remove());
+    }
+
+    function launchConfetti() {
+      const colors = ['#FF6B00', '#28a745', '#007bff', '#ffc107', '#e83e8c', '#fff'];
+      for (let i = 0; i < 60; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.cssText = [
+          'left:' + Math.random() * 100 + 'vw',
+          'background:' + colors[Math.floor(Math.random() * colors.length)],
+          'animation-duration:' + (2 + Math.random() * 2).toFixed(2) + 's',
+          'animation-delay:' + (Math.random() * 0.8).toFixed(2) + 's',
+          'width:' + (6 + Math.random() * 8) + 'px',
+          'height:' + (6 + Math.random() * 8) + 'px',
+          'border-radius:' + (Math.random() > 0.5 ? '50%' : '2px'),
+        ].join(';');
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
       }
     }
 
@@ -986,9 +1329,17 @@
       return new Intl.NumberFormat('uz-UZ').format(price) + ' so\'m';
     }
 
-    function showNotification(message, type = 'success') {
-      // Simple notification (you can enhance this)
-      alert(message);
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = 'toast ' + type;
+      el.textContent = message;
+      container.appendChild(el);
+      requestAnimationFrame(() => { requestAnimationFrame(() => el.classList.add('show')); });
+      setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 350);
+      }, 2200);
     }
 
     let pfLoaded = false;
