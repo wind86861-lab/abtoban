@@ -39,8 +39,9 @@ def get_ustas_for_assignment_keyboard(
     builder = InlineKeyboardBuilder()
     for usta, count in ustas_with_count:
         name = usta.full_name or str(usta.telegram_id)
+        loc = f" 📍{usta.viloyat.name}" if usta.viloyat else ""
         builder.button(
-            text=f"👷 {name}  [{count} zakaz]",
+            text=f"👷 {name}{loc}  ({count} faol zakaz)",
             callback_data=f"assign_usta_to_order:{order_id}:{usta.id}",
         )
     builder.button(text="⬅️ Orqaga", callback_data="back_usta_orders")
@@ -56,9 +57,10 @@ def get_ustas_for_reassignment_keyboard(
     builder = InlineKeyboardBuilder()
     for usta, count in ustas_with_count:
         name = usta.full_name or str(usta.telegram_id)
+        loc = f" 📍{usta.viloyat.name}" if usta.viloyat else ""
         marker = " ✅" if usta.id == current_usta_id else ""
         builder.button(
-            text=f"👷 {name}  [{count} zakaz]{marker}",
+            text=f"👷 {name}{loc}  ({count} faol zakaz){marker}",
             callback_data=f"reassign_usta:{order_id}:{usta.id}",
         )
     builder.button(text="⬅️ Orqaga", callback_data=f"back_order_detail:{order_id}")

@@ -36,6 +36,7 @@ class UstaService:
         base_query = (
             select(User, func.coalesce(active_sq.c.cnt, 0).label("active_cnt"))
             .outerjoin(active_sq, User.id == active_sq.c.usta_id)
+            .options(selectinload(User.viloyat))
             .where(User.role == UserRole.USTA)
             .where(User.is_active == True)
             .order_by(
