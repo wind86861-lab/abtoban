@@ -128,6 +128,7 @@ async def update_order_status(order_id: int, body: UpdateStatusRequest):
 @router.get("/tma-api/users")
 async def tma_users(limit: int = 100, role: Optional[str] = None, viloyat_id: Optional[int] = None):
     """Get users with optional role and viloyat filter."""
+    from sqlalchemy import case, or_
     async with async_session_maker() as session:
         q = (
             select(User)
@@ -145,7 +146,38 @@ async def tma_users(limit: int = 100, role: Optional[str] = None, viloyat_id: Op
             q = q.where(User.viloyat_id == viloyat_id)
         result = await session.execute(q)
         users = result.scalars().all()
-    
+
+        # Gather order stats for all users in one query
+        user_ids = [u.id for u in users]
+        stats_map = {}
+        if user_ids:
+            stats_q = await session.execute(
+                select(
+                    Order.client_id, Order.master_id, Order.usta_id,
+                    func.count(Order.id).label("total"),
+                    func.sum(case((Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.IN_WORK]), 1), else_=0)).label("active"),
+                    func.sum(case((Order.status == OrderStatus.DONE, 1), else_=0)).label("done"),
+                    func.coalesce(func.sum(Order.total_price), 0).label("total_price"),
+                    func.coalesce(func.sum(Order.usta_wage), 0).label("total_wage"),
+                )
+                .where(or_(
+                    Order.client_id.in_(user_ids),
+                    Order.master_id.in_(user_ids),
+                    Order.usta_id.in_(user_ids),
+                ))
+                .group_by(Order.client_id, Order.master_id, Order.usta_id)
+            )
+            for row in stats_q.all():
+                for uid in [row.client_id, row.master_id, row.usta_id]:
+                    if uid and uid in user_ids:
+                        if uid not in stats_map:
+                            stats_map[uid] = {"total": 0, "active": 0, "done": 0, "total_price": 0, "total_wage": 0}
+                        stats_map[uid]["total"] += row.total
+                        stats_map[uid]["active"] += row.active
+                        stats_map[uid]["done"] += row.done
+                        stats_map[uid]["total_price"] += float(row.total_price)
+                        stats_map[uid]["total_wage"] += float(row.total_wage)
+
     return [
         {
             "id": u.id,
@@ -163,6 +195,11 @@ async def tma_users(limit: int = 100, role: Optional[str] = None, viloyat_id: Op
             "zavod_name": u.zavod.name if u.zavod else None,
             "hududlar": [{"id": h.id, "viloyat": h.viloyat or h.name, "tuman": h.tuman or ""} for h in u.hududlar],
             "is_active": u.is_active,
+            "total_orders": stats_map.get(u.id, {}).get("total", 0),
+            "active_orders": stats_map.get(u.id, {}).get("active", 0),
+            "done_orders": stats_map.get(u.id, {}).get("done", 0),
+            "total_price": stats_map.get(u.id, {}).get("total_price", 0),
+            "total_wage": stats_map.get(u.id, {}).get("total_wage", 0),
         }
         for u in users
     ]

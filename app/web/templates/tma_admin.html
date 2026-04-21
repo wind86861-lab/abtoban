@@ -845,30 +845,8 @@
             </select>
           </div>
           <div class="pills" id="user-pills"></div>
+          <div id="user-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
           <div class="cards" id="users-list"></div>
-          <!-- Embedded Ustalar -->
-          <div style="margin-top:24px;border-top:2px solid var(--border);padding-top:18px">
-            <div class="sec">🔨 Ustalar</div>
-            <div style="position:relative;margin-bottom:12px">
-              <input type="text" id="usta-search" placeholder="Usta qidirish..." oninput="filterUstalar()"
-                style="width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none;transition:border .2s">
-              <span
-                style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--hint)">🔍</span>
-            </div>
-            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-              <select id="usta-viloyat-filter" onchange="onUstaViloyatChange()"
-                style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
-                <option value="">🗺 Barcha viloyat</option>
-              </select>
-              <select id="usta-tuman-filter" onchange="filterUstalar()"
-                style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
-                <option value="">🏘 Barcha tuman</option>
-              </select>
-            </div>
-            <div class="pills" id="usta-status-pills" style="margin-bottom:14px"></div>
-            <div id="usta-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
-            <div class="cards" id="ustalar-list"></div>
-          </div>
         </div>
       </div>
 
@@ -1422,21 +1400,32 @@
     }
 
     /* ══ USERS ══ */
+    const ROLE_ICONS = { master: '👷', usta: '🔨', zavod: '🏭', shofer: '🚛', klient: '👤', admin: '🛡', super_admin: '🛡', helper_admin: '🛡' };
     function userCard(u) {
       const hs = u.hududlar || [];
       const locParts = [];
       if (u.viloyat_name) locParts.push(u.viloyat_name);
       if (u.tuman_name) locParts.push(u.tuman_name);
-      const locStr = locParts.length ? locParts.join(', ') : (hs.length ? hs.map(h => h.viloyat).join(', ') : (u.region || 'Hudud biriktirilmagan'));
-      return `<div class="card" onclick="showUser(${u.id})">
+      const locStr = locParts.length ? locParts.join(', ') : (hs.length ? hs.map(h => h.viloyat).join(', ') : (u.region || ''));
+      const ico = ROLE_ICONS[u.role] || '👤';
+      const hasStats = u.total_orders > 0;
+      const pct = hasStats ? Math.round(u.done_orders / u.total_orders * 100) : 0;
+      const showWage = (u.role === 'usta' || u.role === 'master') && u.total_wage > 0;
+      return `<div class="card" onclick="showUser(${u.id})" style="cursor:pointer">
     <div class="card-head">
-      <div><div class="card-title">${u.name}</div><div style="font-size:11px;color:var(--hint);margin-top:2px">${u.role_label}</div></div>
-      <div style="display:flex;align-items:center;gap:6px">${u.zavod_name ? `<span class="badge badge-role">🏭 ${u.zavod_name}</span>` : ''}${u.is_active ? '🟢' : '🔴'}</div>
+      <div><div class="card-title">${ico} ${u.name}</div><div style="font-size:11px;color:var(--hint);margin-top:2px">${u.role_label}${locStr ? ' · 📍 ' + locStr : ''}${hs.length > 1 ? ` <span class="badge badge-active" style="font-size:9px">${hs.length} hudud</span>` : ''}</div></div>
+      <div style="display:flex;align-items:center;gap:6px">${u.zavod_name ? `<span class="badge badge-role" style="font-size:10px">🏭 ${u.zavod_name}</span>` : ''}<span class="badge ${u.is_active ? 'badge-confirmed' : 'badge-cancelled'}" style="font-size:10px">${u.is_active ? 'Faol' : 'Nofaol'}</span></div>
     </div>
-    <div class="card-sub">
-      📱 ${u.phone || '—'}<br>
-      📍 ${locStr}${hs.length > 1 ? ` <span class="badge badge-active" style="font-size:9px">${hs.length} hudud</span>` : ''}
+    <div style="font-size:11px;color:var(--hint);margin-top:4px">📱 ${u.phone || '—'}</div>
+    ${hasStats ? `<div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+      <div style="background:var(--bg);padding:4px 9px;border-radius:7px;font-size:10px">📋 <strong>${u.total_orders}</strong></div>
+      <div style="background:var(--bg);padding:4px 9px;border-radius:7px;font-size:10px">🔧 <strong>${u.active_orders}</strong></div>
+      <div style="background:var(--bg);padding:4px 9px;border-radius:7px;font-size:10px">✅ <strong>${u.done_orders}</strong></div>
+      <div style="background:var(--bg);padding:4px 9px;border-radius:7px;font-size:10px">💰 <strong>${fmt(u.total_price)}</strong></div>
+      ${showWage ? `<div style="background:var(--bg);padding:4px 9px;border-radius:7px;font-size:10px">🔨 <strong>${fmt(u.total_wage)}</strong></div>` : ''}
     </div>
+    <div style="margin-top:6px;background:var(--border);border-radius:6px;height:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct === 100 ? '#43a047' : 'var(--accent)'};border-radius:6px;transition:width .3s"></div></div>
+    <div style="font-size:9px;color:var(--hint);margin-top:2px;text-align:right">${pct}% bajarilgan</div>` : ''}
   </div>`;
     }
 
@@ -1453,8 +1442,6 @@
         S.users = _allUsers;
         renderFilteredUsers();
       } catch (e) { console.error(e); }
-      // Also load ustalar inside users tab
-      loadUstalar();
     }
 
     function onUserViloyatChange() {
@@ -1480,6 +1467,16 @@
       if (vName) list = list.filter(u => u.viloyat_name === vName);
       if (tName) list = list.filter(u => u.tuman_name === tName);
       S.users = list;
+      // Summary
+      const tot = list.length;
+      const totOrders = list.reduce((s, u) => s + (u.total_orders || 0), 0);
+      const totActive = list.reduce((s, u) => s + (u.active_orders || 0), 0);
+      const totDone = list.reduce((s, u) => s + (u.done_orders || 0), 0);
+      document.getElementById('user-summary').innerHTML = `
+        <div style="background:var(--card);border:1px solid var(--border);padding:7px 12px;border-radius:10px;font-size:12px;flex:1;min-width:70px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Foydalanuvchilar</div><strong style="font-size:15px">${tot}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:7px 12px;border-radius:10px;font-size:12px;flex:1;min-width:70px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Jami zakaz</div><strong style="font-size:15px">${totOrders}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:7px 12px;border-radius:10px;font-size:12px;flex:1;min-width:70px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Faol</div><strong style="font-size:15px;color:#f59e0b">${totActive}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:7px 12px;border-radius:10px;font-size:12px;flex:1;min-width:70px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Tugagan</div><strong style="font-size:15px;color:#43a047">${totDone}</strong></div>`;
       document.getElementById('users-list').innerHTML = list.length ? list.map(userCard).join('') : empty('👥', 'Foydalanuvchilar topilmadi');
     }
 
