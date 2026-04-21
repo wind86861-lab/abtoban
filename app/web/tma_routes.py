@@ -335,6 +335,79 @@ async def tma_usta_orders(usta_id: int):
     ]
 
 
+@router.get("/tma-api/users/{user_id}/orders")
+async def tma_user_orders(user_id: int):
+    """Get all orders related to a user based on their role."""
+    from sqlalchemy import or_
+    async with async_session_maker() as session:
+        user = (await session.execute(
+            select(User).where(User.id == user_id)
+        )).scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Build filter based on role
+        if user.role == UserRole.KLIENT:
+            filt = Order.client_id == user_id
+        elif user.role == UserRole.MASTER:
+            filt = Order.master_id == user_id
+        elif user.role == UserRole.USTA:
+            filt = Order.usta_id == user_id
+        elif user.role in (UserRole.ZAVOD, UserRole.SHOFER):
+            filt = Order.zavod_id == user_id
+        else:
+            # Admin roles — show orders they touched (as master or usta) or all
+            filt = or_(
+                Order.master_id == user_id,
+                Order.usta_id == user_id,
+                Order.client_id == user_id,
+            )
+
+        result = await session.execute(
+            select(Order)
+            .options(
+                selectinload(Order.master), selectinload(Order.usta),
+                selectinload(Order.asphalt_type), selectinload(Order.client),
+                selectinload(Order.viloyat), selectinload(Order.tuman_rel),
+            )
+            .where(filt)
+            .order_by(Order.created_at.desc())
+            .limit(50)
+        )
+        orders = result.scalars().all()
+
+    role_label = ROLE_LABELS.get(user.role, user.role.value)
+    return {
+        "role": user.role.value,
+        "role_label": role_label,
+        "orders": [
+            {
+                "id": o.id,
+                "number": o.order_number,
+                "client": o.client_name,
+                "phone": o.client_phone,
+                "address": o.address,
+                "area": float(o.area_m2) if o.area_m2 else None,
+                "total": float(o.total_price) if o.total_price else None,
+                "advance": float(o.advance_paid) if o.advance_paid else 0,
+                "debt": float(o.debt) if o.debt else 0,
+                "usta_wage": float(o.usta_wage) if o.usta_wage else None,
+                "master_commission": float(o.master_commission) if o.master_commission else None,
+                "status": o.status.value,
+                "master_name": o.master.full_name if o.master else None,
+                "usta_name": o.usta.full_name if o.usta else None,
+                "client_name": o.client.full_name if o.client else None,
+                "asphalt": o.asphalt_type.name if o.asphalt_type else None,
+                "work_date": o.work_date.strftime("%d.%m.%Y") if o.work_date else None,
+                "created_at": o.created_at.strftime("%d.%m.%Y %H:%M") if o.created_at else None,
+                "viloyat_name": o.viloyat.name if o.viloyat else None,
+                "tuman_name": o.tuman_rel.name if o.tuman_rel else None,
+            }
+            for o in orders
+        ],
+    }
+
+
 class UpdateRegionRequest(BaseModel):
     region_id: Optional[int]
 

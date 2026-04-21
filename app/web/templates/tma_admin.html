@@ -1483,8 +1483,9 @@
       document.getElementById('users-list').innerHTML = list.length ? list.map(userCard).join('') : empty('👥', 'Foydalanuvchilar topilmadi');
     }
 
+    let _userOrders = [];
     async function showUser(id) {
-      const u = S.users.find(x => x.id === id); if (!u) return;
+      const u = S.users.find(x => x.id === id) || _allUsers.find(x => x.id === id); if (!u) return;
       if (!S.roles.length) S.roles = await fetch('/tma-api/roles').then(r => r.json());
       if (!S.hududlar.length) S.hududlar = await fetch('/tma-api/hududlar').then(r => r.json());
       if (!S.zavodlar.length) S.zavodlar = await fetch('/tma-api/zavodlar').then(r => r.json());
@@ -1492,6 +1493,12 @@
       document.getElementById('um-title').textContent = u.name;
       renderUserModal(u);
       openModal('user-modal');
+      // Load order history async
+      try {
+        const data = await fetch(`/tma-api/users/${id}/orders`).then(r => r.json());
+        _userOrders = data.orders || [];
+        renderUserOrders(u, data);
+      } catch (e) { console.error(e); }
     }
 
     function renderUserModal(u) {
@@ -1532,7 +1539,96 @@
       <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="saveUH(${id})">💾 Hududlarni saqlash</button>
     </div>
 
-    <button class="btn ${u.is_active ? 'btn-danger' : 'btn-success'} btn-block" onclick="toggleUser(${id})">${u.is_active ? '🔴 Bloklash' : '🟢 Faollashtirish'}</button>`;
+    <button class="btn ${u.is_active ? 'btn-danger' : 'btn-success'} btn-block" onclick="toggleUser(${id})">${u.is_active ? '🔴 Bloklash' : '🟢 Faollashtirish'}</button>
+    <div class="divider"></div>
+    <div id="user-orders-section"><div style="text-align:center;padding:16px;color:var(--hint);font-size:13px">📋 Zakazlar yuklanmoqda...</div></div>`;
+    }
+
+    const ROLE_ORDER_LABELS = {
+      klient: '📋 Buyurtmalarim (Mijoz)',
+      master: '📋 Master zakazlari',
+      usta: '📋 Usta zakazlari',
+      zavod: '📋 Zavod zakazlari',
+      shofer: '📋 Haydovchi zakazlari',
+      super_admin: '📋 Bog\'langan zakazlar',
+      admin: '📋 Bog\'langan zakazlar',
+      helper_admin: '📋 Bog\'langan zakazlar',
+    };
+
+    function renderUserOrders(u, data) {
+      const el = document.getElementById('user-orders-section');
+      if (!el) return;
+      const orders = data.orders || [];
+      const label = ROLE_ORDER_LABELS[u.role] || '📋 Zakazlar';
+      const done = orders.filter(o => o.status === 'done').length;
+      const active = orders.filter(o => o.status === 'confirmed' || o.status === 'in_work').length;
+      const totalPrice = orders.reduce((s, o) => s + (o.total || 0), 0);
+      const totalWage = orders.reduce((s, o) => s + (o.usta_wage || 0), 0);
+
+      if (!orders.length) {
+        el.innerHTML = `<div class="sub-sec">${label}</div><div style="text-align:center;padding:16px;color:var(--hint);font-size:13px">Zakazlar topilmadi</div>`;
+        return;
+      }
+
+      const showWage = u.role === 'usta' || u.role === 'master';
+      el.innerHTML = `
+        <div class="sub-sec">${label}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="background:var(--bg);padding:6px 12px;border-radius:8px;font-size:11px">📋 Jami: <strong>${orders.length}</strong></div>
+          <div style="background:var(--bg);padding:6px 12px;border-radius:8px;font-size:11px">🔧 Faol: <strong>${active}</strong></div>
+          <div style="background:var(--bg);padding:6px 12px;border-radius:8px;font-size:11px">✅ Tugagan: <strong>${done}</strong></div>
+          <div style="background:var(--bg);padding:6px 12px;border-radius:8px;font-size:11px">💰 Jami: <strong>${fmt(totalPrice)}</strong></div>
+          ${showWage ? `<div style="background:var(--bg);padding:6px 12px;border-radius:8px;font-size:11px">🔨 Haqi: <strong>${fmt(totalWage)}</strong></div>` : ''}
+        </div>
+        <div class="cards" style="max-height:320px;overflow-y:auto">${orders.map(o => `
+          <div class="card" onclick="showUserOrderDetail(${o.id})" style="cursor:pointer;margin-bottom:8px">
+            <div class="card-head">
+              <div class="card-title" style="font-size:13px">${o.number}</div>
+              <span class="badge badge-${o.status}" style="font-size:10px">${STATUS_LABELS[o.status] || o.status}</span>
+            </div>
+            <div style="font-size:11px;color:var(--hint);margin-top:4px">
+              👤 ${o.client} · 👷 ${o.master_name || '—'} · 🔨 ${o.usta_name || '—'}<br>
+              ${o.asphalt ? '🏗 ' + o.asphalt + ' · ' : ''}📐 ${o.area || '—'} m² · 💰 ${fmt(o.total)}${o.work_date ? ' · 📅 ' + o.work_date : ''}
+            </div>
+          </div>
+        `).join('')}</div>`;
+    }
+
+    function showUserOrderDetail(orderId) {
+      const o = _userOrders.find(x => x.id === orderId); if (!o) return;
+      document.getElementById('uod-title').textContent = o.number;
+      const loc = o.viloyat_name ? `${o.viloyat_name}${o.tuman_name ? ', ' + o.tuman_name : ''}` : '—';
+      document.getElementById('uod-body').innerHTML = `
+        <table class="info-tbl">
+          <tr><td>Mijoz</td><td>${o.client}</td></tr>
+          <tr><td>Telefon</td><td>${o.phone || '—'}</td></tr>
+          <tr><td>Viloyat / Tuman</td><td>${loc}</td></tr>
+          <tr><td>Manzil</td><td>${o.address || '—'}</td></tr>
+          <tr><td>🏗 Asfalt turi</td><td>${o.asphalt || '—'}</td></tr>
+          <tr><td>📐 Maydon</td><td>${o.area || '—'} m²</td></tr>
+          <tr><td>📅 Ish sanasi</td><td>${o.work_date || '—'}</td></tr>
+          <tr><td>🕐 Yaratilgan</td><td>${o.created_at || '—'}</td></tr>
+        </table>
+        <div class="divider"></div>
+        <div class="sub-sec">👥 Mas'ullar</div>
+        <table class="info-tbl">
+          <tr><td>👷 Master</td><td><strong>${o.master_name || '—'}</strong></td></tr>
+          <tr><td>🔨 Usta</td><td><strong>${o.usta_name || '—'}</strong></td></tr>
+        </table>
+        <div class="divider"></div>
+        <div class="sub-sec">💰 Moliyaviy</div>
+        <table class="info-tbl">
+          <tr><td>Jami narx</td><td><strong>${fmt(o.total)} so'm</strong></td></tr>
+          <tr><td>Zaklad</td><td>${fmt(o.advance)} so'm</td></tr>
+          <tr><td>Qarz</td><td><strong style="color:${o.debt > 0 ? 'var(--red,#e53935)' : 'var(--green,#43a047)'}">${fmt(o.debt)} so'm</strong></td></tr>
+          <tr><td>Usta haqi</td><td>${o.usta_wage ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
+          <tr><td>Master komissiya</td><td>${o.master_commission ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
+        </table>
+        <div class="divider"></div>
+        <div style="text-align:center">
+          <span class="badge badge-${o.status}">${STATUS_FULL[o.status] || o.status}</span>
+        </div>`;
+      openModal('usta-order-detail-modal');
     }
 
     function toggleUH(hId, el) {
