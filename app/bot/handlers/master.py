@@ -19,6 +19,7 @@ from app.bot.keyboards.order import (
     get_orders_list_keyboard,
     get_regions_keyboard,
     get_tumanlar_keyboard,
+    get_ustas_for_confirm_keyboard,
     get_viloyatlar_keyboard,
 )
 from app.bot.keyboards.finance import (
@@ -526,15 +527,52 @@ async def confirm_commission(message: Message, state: FSMContext, lang: str) -> 
 
 
 @router.message(MasterConfirmStates.entering_notes)
-async def confirm_notes(message: Message, state: FSMContext, lang: str) -> None:
+async def confirm_notes(message: Message, state: FSMContext, session, lang: str) -> None:
     text = message.text or ""
     notes = None if text.startswith("⏩") else text.strip()
     await state.update_data(notes=notes)
-    await state.set_state(MasterConfirmStates.confirming)
 
+    # Step 9 — select usta
     data = await state.get_data()
+    order_id = data.get("order_id")
+    usta_svc = UstaService(session)
+    order_svc = OrderService(session)
+    order = await order_svc.get_by_id_full(order_id) if order_id else None
+    viloyat_id = order.viloyat_id if order else None
+    region_id = order.region_id if order else None
+    ustas = await usta_svc.get_available_ustas(region_id=region_id, viloyat_id=viloyat_id)
+
+    await state.set_state(MasterConfirmStates.selecting_usta)
+    await message.answer(
+        f"9/9 — Ustani tanlang yoki o'tkazib yuboring:",
+        reply_markup=get_ustas_for_confirm_keyboard(ustas),
+    )
+
+
+@router.callback_query(MasterConfirmStates.selecting_usta, F.data.startswith("confirm_usta:"))
+async def confirm_select_usta(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    val = callback.data.split(":")[1]
+    if val == "skip":
+        await state.update_data(selected_usta_id=None, selected_usta_name=None)
+    else:
+        usta_id = int(val)
+        from app.db.models import User as UserModel
+        from sqlalchemy import select as sa_select
+        from app.db.session import async_session_maker
+        result = await session.execute(sa_select(UserModel).where(UserModel.id == usta_id))
+        usta = result.scalar_one_or_none()
+        name = usta.full_name if usta else str(usta_id)
+        await state.update_data(selected_usta_id=usta_id, selected_usta_name=name)
+    await _show_confirm_summary(callback.message, state, lang)
+    await callback.answer()
+
+
+async def _show_confirm_summary(message, state: FSMContext, lang: str) -> None:
+    data = await state.get_data()
+    await state.set_state(MasterConfirmStates.confirming)
     work_date = datetime.fromisoformat(data["work_date"]).strftime("%d.%m.%Y")
     debt = max(Decimal("0"), Decimal(data["total_price"]) - Decimal(data["advance_paid"]))
+    usta_name = data.get("selected_usta_name") or "—"
 
     await message.answer(
         t("confirm_summary", lang,
@@ -547,7 +585,7 @@ async def confirm_notes(message: Message, state: FSMContext, lang: str) -> None:
           date=work_date,
           wage=f"{float(Decimal(data['usta_wage'])):,.0f}",
           commission=f"{float(Decimal(data['master_commission'])):,.0f}",
-          notes=data.get('notes') or '—'),
+          notes=data.get('notes') or '—') + f"\n👷 Usta: <b>{usta_name}</b>",
         reply_markup=get_confirm_summary_keyboard(),
     )
 
@@ -575,6 +613,17 @@ async def submit_confirmation(callback: CallbackQuery, state: FSMContext, user: 
         await callback.message.edit_text(t("confirm_error", lang))
         await callback.answer()
         return
+
+    # Assign usta if selected
+    selected_usta_id = data.get("selected_usta_id")
+    if selected_usta_id:
+        usta_svc = UstaService(session)
+        await usta_svc.assign_usta_to_order(
+            order_id=order.id,
+            usta_id=selected_usta_id,
+            assigned_by_id=user.id,
+        )
+        await session.commit()
 
     # Notify admins
     from app.bot.loader import bot

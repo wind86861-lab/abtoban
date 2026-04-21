@@ -26,6 +26,7 @@ class MasterConfirmStates(StatesGroup):
     entering_usta_wage = State()
     entering_commission = State()
     entering_notes = State()
+    selecting_usta = State()
     confirming = State()
 
 

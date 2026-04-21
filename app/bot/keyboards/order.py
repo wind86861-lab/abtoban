@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from aiogram.types import (
     InlineKeyboardMarkup,
@@ -7,7 +7,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from app.db.models import ORDER_STATUS_LABELS, AsphaltType, Order, OrderStatus, Region, Tuman, Viloyat
+from app.db.models import ORDER_STATUS_LABELS, AsphaltType, Order, OrderStatus, Region, Tuman, User, Viloyat
 
 
 def get_regions_keyboard(regions: List[Region]) -> InlineKeyboardMarkup:
@@ -114,6 +114,20 @@ def get_master_confirmed_order_keyboard(order_id: int) -> InlineKeyboardMarkup:
     builder.button(text="🔧 Ishga olish", callback_data=f"set_status:{order_id}:in_work")
     builder.button(text="👷 Usta o'zgartirish", callback_data=f"change_usta:{order_id}")
     builder.button(text="⬅️ Orqaga", callback_data="back_my_orders")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_ustas_for_confirm_keyboard(ustas_with_count: List[Tuple[User, int]]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for usta, count in ustas_with_count:
+        name = usta.full_name or str(usta.telegram_id)
+        loc = f" 📍{usta.viloyat.name}" if usta.viloyat else ""
+        builder.button(
+            text=f"👷 {name}{loc}  ({count} faol zakaz)",
+            callback_data=f"confirm_usta:{usta.id}",
+        )
+    builder.button(text="⏩ O'tkazib yuborish", callback_data="confirm_usta:skip")
     builder.adjust(1)
     return builder.as_markup()
 
