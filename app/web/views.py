@@ -97,18 +97,22 @@ class UserAdmin(ModelView, model=User):
         "viloyat_id": {
             "fields": ("name",),
             "order_by": "name",
+            "model": Viloyat,
         },
         "tuman_id": {
             "fields": ("name",),
             "order_by": "name",
+            "model": Tuman,
         },
         "region_id": {
             "fields": ("name",),
             "order_by": "name",
+            "model": Region,
         },
         "zavod_id": {
             "fields": ("name",),
             "order_by": "name",
+            "model": Zavod,
         },
     }
 
