@@ -749,8 +749,6 @@
           class="nav-icon">📍</span>Hududlar</button>
       <button class="nav-btn" data-tab="zavodlar" onclick="switchTab('zavodlar',this)"><span
           class="nav-icon">🏭</span>Zavodlar</button>
-      <button class="nav-btn" data-tab="ustalar" onclick="switchTab('ustalar',this)"><span
-          class="nav-icon">🔨</span>Ustalar</button>
       <div style="border-top:1px solid var(--border);margin:8px 0"></div>
       <button class="nav-btn" data-tab="categories" onclick="switchTab('categories',this)"><span
           class="nav-icon">📁</span>Kategoriyalar</button>
@@ -801,11 +799,26 @@
       <!-- ORDERS -->
       <div class="content tab-content" id="tab-orders" style="display:none">
         <div class="inner">
-          <div class="sec-row">
-            <div class="sec">📋 Zakazlar</div>
+          <div class="sec">📋 Zakazlar</div>
+          <div style="position:relative;margin-bottom:12px">
+            <input type="text" id="order-search" placeholder="Zakaz, mijoz yoki telefon bo'yicha qidirish..."
+              oninput="renderFilteredOrders()"
+              style="width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none;transition:border .2s">
+            <span
+              style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--hint)">🔍</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <select id="order-viloyat-sel" onchange="onOrderViloyatChange()"
+              style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+              <option value="">🗺 Barcha viloyat</option>
+            </select>
+            <select id="order-tuman-sel" onchange="renderFilteredOrders()"
+              style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+              <option value="">🏘 Barcha tuman</option>
+            </select>
           </div>
           <div class="pills" id="order-pills"></div>
-          <div class="pills" id="order-viloyat-pills" style="margin-bottom:14px"></div>
+          <div id="order-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
           <div class="cards" id="orders-list"></div>
         </div>
       </div>
@@ -813,12 +826,49 @@
       <!-- USERS -->
       <div class="content tab-content" id="tab-users" style="display:none">
         <div class="inner">
-          <div class="sec-row">
-            <div class="sec">👥 Foydalanuvchilar</div>
+          <div class="sec">👥 Foydalanuvchilar</div>
+          <div style="position:relative;margin-bottom:12px">
+            <input type="text" id="user-search" placeholder="Ism yoki telefon bo'yicha qidirish..."
+              oninput="renderFilteredUsers()"
+              style="width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none;transition:border .2s">
+            <span
+              style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--hint)">🔍</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <select id="user-viloyat-sel" onchange="onUserViloyatChange()"
+              style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+              <option value="">🗺 Barcha viloyat</option>
+            </select>
+            <select id="user-tuman-sel" onchange="renderFilteredUsers()"
+              style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+              <option value="">🏘 Barcha tuman</option>
+            </select>
           </div>
           <div class="pills" id="user-pills"></div>
-          <div class="pills" id="user-viloyat-pills" style="margin-bottom:14px"></div>
           <div class="cards" id="users-list"></div>
+          <!-- Embedded Ustalar -->
+          <div style="margin-top:24px;border-top:2px solid var(--border);padding-top:18px">
+            <div class="sec">🔨 Ustalar</div>
+            <div style="position:relative;margin-bottom:12px">
+              <input type="text" id="usta-search" placeholder="Usta qidirish..." oninput="filterUstalar()"
+                style="width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none;transition:border .2s">
+              <span
+                style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--hint)">🔍</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <select id="usta-viloyat-filter" onchange="onUstaViloyatChange()"
+                style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+                <option value="">🗺 Barcha viloyat</option>
+              </select>
+              <select id="usta-tuman-filter" onchange="filterUstalar()"
+                style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
+                <option value="">🏘 Barcha tuman</option>
+              </select>
+            </div>
+            <div class="pills" id="usta-status-pills" style="margin-bottom:14px"></div>
+            <div id="usta-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+            <div class="cards" id="ustalar-list"></div>
+          </div>
         </div>
       </div>
 
@@ -840,39 +890,21 @@
             <div class="sec">🏭 Zavodlar</div>
             <button class="add-btn" onclick="openZavodForm()">＋ Yangi zavod</button>
           </div>
-          <div class="cards" id="zavodlar-list"></div>
-        </div>
-      </div>
-
-      <!-- USTALAR -->
-      <div class="content tab-content" id="tab-ustalar" style="display:none">
-        <div class="inner">
-          <div class="sec">🔨 Ustalar</div>
-          <!-- Search -->
           <div style="position:relative;margin-bottom:12px">
-            <input type="text" id="usta-search" placeholder="Ism yoki telefon bo'yicha qidirish..."
-              oninput="filterUstalar()"
+            <input type="text" id="zavod-search" placeholder="Zavod nomi bo'yicha qidirish..."
+              oninput="renderFilteredZavodlar()"
               style="width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;outline:none;transition:border .2s">
             <span
               style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--hint)">🔍</span>
           </div>
-          <!-- Viloyat / Tuman selects -->
           <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-            <select id="usta-viloyat-filter" onchange="onUstaViloyatChange()"
+            <select id="zavod-viloyat-sel" onchange="renderFilteredZavodlar()"
               style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
               <option value="">🗺 Barcha viloyat</option>
             </select>
-            <select id="usta-tuman-filter" onchange="filterUstalar()"
-              style="flex:1;min-width:140px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer">
-              <option value="">🏘 Barcha tuman</option>
-            </select>
           </div>
-          <!-- Status pills -->
-          <div class="pills" id="usta-status-pills" style="margin-bottom:14px"></div>
-          <!-- Summary -->
-          <div id="usta-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
-          <!-- List -->
-          <div class="cards" id="ustalar-list"></div>
+          <div class="pills" id="zavod-status-pills" style="margin-bottom:14px"></div>
+          <div class="cards" id="zavodlar-list"></div>
         </div>
       </div>
 
@@ -995,8 +1027,6 @@
           class="tab-ico">📍</span>Hudud</button>
       <button class="tab" data-tab="zavodlar" onclick="switchTab('zavodlar',this)"><span
           class="tab-ico">🏭</span>Zavod</button>
-      <button class="tab" data-tab="ustalar" onclick="switchTab('ustalar',this)"><span
-          class="tab-ico">🔨</span>Ustalar</button>
       <button class="tab" data-tab="categories" onclick="switchTab('categories',this)"><span
           class="tab-ico">📁</span>Kat.</button>
       <button class="tab" data-tab="products" onclick="switchTab('products',this)"><span
@@ -1210,7 +1240,7 @@
       editCatId: null, editProdId: null, editPortfolioId: null,
       prodCatFilter: '', moFilter: '',
     };
-    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', ustalar: '🔨 Ustalar', categories: '📁 Kategoriyalar', products: '🛍 Mahsulotlar', morders: '📦 Do\'kon buyurtma', portfolio: '🏗 Портфолио', settings: '⚙️ Sozlamalar' };
+    const TITLES = { dashboard: '📊 Dashboard', orders: '📋 Zakazlar', users: '👥 Foydalanuvchilar', hududlar: '📍 Hududlar', zavodlar: '🏭 Zavodlar', categories: '📁 Kategoriyalar', products: '🛍 Mahsulotlar', morders: '📦 Do\'kon buyurtma', portfolio: '🏗 Портфолио', settings: '⚙️ Sozlamalar' };
 
     function fmt(n) { if (!n) return '0'; return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
     function esc(s) { return (s || '').replace(/'/g, "\\'"); }
@@ -1233,7 +1263,6 @@
       else if (tab === 'users') loadUsers();
       else if (tab === 'hududlar') loadHududlar();
       else if (tab === 'zavodlar') loadZavodlar();
-      else if (tab === 'ustalar') loadUstalar();
       else if (tab === 'categories') loadCategories();
       else if (tab === 'products') loadProducts();
       else if (tab === 'morders') loadMOrders();
@@ -1295,25 +1324,57 @@
   </div>`;
     }
 
+    let _allOrders = [];
+
     async function loadOrders() {
       if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
-      const fs = [{ v: '', l: 'Barchasi' }, { v: 'new', l: '🆕 Yangi' }, { v: 'confirmed', l: '✅ Tasdiqlangan' }, { v: 'in_work', l: '🔧 Ishda' }, { v: 'done', l: '🏁 Tugagan' }];
+      const vSel = document.getElementById('order-viloyat-sel');
+      if (vSel.options.length <= 1) S.viloyatlar.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = '📍 ' + v.name; vSel.appendChild(o); });
+      const fs = [{ v: '', l: 'Barchasi' }, { v: 'new', l: '🆕 Yangi' }, { v: 'confirmed', l: '✅ Tasdiqlangan' }, { v: 'in_work', l: '🔧 Ishda' }, { v: 'done', l: '🏁 Tugagan' }, { v: 'cancelled', l: '❌ Bekor' }];
       document.getElementById('order-pills').innerHTML = fs.map(f => `<button class="pill${S.orderFilter === f.v ? ' active' : ''}" onclick="filterOrders('${f.v}')">${f.l}</button>`).join('');
-      const vPills = [{ v: '', l: '🗺 Barcha viloyat' }, ...S.viloyatlar.map(v => ({ v: v.id, l: '📍 ' + v.name }))];
-      document.getElementById('order-viloyat-pills').innerHTML = vPills.map(f => `<button class="pill${S.orderViloyatFilter == f.v ? ' active' : ''}" onclick="filterOrderViloyat('${f.v}')">${f.l}</button>`).join('');
       try {
-        let url = '/tma-api/orders?limit=100';
-        if (S.orderFilter) url += '&status=' + S.orderFilter;
-        if (S.orderViloyatFilter) url += '&viloyat_id=' + S.orderViloyatFilter;
-        S.orders = await fetch(url).then(r => r.json());
-        document.getElementById('orders-list').innerHTML = S.orders.length ? S.orders.map(orderCard).join('') : empty('📋', 'Zakazlar topilmadi');
+        _allOrders = await fetch('/tma-api/orders?limit=200').then(r => r.json());
+        S.orders = _allOrders;
+        renderFilteredOrders();
       } catch (e) { console.error(e); }
     }
-    function filterOrders(v) { S.orderFilter = v; loadOrders(); }
-    function filterOrderViloyat(v) { S.orderViloyatFilter = v; loadOrders(); }
+
+    function onOrderViloyatChange() {
+      const vName = document.getElementById('order-viloyat-sel').value;
+      const tSel = document.getElementById('order-tuman-sel');
+      tSel.innerHTML = '<option value="">🏘 Barcha tuman</option>';
+      if (vName) {
+        const v = S.viloyatlar.find(x => x.name === vName);
+        if (v && v.tumans) v.tumans.forEach(t => { const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; tSel.appendChild(o); });
+      }
+      renderFilteredOrders();
+    }
+
+    function filterOrders(v) { S.orderFilter = v; document.querySelectorAll('#order-pills .pill').forEach(b => { const bv = b.getAttribute('onclick').match(/filterOrders\('([^']*)'\)/)?.[1] || ''; b.classList.toggle('active', bv === v); }); renderFilteredOrders(); }
+
+    function renderFilteredOrders() {
+      const q = (document.getElementById('order-search').value || '').toLowerCase().trim();
+      const vName = document.getElementById('order-viloyat-sel').value;
+      const tName = document.getElementById('order-tuman-sel').value;
+      let list = _allOrders;
+      if (q) list = list.filter(o => (o.number || '').toLowerCase().includes(q) || (o.client || '').toLowerCase().includes(q) || (o.phone || '').includes(q));
+      if (S.orderFilter) list = list.filter(o => o.status === S.orderFilter);
+      if (vName) list = list.filter(o => o.viloyat_name === vName);
+      if (tName) list = list.filter(o => o.tuman_name === tName);
+      S.orders = list;
+      // Summary
+      const tot = list.length;
+      const totPrice = list.reduce((s, o) => s + (o.total || 0), 0);
+      const totDebt = list.reduce((s, o) => s + (o.debt || 0), 0);
+      document.getElementById('order-summary').innerHTML = `
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Zakazlar</div><strong style="font-size:16px">${tot}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Jami narx</div><strong style="font-size:14px;color:var(--accent)">${fmt(totPrice)}</strong></div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:8px 14px;border-radius:10px;font-size:12px;flex:1;min-width:80px;text-align:center"><div style="color:var(--hint);margin-bottom:2px">Jami qarz</div><strong style="font-size:14px;color:#e53935">${fmt(totDebt)}</strong></div>`;
+      document.getElementById('orders-list').innerHTML = list.length ? list.map(orderCard).join('') : empty('📋', 'Zakazlar topilmadi');
+    }
 
     function showOrder(id) {
-      const o = S.orders.find(x => x.id === id); if (!o) return;
+      const o = S.orders.find(x => x.id === id) || _allOrders.find(x => x.id === id); if (!o) return;
       document.getElementById('om-title').textContent = o.number;
       const oLoc = o.viloyat_name ? `${o.viloyat_name}${o.tuman_name ? ', ' + o.tuman_name : ''}` : '—';
       document.getElementById('om-body').innerHTML = `
@@ -1379,22 +1440,48 @@
   </div>`;
     }
 
+    let _allUsers = [];
+
     async function loadUsers() {
       if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
+      const vSel = document.getElementById('user-viloyat-sel');
+      if (vSel.options.length <= 1) S.viloyatlar.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = '📍 ' + v.name; vSel.appendChild(o); });
       const fs = [{ v: '', l: 'Barchasi' }, { v: 'master', l: 'Master' }, { v: 'usta', l: 'Usta' }, { v: 'zavod', l: 'Zavod' }, { v: 'shofer', l: 'Shofer' }, { v: 'admin', l: 'Admin' }];
       document.getElementById('user-pills').innerHTML = fs.map(f => `<button class="pill${S.userFilter === f.v ? ' active' : ''}" onclick="filterUsers('${f.v}')">${f.l}</button>`).join('');
-      const vPills = [{ v: '', l: '🗺 Barcha viloyat' }, ...S.viloyatlar.map(v => ({ v: v.id, l: '📍 ' + v.name }))];
-      document.getElementById('user-viloyat-pills').innerHTML = vPills.map(f => `<button class="pill${S.userViloyatFilter == f.v ? ' active' : ''}" onclick="filterUserViloyat('${f.v}')">${f.l}</button>`).join('');
       try {
-        let url = '/tma-api/users?limit=100';
-        if (S.userFilter) url += '&role=' + S.userFilter;
-        if (S.userViloyatFilter) url += '&viloyat_id=' + S.userViloyatFilter;
-        S.users = await fetch(url).then(r => r.json());
-        document.getElementById('users-list').innerHTML = S.users.length ? S.users.map(userCard).join('') : empty('👥', 'Foydalanuvchilar topilmadi');
+        _allUsers = await fetch('/tma-api/users?limit=200').then(r => r.json());
+        S.users = _allUsers;
+        renderFilteredUsers();
       } catch (e) { console.error(e); }
+      // Also load ustalar inside users tab
+      loadUstalar();
     }
-    function filterUsers(v) { S.userFilter = v; loadUsers(); }
-    function filterUserViloyat(v) { S.userViloyatFilter = v; loadUsers(); }
+
+    function onUserViloyatChange() {
+      const vName = document.getElementById('user-viloyat-sel').value;
+      const tSel = document.getElementById('user-tuman-sel');
+      tSel.innerHTML = '<option value="">🏘 Barcha tuman</option>';
+      if (vName) {
+        const v = S.viloyatlar.find(x => x.name === vName);
+        if (v && v.tumans) v.tumans.forEach(t => { const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; tSel.appendChild(o); });
+      }
+      renderFilteredUsers();
+    }
+
+    function filterUsers(v) { S.userFilter = v; document.querySelectorAll('#user-pills .pill').forEach(b => { const bv = b.getAttribute('onclick').match(/filterUsers\('([^']*)'\)/)?.[1] || ''; b.classList.toggle('active', bv === v); }); renderFilteredUsers(); }
+
+    function renderFilteredUsers() {
+      const q = (document.getElementById('user-search').value || '').toLowerCase().trim();
+      const vName = document.getElementById('user-viloyat-sel').value;
+      const tName = document.getElementById('user-tuman-sel').value;
+      let list = _allUsers;
+      if (q) list = list.filter(u => (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q));
+      if (S.userFilter) list = list.filter(u => u.role === S.userFilter);
+      if (vName) list = list.filter(u => u.viloyat_name === vName);
+      if (tName) list = list.filter(u => u.tuman_name === tName);
+      S.users = list;
+      document.getElementById('users-list').innerHTML = list.length ? list.map(userCard).join('') : empty('👥', 'Foydalanuvchilar topilmadi');
+    }
 
     async function showUser(id) {
       const u = S.users.find(x => x.id === id); if (!u) return;
@@ -1699,21 +1786,45 @@
     async function toggleHudud(id) { const r = await fetch(`/tma-api/hududlar/${id}/toggle`, { method: 'PATCH' }); if (r.ok) { notify(); loadHududlar(); } else notify('error'); }
 
     /* ══ ZAVODLAR ══ */
+    let _zavodStatusFilter = '';
+
     async function loadZavodlar() {
+      if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
+      const vSel = document.getElementById('zavod-viloyat-sel');
+      if (vSel.options.length <= 1) S.viloyatlar.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = '📍 ' + v.name; vSel.appendChild(o); });
+      const sts = [{ v: '', l: 'Barchasi' }, { v: 'active', l: '🟢 Faol' }, { v: 'inactive', l: '🔴 Nofaol' }];
+      document.getElementById('zavod-status-pills').innerHTML = sts.map(s => `<button class="pill${_zavodStatusFilter === s.v ? ' active' : ''}" onclick="_zavodStatusFilter='${s.v}';renderFilteredZavodlar()">${s.l}</button>`).join('');
       try {
         [S.zavodlar, S.hududlar] = await Promise.all([fetch('/tma-api/zavodlar').then(r => r.json()), fetch('/tma-api/hududlar').then(r => r.json())]);
-        document.getElementById('zavodlar-list').innerHTML = S.zavodlar.length
-          ? S.zavodlar.map(z => `
-        <div class="card" onclick="showZavodDet(${z.id})">
-          <div class="card-head"><div class="card-title">🏭 ${z.name}</div><span class="badge ${z.is_active ? 'badge-active' : 'badge-inactive'}">${z.is_active ? 'Faol' : 'Nofaol'}</span></div>
-          ${z.tafsif ? `<div class="card-sub" style="margin-bottom:8px">${z.tafsif}</div>` : ''}
-          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
-            ${z.hududlar.length ? z.hududlar.map(h => `<span class="loc-tag">📍 ${h.viloyat} – ${h.tuman}</span>`).join('') : '<span style="font-size:12px;color:var(--hint)">Hudud biriktirilmagan</span>'}
-          </div>
-          <div style="margin-top:8px;font-size:12px;color:var(--hint)">👤 ${z.user_count} foydalanuvchi</div>
-        </div>`).join('')
-          : empty('🏭', 'Zavodlar yo\'q — "Yangi zavod" tugmasini bosing');
+        renderFilteredZavodlar();
       } catch (e) { console.error(e); }
+    }
+
+    function zavodCard(z) {
+      return `<div class="card" onclick="showZavodDet(${z.id})">
+        <div class="card-head"><div class="card-title">🏭 ${z.name}</div><span class="badge ${z.is_active ? 'badge-active' : 'badge-inactive'}">${z.is_active ? 'Faol' : 'Nofaol'}</span></div>
+        ${z.tafsif ? `<div class="card-sub" style="margin-bottom:8px">${z.tafsif}</div>` : ''}
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          ${z.hududlar.length ? z.hududlar.map(h => `<span class="loc-tag">📍 ${h.viloyat} – ${h.tuman}</span>`).join('') : '<span style="font-size:12px;color:var(--hint)">Hudud biriktirilmagan</span>'}
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--hint)">👤 ${z.user_count} foydalanuvchi</div>
+      </div>`;
+    }
+
+    function renderFilteredZavodlar() {
+      const q = (document.getElementById('zavod-search').value || '').toLowerCase().trim();
+      const vName = document.getElementById('zavod-viloyat-sel').value;
+      // Update pills active state
+      document.querySelectorAll('#zavod-status-pills .pill').forEach(btn => {
+        const bv = btn.getAttribute('onclick').match(/_zavodStatusFilter='([^']*)'/)?.[1] || '';
+        btn.classList.toggle('active', bv === _zavodStatusFilter);
+      });
+      let list = S.zavodlar;
+      if (q) list = list.filter(z => (z.name || '').toLowerCase().includes(q));
+      if (_zavodStatusFilter === 'active') list = list.filter(z => z.is_active);
+      if (_zavodStatusFilter === 'inactive') list = list.filter(z => !z.is_active);
+      if (vName) list = list.filter(z => z.hududlar.some(h => h.viloyat === vName));
+      document.getElementById('zavodlar-list').innerHTML = list.length ? list.map(zavodCard).join('') : empty('🏭', 'Zavodlar topilmadi');
     }
     async function openZavodForm() {
       S.editZavodId = null; S.editZavodHIds = [];
