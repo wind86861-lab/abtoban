@@ -163,6 +163,8 @@ class OrderService:
                 selectinload(Order.usta),
                 selectinload(Order.asphalt_type),
                 selectinload(Order.region),
+                selectinload(Order.viloyat),
+                selectinload(Order.tuman_rel),
             )
             .where(Order.id == order_id)
         )

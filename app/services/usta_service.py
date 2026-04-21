@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import AuditLog, Order, OrderStatus, User, UserRole
+from app.db.models import AuditLog, Order, OrderStatus, Region, User, UserRole, user_hududlar
 
 
 class UstaService:
@@ -42,13 +42,68 @@ class UstaService:
         )
 
         if region_id:
-            region_query = base_query.where(User.region_id == region_id)
+            # Step 1: exact region match (region_id or user_hududlar)
+            hudud_subq = (
+                select(user_hududlar.c.user_id)
+                .where(user_hududlar.c.hudud_id == region_id)
+            )
+            region_query = base_query.where(
+                or_(
+                    User.region_id == region_id,
+                    User.id.in_(hudud_subq),
+                )
+            )
             rows = await self.session.execute(region_query)
-            results = [(row[0], int(row[1])) for row in rows.all()]
+            seen = set()
+            results = []
+            for row in rows.all():
+                if row[0].id not in seen:
+                    seen.add(row[0].id)
+                    results.append((row[0], int(row[1])))
             if results:
                 return results
-            # fallback: ustas with no region assigned
-            fallback_query = base_query.where(User.region_id == None)
+
+            # Step 2: viloyat-level fallback — find all regions in same viloyat
+            # e.g. "Toshkent shahar" (id=1) and "Toshkent shahri" (id=7) are same area
+            region_row = await self.session.execute(
+                select(Region).where(Region.id == region_id)
+            )
+            region_obj = region_row.scalar_one_or_none()
+            if region_obj:
+                # Find sibling regions by name similarity (same viloyat root)
+                name_root = region_obj.name.split()[0] if region_obj.name else None
+                if name_root:
+                    sibling_ids_q = await self.session.execute(
+                        select(Region.id).where(Region.name.ilike(f"{name_root}%"))
+                    )
+                    sibling_ids = [r[0] for r in sibling_ids_q.all() if r[0] != region_id]
+                    if sibling_ids:
+                        sib_hudud_subq = (
+                            select(user_hududlar.c.user_id)
+                            .where(user_hududlar.c.hudud_id.in_(sibling_ids))
+                        )
+                        sib_query = base_query.where(
+                            or_(
+                                User.region_id.in_(sibling_ids),
+                                User.id.in_(sib_hudud_subq),
+                            )
+                        )
+                        rows = await self.session.execute(sib_query)
+                        seen = set()
+                        results = []
+                        for row in rows.all():
+                            if row[0].id not in seen:
+                                seen.add(row[0].id)
+                                results.append((row[0], int(row[1])))
+                        if results:
+                            return results
+
+            # Step 3: fallback — ustas with no region and no hududlar
+            no_hudud_subq = select(user_hududlar.c.user_id)
+            fallback_query = base_query.where(
+                User.region_id == None,
+                ~User.id.in_(no_hudud_subq),
+            )
             rows = await self.session.execute(fallback_query)
             return [(row[0], int(row[1])) for row in rows.all()]
 

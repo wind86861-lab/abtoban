@@ -46,10 +46,19 @@ def _fmt_order_detail(order) -> str:
     advance = f"{float(order.advance_paid):,.0f}" if order.advance_paid else "0"
     debt = f"{float(order.debt):,.0f}" if order.debt else "0"
     work_date = order.work_date.strftime("%d.%m.%Y") if order.work_date else "—"
+    viloyat = getattr(order, 'viloyat', None)
+    tuman = getattr(order, 'tuman_rel', None)
+    loc_parts = []
+    if viloyat:
+        loc_parts.append(viloyat.name)
+    if tuman:
+        loc_parts.append(tuman.name)
+    loc_str = ", ".join(loc_parts) if loc_parts else "—"
     return (
         f"📋 <b>Zakaz: {order.order_number}</b>\n\n"
         f"👤 Klient: <b>{order.client_name}</b>\n"
         f"📱 Tel: <b>{order.client_phone}</b>\n"
+        f"🗺 Viloyat/Tuman: <b>{loc_str}</b>\n"
         f"📍 Manzil: <b>{order.address or '—'}</b>\n"
         f"{location_link(order.latitude, order.longitude)}"
         f"📐 Maydon: <b>{order.area_m2 or '?'} m²</b>\n"
