@@ -259,7 +259,7 @@ async def submit_order(callback: CallbackQuery, state: FSMContext, user: User, s
     # Notify group
     from app.bot.loader import bot
     from app.bot.utils.group_notify import notify_new_order
-    await notify_new_order(bot, order)
+    await notify_new_order(bot, order, session)
 
     # Notify all masters
     from app.bot.i18n import get_lang as _gl

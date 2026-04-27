@@ -599,7 +599,7 @@ async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: U
     # Notify group
     from app.bot.loader import bot
     from app.bot.utils.group_notify import notify_new_order
-    await notify_new_order(bot, order)
+    await notify_new_order(bot, order, session)
 
     # Notify masters
     user_svc = UserService(session)

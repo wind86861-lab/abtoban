@@ -7,11 +7,27 @@ logger = logging.getLogger(__name__)
 GROUP_CHAT_ID = "-1003980849177"
 
 
-async def notify_new_order(bot, order) -> None:
+async def notify_new_order(bot, order, session) -> None:
     """Send new order notification to group."""
     try:
-        asphalt = order.asphalt_type.name if order.asphalt_type else "—"
-        viloyat = order.viloyat.name if order.viloyat else "—"
+        from sqlalchemy import select
+        from app.db.models import AsphaltType, Viloyat
+
+        # Explicit async queries — no lazy loading
+        asphalt = "—"
+        if order.asphalt_type_id:
+            r = await session.execute(
+                select(AsphaltType.name).where(AsphaltType.id == order.asphalt_type_id)
+            )
+            asphalt = r.scalar_one_or_none() or "—"
+
+        viloyat = "—"
+        if order.viloyat_id:
+            r = await session.execute(
+                select(Viloyat.name).where(Viloyat.id == order.viloyat_id)
+            )
+            viloyat = r.scalar_one_or_none() or "—"
+
         text = (
             f"🆕 <b>Yangi zakaz!</b>\n\n"
             f"📋 {order.order_number}\n"
@@ -26,15 +42,39 @@ async def notify_new_order(bot, order) -> None:
         logger.error(f"Please verify the bot is a member/admin in {GROUP_CHAT_ID}")
 
 
-async def notify_order_done(bot, order, session=None) -> None:
+async def notify_order_done(bot, order, session) -> None:
     """Send full completion report to group."""
     try:
         logger.info(f"Sending order done notification to group {GROUP_CHAT_ID}, order={order.order_number}")
-        asphalt = order.asphalt_type.name if order.asphalt_type else "—"
-        viloyat = order.viloyat.name if order.viloyat else "—"
-        usta_name = order.usta.full_name if order.usta else "—"
-        master_name = order.master.full_name if order.master else "—"
-        zavod_name = order.zavod.full_name if order.zavod else "—"
+        from sqlalchemy import select
+        from app.db.models import AsphaltType, Viloyat, User, PaymentTransfer, Expense, OrderLineItem
+        from app.services.expense_service import EXPENSE_LABELS
+
+        # Explicit async queries — no lazy loading
+        asphalt = "—"
+        if order.asphalt_type_id:
+            r = await session.execute(
+                select(AsphaltType.name).where(AsphaltType.id == order.asphalt_type_id)
+            )
+            asphalt = r.scalar_one_or_none() or "—"
+
+        viloyat = "—"
+        if order.viloyat_id:
+            r = await session.execute(
+                select(Viloyat.name).where(Viloyat.id == order.viloyat_id)
+            )
+            viloyat = r.scalar_one_or_none() or "—"
+
+        async def _user_name(uid: int | None) -> str:
+            if not uid:
+                return "—"
+            r = await session.execute(select(User.full_name).where(User.id == uid))
+            return r.scalar_one_or_none() or "—"
+
+        usta_name = await _user_name(order.usta_id)
+        master_name = await _user_name(order.master_id)
+        zavod_name = await _user_name(order.zavod_id)
+
         completed = (
             order.completed_at.strftime("%d.%m.%Y %H:%M")
             if order.completed_at
@@ -43,40 +83,38 @@ async def notify_order_done(bot, order, session=None) -> None:
         total = float(order.total_price or 0)
         advance = float(order.advance_paid or 0)
 
-        # Payment transfer data
-        p_collected = p_wage = p_sent = zavod_recv = material_cost = expenses_total = 0
-        if session:
-            from sqlalchemy import select
-            from app.db.models import PaymentTransfer, Expense
-            from app.services.expense_service import EXPENSE_LABELS
+        # Payment transfer
+        p_collected = p_wage = p_sent = zavod_recv = 0.0
+        r = await session.execute(
+            select(PaymentTransfer).where(PaymentTransfer.order_id == order.id)
+        )
+        pt = r.scalar_one_or_none()
+        if pt:
+            p_collected = float(pt.usta_collected or 0)
+            p_wage = float(pt.usta_wage_taken or 0)
+            p_sent = float(pt.usta_sent or 0)
+            zavod_recv = float(pt.zavod_received or 0)
 
-            # Payment
-            r = await session.execute(
-                select(PaymentTransfer).where(PaymentTransfer.order_id == order.id)
-            )
-            pt = r.scalar_one_or_none()
-            if pt:
-                p_collected = float(pt.usta_collected or 0)
-                p_wage = float(pt.usta_wage_taken or 0)
-                p_sent = float(pt.usta_sent or 0)
-                zavod_recv = float(pt.zavod_received or 0)
+        # Material cost from line items (explicit query)
+        r = await session.execute(
+            select(OrderLineItem).where(OrderLineItem.order_id == order.id)
+        )
+        line_items = r.scalars().all()
+        material_cost = sum(
+            float(item.cost_price_per_m2 or 0) * float(item.area_m2 or 0)
+            for item in line_items
+        )
 
-            # Material cost
-            material_cost = sum(
-                float(item.cost_price_per_m2 or 0) * float(item.area_m2 or 0)
-                for item in (order.line_items or [])
-            )
-
-            # Expenses
-            r = await session.execute(
-                select(Expense).where(Expense.order_id == order.id)
-            )
-            expenses = r.scalars().all()
-            expenses_total = sum(float(e.amount) for e in expenses)
-            expenses_detail = ""
-            if expenses:
-                lines = [f"    • {EXPENSE_LABELS.get(e.expense_type, e.expense_type)}: {float(e.amount):,.0f}" for e in expenses]
-                expenses_detail = "\n" + "\n".join(lines)
+        # Expenses
+        r = await session.execute(
+            select(Expense).where(Expense.order_id == order.id)
+        )
+        expenses = r.scalars().all()
+        expenses_total = sum(float(e.amount) for e in expenses)
+        expenses_detail = ""
+        if expenses:
+            lines = [f"    • {EXPENSE_LABELS.get(e.expense_type, e.expense_type)}: {float(e.amount):,.0f}" for e in expenses]
+            expenses_detail = "\n" + "\n".join(lines)
 
         master_kom = float(order.master_commission or 0)
         foyda = total - p_wage - master_kom - material_cost - expenses_total
@@ -92,7 +130,7 @@ async def notify_order_done(bot, order, session=None) -> None:
             f"  👷 Usta: {usta_name}\n"
             f"  🧑‍💼 Master: {master_name}\n"
             f"  🏭 Zavod: {zavod_name}\n\n"
-            f"� Moliyaviy hisobot:\n"
+            f"💳 Moliyaviy hisobot:\n"
             f"  📄 Shartnoma: {total:,.0f} so'm\n"
             f"  ✅ Avans: {advance:,.0f} so'm\n"
             f"  💰 Klientdan olingan: {p_collected:,.0f} so'm\n\n"
