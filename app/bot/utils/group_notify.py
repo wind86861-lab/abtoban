@@ -1,5 +1,9 @@
 """Send notifications to the EVRO_ASFALT Telegram group."""
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 GROUP_CHAT_ID = "@EVRO_ASFALT"
 
 
@@ -16,13 +20,16 @@ async def notify_new_order(bot, order) -> None:
             f"👤 Klient: {order.client_name or '—'}"
         )
         await bot.send_message(GROUP_CHAT_ID, text)
-    except Exception:
-        pass
+        logger.info(f"New order notification sent to {GROUP_CHAT_ID}")
+    except Exception as exc:
+        logger.error(f"Failed to send new order notification to group {GROUP_CHAT_ID}: {exc!r}")
+        logger.error(f"Please verify the bot is a member/admin in {GROUP_CHAT_ID}")
 
 
 async def notify_order_done(bot, order, session=None) -> None:
     """Send full completion report to group."""
     try:
+        logger.info(f"Sending order done notification to group {GROUP_CHAT_ID}, order={order.order_number}")
         asphalt = order.asphalt_type.name if order.asphalt_type else "—"
         viloyat = order.viloyat.name if order.viloyat else "—"
         usta_name = order.usta.full_name if order.usta else "—"
@@ -99,5 +106,7 @@ async def notify_order_done(bot, order, session=None) -> None:
             f"📈 <b>Umumiy foyda: {foyda:,.0f} so'm</b>"
         )
         await bot.send_message(GROUP_CHAT_ID, text)
-    except Exception:
-        pass
+        logger.info(f"Order done notification sent to {GROUP_CHAT_ID}")
+    except Exception as exc:
+        logger.error(f"Failed to send order done notification to group {GROUP_CHAT_ID}: {exc!r}")
+        logger.error(f"Please verify the bot is a member/admin in {GROUP_CHAT_ID}")
