@@ -96,9 +96,9 @@ def format_order_full(order: Order, viewer_role: UserRole, lang: str = "uz_lat")
     if is_admin or viewer_role == UserRole.MASTER or viewer_role == UserRole.USTA:
         text += _contact("👤 Klient", getattr(order, "client", None))
     if is_admin or viewer_role == UserRole.USTA or viewer_role == UserRole.KLIENT:
-        text += _contact("👷‍♂️ Master", getattr(order, "master", None))
+        text += _contact("👷‍♂️ Mutaxassis", getattr(order, "master", None))
     if is_admin or viewer_role == UserRole.MASTER or viewer_role == UserRole.KLIENT:
-        text += _contact("🔨 Usta", getattr(order, "usta", None))
+        text += _contact("🔨 Master", getattr(order, "usta", None))
 
     # Financial section
     text += "\n💰 <b>Moliyaviy:</b>\n"
@@ -107,9 +107,9 @@ def format_order_full(order: Order, viewer_role: UserRole, lang: str = "uz_lat")
         text += f"💳 Avans: <b>{_money(order.advance_paid)} so'm</b>\n"
         text += f"📉 Qarz: <b>{_money(order.debt)} so'm</b>\n"
     if is_admin or viewer_role == UserRole.USTA:
-        text += f"🔨 Usta haqi: <b>{_money(order.usta_wage)} so'm</b>\n"
+        text += f"🔨 Master haqi: <b>{_money(order.usta_wage)} so'm</b>\n"
     if is_admin or viewer_role == UserRole.MASTER:
-        text += f"🎯 Master komissiyasi: <b>{_money(order.master_commission)} so'm</b>\n"
+        text += f"🎯 Mutaxassis komissiyasi: <b>{_money(order.master_commission)} so'm</b>\n"
 
     if order.notes:
         text += f"\n📝 Izoh: <i>{order.notes}</i>\n"
@@ -173,9 +173,9 @@ def format_order_completion_report(
     if viewer_role == UserRole.MASTER:
         usta_name = order.usta.full_name if order.usta else "—"
         text = (
-            f"✅ <b>Usta ishni tugatdi!</b>\n\n"
+            f"✅ <b>Master ishni tugatdi!</b>\n\n"
             f"🔢 #{order.order_number}\n"
-            f"🔨 Usta: <b>{usta_name}</b>\n"
+            f"🔨 Master: <b>{usta_name}</b>\n"
             f"📍 {order.address or '—'}\n"
             f"📐 {order.area_m2 or '?'} m²\n"
             f"💵 Umumiy: <b>{_money(order.total_price)} so'm</b>\n"
@@ -227,16 +227,16 @@ def format_order_completion_report(
         + f"\n👥 <b>Ishtirokchilar:</b>\n"
         f"   👤 Klient: <b>{client_name}</b>\n"
         f"      📱 <code>{client_phone}</code>\n"
-        f"   👷‍♂️ Master: <b>{master_name}</b>\n"
+        f"   👷‍♂️ Mutaxassis: <b>{master_name}</b>\n"
         f"      📱 <code>{master_phone}</code>\n"
-        f"   🔨 Usta: <b>{usta_name}</b>\n"
+        f"   🔨 Master: <b>{usta_name}</b>\n"
         f"      📱 <code>{usta_phone}</code>\n\n"
         f"💰 <b>Moliya:</b>\n"
         f"   💵 Umumiy narx: <b>{_money(order.total_price)} so'm</b>\n"
         f"   💳 Avans: <b>{_money(order.advance_paid)} so'm</b>\n"
         f"   📉 Qarz: <b>{_money(order.debt)} so'm</b>\n"
-        f"   🔨 Usta haqi: <b>{_money(order.usta_wage)} so'm</b>\n"
-        f"   🎯 Master komissiya: <b>{_money(order.master_commission)} so'm</b>\n"
+        f"   🔨 Master haqi: <b>{_money(order.usta_wage)} so'm</b>\n"
+        f"   🎯 Mutaxassis komissiya: <b>{_money(order.master_commission)} so'm</b>\n"
         f"{expenses_block}"
         f"\n📊 <b>Sof foyda: {_money(profit)} so'm</b>\n"
     )

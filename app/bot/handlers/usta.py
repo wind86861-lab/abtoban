@@ -168,7 +168,7 @@ async def usta_payment_collected(message: Message, user: User, state: FSMContext
     if sent < 0:
         await message.answer(
             f"❌ Kiritilgan summa ({float(collected):,.0f} so'm) "
-            f"usta haqidan ({float(wage):,.0f} so'm) kam.\nQayta kiriting:"
+            f"master haqidan ({float(wage):,.0f} so'm) kam.\nQayta kiriting:"
         )
         return
 
@@ -178,7 +178,7 @@ async def usta_payment_collected(message: Message, user: User, state: FSMContext
     await message.answer(
         f"📊 <b>To'lov hisobi:</b>\n\n"
         f"💰 Klientdan olindi: <b>{float(collected):,.0f} so'm</b>\n"
-        f"🔧 Usta haqi (siz): <b>{float(wage):,.0f} so'm</b>\n"
+        f"🔧 Master haqi (siz): <b>{float(wage):,.0f} so'm</b>\n"
         f"🏭 Zavodga yuboriladi: <b>{float(sent):,.0f} so'm</b>\n\n"
         f"Tasdiqlaysizmi?",
         reply_markup=get_usta_payment_confirm_keyboard(order_id),
@@ -217,7 +217,7 @@ async def usta_payment_do_confirm(callback: CallbackQuery, user: User, session, 
     await callback.message.edit_text(
         f"✅ <b>To'lov ma'lumotlari yuborildi!</b>\n\n"
         f"💰 Klientdan olindi: {float(collected):,.0f} so'm\n"
-        f"🔧 Usta haqi: {float(wage):,.0f} so'm\n"
+        f"🔧 Master haqi: {float(wage):,.0f} so'm\n"
         f"🏭 Zavodga: <b>{float(sent):,.0f} so'm</b>\n\n"
         f"⏳ Zavod shofyordan pul qabul qilib tasdiqlashini kuting."
     )
@@ -254,9 +254,9 @@ async def _notify_zavod_payment(session, order, transfer, usta_user) -> None:
     text = (
         f"💸 <b>To'lov keldi!</b>\n\n"
         f"📋 Zakaz: {order.order_number}\n"
-        f"👷 Usta: {usta_user.full_name or '—'}\n"
+        f"👷 Master: {usta_user.full_name or '—'}\n"
         f"📍 {order.address or '—'}\n\n"
-        f"💰 Usta olingan: {float(transfer.usta_collected):,.0f} so'm\n"
+        f"💰 Master olingan: {float(transfer.usta_collected):,.0f} so'm\n"
         f"🏭 Zavodga kelmoqda: <b>{float(transfer.usta_sent):,.0f} so'm</b>\n\n"
         f"Shofyor orqali pul qabul qiling va tasdiqlang."
     )

@@ -1,0 +1,669 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content %}
+<style>
+  .oa-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+
+  .oa-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .06);
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+    transition: box-shadow .2s;
+  }
+
+  .oa-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .1);
+  }
+
+  .oa-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .oa-num {
+    font-weight: 800;
+    font-size: .95rem;
+    color: #1e293b;
+  }
+
+  .oa-badge {
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: .72rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .oa-body {
+    padding: 12px 16px;
+  }
+
+  .oa-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .84rem;
+    color: #475569;
+    margin-bottom: 4px;
+  }
+
+  .oa-row strong {
+    color: #1e293b;
+  }
+
+  .oa-actions {
+    padding: 12px 16px;
+    border-top: 1px solid #f1f5f9;
+    background: #fafbfc;
+  }
+
+  /* Status progress bar */
+  .oa-progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 12px;
+    padding: 0 16px 0;
+  }
+
+  .oa-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+  }
+
+  .oa-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    font-weight: 700;
+    z-index: 1;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    color: #94a3b8;
+  }
+
+  .oa-dot.done {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #fff;
+  }
+
+  .oa-dot.current {
+    background: #FF6B00;
+    border-color: #FF6B00;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 107, 0, .2);
+  }
+
+  .oa-dot.pending {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+  }
+
+  .oa-step-label {
+    font-size: .65rem;
+    font-weight: 600;
+    margin-top: 4px;
+    color: #94a3b8;
+    text-align: center;
+  }
+
+  .oa-step-label.done {
+    color: #22c55e;
+  }
+
+  .oa-step-label.current {
+    color: #FF6B00;
+  }
+
+  .oa-line {
+    flex: 1;
+    height: 3px;
+    background: #e2e8f0;
+    margin: 0 -4px;
+    position: relative;
+    top: -14px;
+  }
+
+  .oa-line.done {
+    background: #22c55e;
+  }
+
+  .oa-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: .85rem;
+    cursor: pointer;
+    text-align: center;
+    transition: opacity .2s;
+  }
+
+  .oa-btn:hover {
+    opacity: .9;
+  }
+
+  .oa-btn-orange {
+    background: linear-gradient(90deg, #FF6B00, #ff8533);
+    color: #fff;
+  }
+
+  .oa-btn-amber {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    color: #fff;
+  }
+
+  .oa-btn-green {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    color: #fff;
+  }
+
+  @media(max-width:420px) {
+    .oa-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+<div class="col-12" style="padding:0;">
+  <div style="max-width:1200px;margin:0 auto;padding:16px;">
+
+    <!-- Toast messages -->
+    {% if msg == 'confirmed' %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert"
+      style="border-radius:12px;background:#dcfce7;color:#166534;">
+      ✅ {{ t('order_confirmed_msg') }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% elif msg == 'status_ok' %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert"
+      style="border-radius:12px;background:#dcfce7;color:#166534;">
+      ✅ {{ t('status_changed_msg') }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% elif msg and msg.startswith('error') %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert"
+      style="border-radius:12px;background:#fef2f2;color:#991b1b;">
+      ❌ {{ t('error_generic') }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- ═══════ SECTION 1: New orders to confirm ═══════ -->
+    <div style="margin-bottom:32px;">
+      <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:4px;color:#1e293b;">
+        📋 {{ t('new_orders_title') }}
+      </h2>
+      <p style="color:#64748b;font-size:.85rem;margin-bottom:16px;">{{ t('new_orders_sub') }}</p>
+
+      {% if new_orders %}
+      <div class="oa-grid">
+        {% for o in new_orders %}
+        <div class="oa-card">
+          <div class="oa-top">
+            <span class="oa-num">{{ o.order_number }}</span>
+            <span class="oa-badge" style="background:#e0f7fa;color:#00838f;border:1px solid #b2ebf2;">🆕 {{
+              t('status_new') }}</span>
+          </div>
+          <div class="oa-body">
+            <div class="oa-row">👤 <strong>{{ o.client_name }}</strong></div>
+            <div class="oa-row">📱 {{ o.client_phone }}</div>
+            {% if o.address %}<div class="oa-row">📍 {{ o.address[:50] }}{% if o.address|length > 50 %}…{% endif %}
+            </div>{% endif %}
+            {% if o.area_m2 %}<div class="oa-row">📐 {{ o.area_m2 }} m²</div>{% endif %}
+            {% if o.asphalt_type %}<div class="oa-row">🏗 {{ o.asphalt_type.name }}</div>{% endif %}
+            <div class="oa-row">📅 {{ o.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+          </div>
+          <div class="oa-actions">
+            <button class="oa-btn oa-btn-orange"
+              onclick="openConfirm({{ o.id }},'{{ o.order_number }}','{{ o.client_name|e }}','{{ o.client_phone }}','{{ (o.address or '')|e }}','{{ o.area_m2 or '' }}')">
+              ✅ {{ t('confirm_btn') }}
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+        <div style="font-size:2rem;">📭</div>
+        <p>{{ t('no_new_orders_msg') }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ═══════ SECTION 2: My active orders (status change) ═══════ -->
+    <div style="margin-bottom:32px;">
+      <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:4px;color:#1e293b;">
+        🔧 {{ t('my_active_orders') }}
+      </h2>
+      <p style="color:#64748b;font-size:.85rem;margin-bottom:16px;">{{ t('active_orders_sub') }}</p>
+
+      {% if my_orders %}
+      <div class="oa-grid">
+        {% for o in my_orders %}
+        {% set sv = o.status.value %}
+        <div class="oa-card">
+          <div class="oa-top">
+            <span class="oa-num">{{ o.order_number }}</span>
+            {% if sv == 'confirmed' %}
+            <span class="oa-badge" style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;">✅ {{
+              t('status_confirmed') }}</span>
+            {% elif sv == 'in_work' %}
+            <span class="oa-badge" style="background:#fff3e0;color:#e65100;border:1px solid #ffe0b2;">🔧 {{
+              t('status_in_work') }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Status progress bar -->
+          <div class="oa-progress" style="padding-top:12px;">
+            <div class="oa-step">
+              <div class="oa-dot done">✓</div>
+              <div class="oa-step-label done">{{ t('status_confirmed') }}</div>
+            </div>
+            <div class="oa-line {{ 'done' if sv == 'in_work' else '' }}"></div>
+            <div class="oa-step">
+              <div class="oa-dot {{ 'done' if sv == 'in_work' else 'current' if sv == 'confirmed' else 'pending' }}">
+                {% if sv == 'in_work' %}✓{% else %}2{% endif %}
+              </div>
+              <div class="oa-step-label {{ 'done' if sv == 'in_work' else 'current' if sv == 'confirmed' else '' }}">{{
+                t('status_in_work') }}</div>
+            </div>
+            <div class="oa-line"></div>
+            <div class="oa-step">
+              <div class="oa-dot pending">3</div>
+              <div class="oa-step-label">{{ t('status_done') }}</div>
+            </div>
+          </div>
+
+          <div class="oa-body">
+            <div class="oa-row">👤 <strong>{{ o.client_name }}</strong> · 📱 {{ o.client_phone }}</div>
+            {% if o.address %}<div class="oa-row">📍 {{ o.address[:40] }}{% if o.address|length > 40 %}…{% endif %}
+            </div>{% endif %}
+            <div class="oa-row">📐 {{ o.area_m2 or '?' }} m² · 💰 {{ "{:,.0f}".format(o.total_price or 0) }} {{ t('som')
+              }}</div>
+            {% if o.usta %}<div class="oa-row">👷 {{ o.usta.full_name or o.usta.phone }}</div>{% endif %}
+            {% if o.work_date %}<div class="oa-row">📅 {{ o.work_date.strftime('%d.%m.%Y') }}</div>{% endif %}
+          </div>
+
+          <div class="oa-actions">
+            {% if sv == 'confirmed' %}
+            <form action="/master-panel/admin/order-actions/status-save" method="post">
+              <input type="hidden" name="order_id" value="{{ o.id }}">
+              <input type="hidden" name="new_status" value="in_work">
+              <button type="submit" class="oa-btn oa-btn-amber">
+                🔧 {{ t('start_work_btn') }} →
+              </button>
+            </form>
+            {% elif sv == 'in_work' %}
+            <form action="/master-panel/admin/order-actions/status-save" method="post">
+              <input type="hidden" name="order_id" value="{{ o.id }}">
+              <input type="hidden" name="new_status" value="done">
+              <button type="submit" class="oa-btn oa-btn-green">
+                🏁 {{ t('finish_btn') }} →
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+        <div style="font-size:2rem;">📭</div>
+        <p>{{ t('no_active_orders_msg') }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════ Confirm modal ═══════ -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:16px;border:none;">
+      <div class="modal-header"
+        style="background:linear-gradient(135deg,#FF6B00,#ff8533);color:#fff;border-radius:16px 16px 0 0;padding:18px 24px;">
+        <h5 class="modal-title" style="font-weight:800;color:#fff !important;">✅ {{ t('confirm_order_title') }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/master-panel/admin/order-actions/confirm" method="post" id="cfForm">
+        <div class="modal-body" style="padding:24px;">
+          <input type="hidden" name="order_id" id="cf_order_id">
+          <input type="hidden" name="line_items_json" id="cf_line_items_json" value="[]">
+
+          <div class="mb-3" style="background:#f1f5f9;border-radius:10px;padding:12px;">
+            <strong id="cf_header" style="color:#1e293b;"></strong>
+            <div id="cf_info" style="font-size:.85rem;color:#475569;margin-top:4px;"></div>
+          </div>
+
+          <!-- 1. Area + Address -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold" style="color:#334155;">📐 {{ t('area_m2_label') }} *</label>
+              <input type="number" name="area_m2" id="cf_area" class="form-control" step="0.01" min="0.01" required
+                onchange="recalcAll()">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold" style="color:#334155;">� {{ t('th_address') }} *</label>
+              <input type="text" name="address" id="cf_address" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold" style="color:#334155;">� {{ t('work_date_label') }} *</label>
+              <input type="date" name="work_date" class="form-control" required>
+            </div>
+          </div>
+
+          <!-- 2. Main asphalt type -->
+          <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px;margin-bottom:12px;">
+            <div style="font-weight:700;color:#c2410c;margin-bottom:8px;">🏗 {{ t('main_asphalt') }}</div>
+            <div class="row g-2" id="mainRow">
+              <div class="col-md-3">
+                <select class="form-select form-select-sm li-cat" data-row="main" onchange="onCatChange(this)">
+                  <option value="">{{ t('select_category') }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select form-select-sm li-sub" data-row="main" onchange="onSubChange(this)">
+                  <option value="">{{ t('select_subcategory') }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select form-select-sm li-mat" data-row="main" onchange="onMatChange(this)">
+                  <option value="">{{ t('select_material') }}</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2" style="font-size:.85rem;color:#334155;">
+                  <span class="li-price-label" data-row="main" style="font-weight:600;">—</span>
+                  <span style="color:#94a3b8;">/m²</span>
+                  <span style="margin-left:auto;font-weight:700;color:#c2410c;" class="li-subtotal"
+                    data-row="main">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Extra services -->
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-weight:700;color:#1e293b;">➕ {{ t('extra_services') }}</span>
+              <button type="button" class="btn btn-sm"
+                style="background:#FF6B00;color:#fff;border-radius:8px;font-size:.8rem;font-weight:600;"
+                onclick="addExtraRow()">
+                {{ t('add_service') }}
+              </button>
+            </div>
+            <div id="extraRows"></div>
+            <div id="noExtras" style="text-align:center;color:#94a3b8;font-size:.85rem;padding:8px;">
+              {{ t('no_data') }}
+            </div>
+          </div>
+
+          <!-- 4. Totals summary -->
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin-bottom:16px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span style="font-weight:600;color:#166534;">📊 {{ t('calculated_total') }}</span>
+              <span id="calcTotalDisplay" style="font-size:1.3rem;font-weight:800;color:#166534;">0 {{ t('som')
+                }}</span>
+            </div>
+            <div id="lineItemsSummary" style="font-size:.82rem;color:#475569;"></div>
+          </div>
+
+          <!-- 5. Agreed sum + money fields -->
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold" style="color:#334155;">� {{ t('agreed_sum') }} *</label>
+              <input type="number" name="total_price" id="cf_agreed" class="form-control" step="1000" min="0" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold" style="color:#334155;">� {{ t('advance_label') }} *</label>
+              <input type="number" name="advance_paid" class="form-control" step="1000" min="0" value="0" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold" style="color:#334155;">👷 {{ t('usta_wage') }}</label>
+              <input type="number" name="usta_wage" class="form-control" step="1000" min="0" value="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold" style="color:#334155;">💼 {{ t('my_commission') }}</label>
+              <input type="number" name="master_commission" class="form-control" step="1000" min="0" value="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold" style="color:#334155;">👷 {{ t('select_usta_label') }}</label>
+              <select name="usta_id" class="form-select">
+                <option value="">— {{ t('not_assigned') }} —</option>
+                {% for u in ustas %}
+                <option value="{{ u.id }}">{{ u.full_name or u.phone }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold" style="color:#334155;">📝 {{ t('notes_label') }}</label>
+              <input type="text" name="notes" class="form-control" placeholder="{{ t('comment_placeholder') }}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="border:none;padding:16px 24px;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:10px;">{{
+            t('back') }}</button>
+          <button type="submit" class="btn"
+            style="background:#FF6B00;color:#fff;border-radius:10px;font-weight:700;min-width:160px;">
+            ✅ {{ t('confirm_and_save') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  var CATS = {{ categories_json| safe }};
+  var SOM = '{{ t("som") }}';
+  var extraCounter = 0;
+
+  function populateCatSelect(sel) {
+    sel.innerHTML = '<option value="">{{ t("select_category") }}</option>';
+    CATS.forEach(function (c) {
+      sel.innerHTML += '<option value="' + c.id + '">' + c.name + '</option>';
+    });
+  }
+
+  function onCatChange(sel) {
+    var row = sel.dataset.row;
+    var catId = parseInt(sel.value);
+    var subSel = document.querySelector('.li-sub[data-row="' + row + '"]');
+    var matSel = document.querySelector('.li-mat[data-row="' + row + '"]');
+    subSel.innerHTML = '<option value="">{{ t("select_subcategory") }}</option>';
+    matSel.innerHTML = '<option value="">{{ t("select_material") }}</option>';
+    resetRowPrice(row);
+    var cat = CATS.find(function (c) { return c.id === catId; });
+    if (cat) {
+      cat.subs.forEach(function (s) {
+        subSel.innerHTML += '<option value="' + s.id + '">' + s.name + '</option>';
+      });
+    }
+  }
+
+  function onSubChange(sel) {
+    var row = sel.dataset.row;
+    var catSel = document.querySelector('.li-cat[data-row="' + row + '"]');
+    var matSel = document.querySelector('.li-mat[data-row="' + row + '"]');
+    matSel.innerHTML = '<option value="">{{ t("select_material") }}</option>';
+    resetRowPrice(row);
+    var catId = parseInt(catSel.value);
+    var subId = parseInt(sel.value);
+    var cat = CATS.find(function (c) { return c.id === catId; });
+    if (cat) {
+      var sub = cat.subs.find(function (s) { return s.id === subId; });
+      if (sub) {
+        sub.materials.forEach(function (m) {
+          matSel.innerHTML += '<option value="' + m.id + '" data-price="' + m.price + '" data-cost="' + m.cost + '">' + m.name + ' (' + fmtNum(m.price) + '/m²)</option>';
+        });
+      }
+    }
+  }
+
+  function onMatChange(sel) {
+    var row = sel.dataset.row;
+    var opt = sel.options[sel.selectedIndex];
+    var price = parseFloat(opt.dataset.price || 0);
+    var lbl = document.querySelector('.li-price-label[data-row="' + row + '"]');
+    lbl.textContent = price ? fmtNum(price) : '—';
+    recalcAll();
+  }
+
+  function resetRowPrice(row) {
+    document.querySelector('.li-price-label[data-row="' + row + '"]').textContent = '—';
+    document.querySelector('.li-subtotal[data-row="' + row + '"]').textContent = '0';
+    recalcAll();
+  }
+
+  function getRowData(row) {
+    var matSel = document.querySelector('.li-mat[data-row="' + row + '"]');
+    if (!matSel || !matSel.value) return null;
+    var opt = matSel.options[matSel.selectedIndex];
+    var area = parseFloat(document.getElementById('cf_area').value) || 0;
+    return {
+      asphalt_type_id: parseInt(matSel.value),
+      description: opt.textContent.split('(')[0].trim(),
+      area_m2: area,
+      price_per_m2: parseFloat(opt.dataset.price || 0),
+      cost_price_per_m2: parseFloat(opt.dataset.cost || 0),
+      is_main: row === 'main'
+    };
+  }
+
+  function recalcAll() {
+    var area = parseFloat(document.getElementById('cf_area').value) || 0;
+    var total = 0;
+    var summaryHtml = '';
+    var items = [];
+
+    // Main row
+    var mainData = getRowData('main');
+    if (mainData) {
+      var sub = area * mainData.price_per_m2;
+      document.querySelector('.li-subtotal[data-row="main"]').textContent = fmtNum(sub);
+      total += sub;
+      summaryHtml += '<div>🏗 ' + mainData.description + ': ' + fmtNum(area) + ' m² × ' + fmtNum(mainData.price_per_m2) + ' = <b>' + fmtNum(sub) + '</b></div>';
+      mainData.area_m2 = area;
+      items.push(mainData);
+    } else {
+      document.querySelector('.li-subtotal[data-row="main"]').textContent = '0';
+    }
+
+    // Extra rows
+    document.querySelectorAll('.extra-row').forEach(function (el) {
+      var row = el.dataset.row;
+      var data = getRowData(row);
+      if (data) {
+        var sub = area * data.price_per_m2;
+        document.querySelector('.li-subtotal[data-row="' + row + '"]').textContent = fmtNum(sub);
+        total += sub;
+        summaryHtml += '<div>➕ ' + data.description + ': ' + fmtNum(area) + ' m² × ' + fmtNum(data.price_per_m2) + ' = <b>' + fmtNum(sub) + '</b></div>';
+        data.area_m2 = area;
+        items.push(data);
+      }
+    });
+
+    document.getElementById('calcTotalDisplay').textContent = fmtNum(total) + ' ' + SOM;
+    document.getElementById('lineItemsSummary').innerHTML = summaryHtml;
+    document.getElementById('cf_line_items_json').value = JSON.stringify(items);
+
+    // Auto-fill agreed sum if empty
+    var agreedEl = document.getElementById('cf_agreed');
+    if (!agreedEl.dataset.touched) {
+      agreedEl.value = Math.round(total);
+    }
+  }
+
+  function addExtraRow() {
+    extraCounter++;
+    var row = 'extra' + extraCounter;
+    var html = '<div class="extra-row row g-2 mb-2 align-items-center" data-row="' + row + '" id="row_' + row + '">'
+      + '<div class="col-md-3"><select class="form-select form-select-sm li-cat" data-row="' + row + '" onchange="onCatChange(this)"></select></div>'
+      + '<div class="col-md-3"><select class="form-select form-select-sm li-sub" data-row="' + row + '" onchange="onSubChange(this)"><option value="">{{ t("select_subcategory") }}</option></select></div>'
+      + '<div class="col-md-3"><select class="form-select form-select-sm li-mat" data-row="' + row + '" onchange="onMatChange(this)"><option value="">{{ t("select_material") }}</option></select></div>'
+      + '<div class="col-md-3"><div class="d-flex align-items-center gap-2" style="font-size:.85rem;">'
+      + '<span class="li-price-label" data-row="' + row + '" style="font-weight:600;">—</span>'
+      + '<span style="color:#94a3b8;">/m²</span>'
+      + '<span style="margin-left:auto;font-weight:700;color:#c2410c;" class="li-subtotal" data-row="' + row + '">0</span>'
+      + '<button type="button" class="btn btn-sm btn-outline-danger ms-1" style="padding:2px 8px;font-size:.75rem;" onclick="removeRow(\'' + row + '\')">✕</button>'
+      + '</div></div></div>';
+    document.getElementById('extraRows').insertAdjacentHTML('beforeend', html);
+    document.getElementById('noExtras').style.display = 'none';
+    populateCatSelect(document.querySelector('.li-cat[data-row="' + row + '"]'));
+  }
+
+  function removeRow(row) {
+    var el = document.getElementById('row_' + row);
+    if (el) el.remove();
+    if (document.querySelectorAll('.extra-row').length === 0) {
+      document.getElementById('noExtras').style.display = 'block';
+    }
+    recalcAll();
+  }
+
+  function fmtNum(n) {
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function openConfirm(id, number, name, phone, address, area) {
+    document.getElementById('cf_order_id').value = id;
+    document.getElementById('cf_header').textContent = '📋 ' + number;
+    document.getElementById('cf_info').textContent = '👤 ' + name + ' · 📱 ' + phone;
+    document.getElementById('cf_address').value = address || '';
+    document.getElementById('cf_area').value = area || '';
+    document.getElementById('cf_agreed').value = '';
+    document.getElementById('cf_agreed').dataset.touched = '';
+    document.getElementById('lineItemsSummary').innerHTML = '';
+    document.getElementById('calcTotalDisplay').textContent = '0 ' + SOM;
+    document.getElementById('cf_line_items_json').value = '[]';
+    // Reset extras
+    document.getElementById('extraRows').innerHTML = '';
+    document.getElementById('noExtras').style.display = 'block';
+    extraCounter = 0;
+    // Populate main cat select
+    populateCatSelect(document.querySelector('.li-cat[data-row="main"]'));
+    // Reset main selects
+    document.querySelector('.li-sub[data-row="main"]').innerHTML = '<option value="">{{ t("select_subcategory") }}</option>';
+    document.querySelector('.li-mat[data-row="main"]').innerHTML = '<option value="">{{ t("select_material") }}</option>';
+    document.querySelector('.li-price-label[data-row="main"]').textContent = '—';
+    document.querySelector('.li-subtotal[data-row="main"]').textContent = '0';
+
+    var m = new bootstrap.Modal(document.getElementById('confirmModal'));
+    m.show();
+  }
+
+  // Mark agreed sum as touched when user types
+  document.getElementById('cf_agreed').addEventListener('input', function () {
+    this.dataset.touched = '1';
+  });
+
+  // On form submit, ensure line items json is set
+  document.getElementById('cfForm').addEventListener('submit', function () {
+    recalcAll();
+  });
+</script>
+{% endblock %}

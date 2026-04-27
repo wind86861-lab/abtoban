@@ -104,9 +104,9 @@ async def view_request(callback: CallbackQuery, session, lang: str) -> None:
         f"📝 Izoh: <i>{req.notes or '—'}</i>\n"
         f"📅 Sana: {req.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
         f"<b>👥 Aloqa:</b>\n"
-        f"🔨 Usta: <b>{usta_name}</b>\n"
+        f"🔨 Master: <b>{usta_name}</b>\n"
         f"   📱 <code>{usta_phone}</code>\n"
-        f"👷 Master: <b>{master_name}</b>\n"
+        f"👷 Mutaxassis: <b>{master_name}</b>\n"
         f"   📱 <code>{master_phone}</code>"
     )
 
@@ -501,7 +501,7 @@ async def zavod_confirm_payment_start(
 
     await callback.message.edit_text(
         f"💸 <b>Shofyordan qabul qilingan summani tasdiqlang</b>\n\n"
-        f"🏭 Usta yuborgan: <b>{float(transfer.usta_sent):,.0f} so'm</b>\n\n"
+        f"🏭 Master yuborgan: <b>{float(transfer.usta_sent):,.0f} so'm</b>\n\n"
         f"Nechta pul qabul qildingiz?\n"
         f"<i>To'liq summani tasdiqlash uchun pastdagi tugmani bosing,\n"
         f"yoki boshqa miqdor kiriting:</i>",
@@ -575,7 +575,7 @@ async def _finalize_zavod_payment(event, session, transfer, received: Decimal, z
         f"✅ <b>To'lov tasdiqlandi!</b>\n\n"
         f"💰 Qabul qilindi: <b>{float(received):,.0f} so'm</b>{diff_text}\n"
         f"🏭 Kutilgan: {float(transfer.usta_sent):,.0f} so'm\n\n"
-        f"Usta va Adminga bildirishnoma yuborildi."
+        f"Master va Adminga bildirishnoma yuborildi."
     )
 
     if hasattr(event, "message"):
@@ -638,19 +638,19 @@ async def _finalize_zavod_payment(event, session, transfer, received: Decimal, z
         f"🏗 Asfalt: {asphalt} | {float(order.area_m2 or 0):,.1f} m²\n\n"
         f"👥 <b>Ishtirokchilar:</b>\n"
         f"  👤 Klient: {order.client_name}\n"
-        f"  👷 Usta: {usta_name}\n"
-        f"  🧑‍💼 Master: {master_name}\n"
+        f"  👷 Master: {usta_name}\n"
+        f"  🧑‍💼 Mutaxassis: {master_name}\n"
         f"  🏭 Zavod: {zavod_user.full_name or '—'}\n\n"
         f"💵 <b>Klient to'lovi:</b>\n"
         f"  � Shartnoma: {total:,.0f} so'm\n"
         f"  ✅ Avans: {advance:,.0f} so'm\n"
-        f"  � Usta olingan: {float(transfer.usta_collected):,.0f} so'm\n\n"
+        f"  💰 Master olingan: {float(transfer.usta_collected):,.0f} so'm\n\n"
         f"💸 <b>Pul oqimi (Zavod):</b>\n"
         f"  📤 Zavodga yuborilgan: {zavod_yuborilgan:,.0f} so'm\n"
         f"  📥 Zavod qabul qildi: {zavod_oldi:,.0f} so'm\n\n"
         f"📉 <b>Harajatlar:</b>\n"
-        f"  🔧 Usta haqi: {usta_haqi:,.0f} so'm\n"
-        f"  🧑‍💼 Master komissiya: {master_kom:,.0f} so'm\n"
+        f"  🔧 Master haqi: {usta_haqi:,.0f} so'm\n"
+        f"  🧑‍💼 Mutaxassis komissiya: {master_kom:,.0f} so'm\n"
         f"  🏭 Material (tan narxi): {material_cost:,.0f} so'm\n"
         f"  📦 Qo'shimcha: {total_expenses:,.0f} so'm{expenses_detail}\n\n"
         f"  📈 <b>Umumiy foyda: {foyda:,.0f} so'm</b>"

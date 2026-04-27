@@ -1,0 +1,209 @@
+{% extends "sqladmin/base.html" %}
+{% from 'sqladmin/_macros.html' import display_menu %}
+
+{% block head %}
+{{ super() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/custom_admin.css">
+<style>
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f4f6fb !important;
+}
+
+/* ── Light sidebar ──────────────────────────────────────── */
+.navbar.navbar-dark,
+.navbar.navbar-vertical {
+  background: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+  box-shadow: 2px 0 12px rgba(0,0,0,.04) !important;
+}
+.navbar-brand a h3,
+.navbar-brand a {
+  color: #FF6B00 !important;
+}
+.navbar .nav-link {
+  color: #475569 !important;
+  font-weight: 500;
+  border-radius: 8px;
+  margin: 2px 8px;
+  padding: 8px 12px !important;
+  transition: all .15s;
+}
+.navbar .nav-link:hover {
+  background: #fff7ed !important;
+  color: #FF6B00 !important;
+}
+.navbar .nav-link.active,
+.navbar .nav-item.active > .nav-link {
+  background: #fff7ed !important;
+  color: #FF6B00 !important;
+  font-weight: 700;
+}
+.navbar .nav-link .nav-link-icon {
+  color: #94a3b8;
+}
+.navbar .nav-link:hover .nav-link-icon,
+.navbar .nav-link.active .nav-link-icon {
+  color: #FF6B00;
+}
+
+/* Tabler overrides for light */
+.navbar-vertical .navbar-collapse {
+  margin: 0 !important;
+}
+.navbar-vertical.navbar-expand-lg .navbar-collapse {
+  width: 100%;
+}
+
+/* Page header area */
+.page-wrapper {
+  background: #f4f6fb;
+}
+.page-header {
+  margin-bottom: 0 !important;
+}
+
+/* Cards */
+.card {
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06) !important;
+}
+.card-header {
+  background: transparent !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  font-weight: 700;
+}
+
+/* Lang switcher light */
+.lang-divider {
+  border-top: 1px solid #e5e7eb !important;
+}
+.lang-switch a {
+  color: #475569 !important;
+  border-color: #e5e7eb !important;
+}
+.lang-switch a:hover {
+  background: #fff7ed !important;
+  color: #FF6B00 !important;
+  border-color: #FF6B00 !important;
+}
+.lang-switch a.active {
+  background: #FF6B00 !important;
+  color: #fff !important;
+  border-color: #FF6B00 !important;
+}
+
+/* Logout button light */
+.btn-secondary.btn-icon {
+  color: #475569 !important;
+  border: 1px solid #e5e7eb !important;
+  background: #f8fafc !important;
+}
+.btn-secondary.btn-icon:hover {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+/* Table tweaks */
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.table th {
+  background: #f8fafc;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  color: #64748b;
+  border: none !important;
+}
+.table td {
+  border-color: #f1f5f9 !important;
+  vertical-align: middle;
+}
+
+/* Badge pill */
+.badge {
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+/* Alert overrides */
+.alert {
+  border: none;
+  font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="wrapper">
+  <aside class="navbar navbar-expand-lg navbar-vertical navbar-expand-md navbar-dark">
+    <div class="container-fluid">
+      <h1 class="navbar-brand navbar-brand-autodark">
+        <a href="{{ url_for('admin:index') }}">
+          <span style="color:#FF6B00;font-weight:800;font-size:1.3rem;">🏗 AVTOBAN</span>
+          <span style="color:#94a3b8;font-weight:300;font-size:1rem;">MASTER</span>
+        </a>
+      </h1>
+      <nav class="navbar navbar-expand-sm" id="navbar-menu">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          {{ display_menu(admin._menu, request) }}
+        </div>
+      </nav>
+
+      <!-- Language switcher -->
+      <div class="lang-divider"></div>
+      <div class="lang-switch">
+        {% set cl = current_lang() %}
+        {% set cur_path = request.url.path %}
+        {% set lang_base = '/master-panel/set-lang' if '/master-panel/' in cur_path else '/set-lang' %}
+        {% for lc in SUPPORTED_LANGS %}
+          <a href="{{ lang_base }}?lang={{ lc }}&next={{ cur_path }}"
+             class="{{ 'active' if cl == lc else '' }}">
+            {{ LANG_FLAGS.get(lc, '') }}
+            {% if lc == 'uz_lat' %}Lot{% elif lc == 'uz_cyr' %}Кир{% else %}Ру{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if admin.authentication_backend %}
+      <a href="{{ request.url_for('admin:logout') }}" class="btn btn-secondary btn-icon" style="margin-top:8px;">
+        <i class="fa fa-sign-out"></i>
+        <span>Chiqish</span>
+      </a>
+      {% endif %}
+    </div>
+  </aside>
+  <div class="page-wrapper">
+    <div class="container-fluid">
+      <div class="page-header d-print-none">
+        {% block content_header %}
+        <div class="row align-items-center">
+          <div class="col">
+            <h2 class="page-title">{{ title }}</h2>
+            <div class="page-pretitle">{{ subtitle }}</div>
+          </div>
+        </div>
+        {% endblock %}
+      </div>
+    </div>
+    <div class="page-body flex-grow-1">
+      <div class="container-fluid">
+        <div class="row row-deck row-cards">
+          {% block content %} {% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

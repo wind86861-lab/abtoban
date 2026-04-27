@@ -225,17 +225,17 @@ async def admin_change_usta_prompt(callback: CallbackQuery, user: User, session)
     usta_svc = UstaService(session)
     ustas_with_count = await usta_svc.get_available_ustas(region_id=order.region_id, viloyat_id=order.viloyat_id)
     if not ustas_with_count:
-        await callback.answer("⚠️ Mavjud ustalar yo'q", show_alert=True)
+        await callback.answer("⚠️ Mavjud masterlar yo'q", show_alert=True)
         return
 
     current_usta = order.usta.full_name if order.usta else "Tayinlanmagan"
     asphalt = order.asphalt_type.name if order.asphalt_type else "—"
     await callback.message.edit_text(
-        f"👷 <b>Usta o'zgartirish</b>\n\n"
+        f"👷 <b>Master o'zgartirish</b>\n\n"
         f"📋 Zakaz: #{order.order_number}\n"
         f"📐 {order.area_m2} m² · 🏗 {asphalt}\n"
-        f"👷 Hozirgi usta: <b>{current_usta}</b>\n\n"
-        f"Yangi ustani tanlang ({len(ustas_with_count)} ta mavjud):",
+        f"👷 Hozirgi master: <b>{current_usta}</b>\n\n"
+        f"Yangi masterni tanlang ({len(ustas_with_count)} ta mavjud):",
         reply_markup=get_ustas_for_reassignment_keyboard(
             ustas_with_count, order_id, order.usta_id
         ),
@@ -253,7 +253,7 @@ async def admin_do_reassign_usta(callback: CallbackQuery, user: User, session) -
         order_id=order_id, new_usta_id=new_usta_id, assigned_by_id=user.id
     )
     if not order:
-        await callback.answer("❌ Xatolik: zakaz topilmadi yoki usta noto'g'ri", show_alert=True)
+        await callback.answer("❌ Xatolik: zakaz topilmadi yoki master noto'g'ri", show_alert=True)
         return
 
     user_svc = UserService(session)
@@ -300,10 +300,10 @@ async def admin_do_reassign_usta(callback: CallbackQuery, user: User, session) -
             pass
 
     await callback.message.edit_text(
-        f"✅ <b>Usta o'zgartirildi!</b>\n\n"
+        f"✅ <b>Master o'zgartirildi!</b>\n\n"
         f"📋 Zakaz: #{order_full.order_number}\n"
-        f"👷 Yangi usta: {usta_name}\n\n"
-        f"Usta bildirishnoma oldi."
+        f"👷 Yangi master: {usta_name}\n\n"
+        f"Master bildirishnoma oldi."
     )
     await callback.answer()
 

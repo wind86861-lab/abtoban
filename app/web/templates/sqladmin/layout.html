@@ -1,0 +1,508 @@
+{% extends "sqladmin/base.html" %}
+{% from 'sqladmin/_macros.html' import display_menu %}
+{% set _is_master = '/master-panel/' in request.url.path %}
+
+{% block head %}
+{{ super() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/custom_admin.css">
+<style>
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .lang-switch {
+    display: flex;
+    gap: 4px;
+    padding: 12px 8px;
+    margin-top: 6px;
+  }
+
+  .lang-switch a {
+    display: block;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, .15);
+    color: rgba(255, 255, 255, .65);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .lang-switch a:hover {
+    background: rgba(255, 107, 0, .15);
+    color: #FF6B00;
+    border-color: rgba(255, 107, 0, .4);
+  }
+
+  .lang-switch a.active {
+    background: rgba(255, 107, 0, .2);
+    color: #FF6B00;
+    border-color: rgba(255, 107, 0, .5);
+  }
+
+  .lang-divider {
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    margin: 8px 12px 0;
+  }
+</style>
+{% if _is_master %}
+<style>
+  /* ══════════════════════════════════════════════════════════════
+     MASTER PANEL · LIGHT MODE — overrides EVERYTHING from
+     custom_admin.css that was designed for dark mode.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* ── Body ── */
+  body {
+    background: #f4f6fb !important;
+    color: #1e293b !important;
+  }
+
+  /* ── Sidebar / Navbar (the dark sidebar) ── */
+  .navbar,
+  .navbar.navbar-dark,
+  .navbar.navbar-vertical,
+  .navbar-expand-lg,
+  .navbar-expand-md,
+  aside.navbar {
+    background: #ffffff !important;
+    border-right: 1px solid #e5e7eb !important;
+    border-bottom: none !important;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, .04) !important;
+  }
+
+  .navbar-brand,
+  .navbar-brand a,
+  .navbar-brand a h3 {
+    color: #FF6B00 !important;
+  }
+
+  /* Nav links in sidebar */
+  .nav-link,
+  .navbar .nav-link,
+  .navbar-dark .nav-link,
+  .navbar-vertical .nav-link {
+    color: #475569 !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    margin: 2px 8px !important;
+    padding: 8px 12px !important;
+    transition: all .15s !important;
+    transform: none !important;
+  }
+
+  .nav-link:hover,
+  .navbar .nav-link:hover {
+    background: #fff7ed !important;
+    color: #FF6B00 !important;
+    transform: none !important;
+  }
+
+  .nav-link.active,
+  .navbar .nav-link.active,
+  .nav-item.active>.nav-link {
+    background: #fff7ed !important;
+    color: #FF6B00 !important;
+    font-weight: 700 !important;
+  }
+
+  /* Nav-item overrides (custom_admin.css sets orange gradient on active) */
+  .nav-item {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .nav-item:hover {
+    background: transparent !important;
+    transform: none !important;
+  }
+
+  .nav-item.active {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .nav-item.active .nav-link {
+    color: #FF6B00 !important;
+    background: #fff7ed !important;
+  }
+
+  /* Nav link icons */
+  .nav-link i,
+  .nav-link .nav-link-icon {
+    color: #94a3b8 !important;
+  }
+
+  .nav-link:hover i,
+  .nav-link:hover .nav-link-icon,
+  .nav-link.active i,
+  .nav-link.active .nav-link-icon,
+  .nav-item.active .nav-link i {
+    color: #FF6B00 !important;
+  }
+
+  /* ── Page wrapper ── */
+  .page-wrapper {
+    background: #f4f6fb !important;
+  }
+
+  .page-title,
+  .page-pretitle,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #1e293b !important;
+  }
+
+  p,
+  span,
+  div,
+  label,
+  li {
+    color: inherit;
+  }
+
+  /* ── Cards ── */
+  .card {
+    border: none !important;
+    border-radius: 14px !important;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .06) !important;
+    background: #fff !important;
+    transform: none !important;
+  }
+
+  .card:hover {
+    transform: none !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .08) !important;
+  }
+
+  .card-header {
+    background: transparent !important;
+    color: #1e293b !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    border-radius: 0 !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    padding: 16px 20px !important;
+  }
+
+  .card-body {
+    color: #334155 !important;
+  }
+
+  /* ── Tables ── */
+  .table {
+    background: #fff !important;
+    color: #334155 !important;
+  }
+
+  .table thead,
+  .table thead tr {
+    background: #f8fafc !important;
+    color: #64748b !important;
+  }
+
+  .table thead th {
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-size: .78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: .02em !important;
+    border: none !important;
+    padding: 12px 15px !important;
+  }
+
+  .table tbody td {
+    color: #334155 !important;
+    border-color: #f1f5f9 !important;
+    vertical-align: middle !important;
+    padding: 12px 15px !important;
+  }
+
+  .table tbody tr {
+    transform: none !important;
+  }
+
+  .table tbody tr:hover {
+    background: rgba(255, 107, 0, .03) !important;
+    transform: none !important;
+  }
+
+  /* ── Dashboard dark-mode class overrides ── */
+  .db-wrap {
+    background: transparent !important;
+  }
+
+  .db-header-left h1 {
+    color: #1e293b !important;
+  }
+
+  .db-header-left p {
+    color: #64748b !important;
+  }
+
+  .panel {
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .panel-header {
+    color: #1e293b !important;
+  }
+
+  .month-cell {
+    background: #f8fafc !important;
+    border-color: #e5e7eb !important;
+  }
+
+  .month-cell .mc-label {
+    color: #64748b !important;
+  }
+
+  .status-chip {
+    background: #f8fafc !important;
+    border-color: #e5e7eb !important;
+  }
+
+  .status-chip:hover {
+    background: #fff7ed !important;
+    border-color: rgba(255, 107, 0, .3) !important;
+  }
+
+  .db-table thead th {
+    color: #64748b !important;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  .db-table tbody tr {
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+
+  .db-table tbody td {
+    color: #334155 !important;
+  }
+
+  .db-table .td-num {
+    color: #1e293b !important;
+  }
+
+  .db-table .td-muted {
+    color: #94a3b8 !important;
+  }
+
+  .debt-item {
+    background: #f8fafc !important;
+  }
+
+  .debt-item .di-label {
+    color: #64748b !important;
+  }
+
+  .debt-bar-bg {
+    background: #e5e7eb !important;
+  }
+
+  /* ── Language switcher ── */
+  .lang-divider {
+    border-top: 1px solid #e5e7eb !important;
+  }
+
+  .lang-switch a {
+    color: #475569 !important;
+    border-color: #e5e7eb !important;
+  }
+
+  .lang-switch a:hover {
+    background: #fff7ed !important;
+    color: #FF6B00 !important;
+    border-color: #FF6B00 !important;
+  }
+
+  .lang-switch a.active {
+    background: #FF6B00 !important;
+    color: #fff !important;
+    border-color: #FF6B00 !important;
+  }
+
+  /* ── Buttons ── */
+  .btn-secondary.btn-icon {
+    color: #475569 !important;
+    border: 1px solid #e5e7eb !important;
+    background: #f8fafc !important;
+    box-shadow: none !important;
+  }
+
+  .btn-secondary.btn-icon:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+
+  .navbar-toggler-icon {
+    filter: invert(1) !important;
+  }
+
+  /* ── Forms ── */
+  .form-control,
+  .form-select {
+    border-radius: 10px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    background: #fff !important;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: #FF6B00 !important;
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, .1) !important;
+  }
+
+  .form-label {
+    color: #334155 !important;
+  }
+
+  /* ── Alert, Badge ── */
+  .badge {
+    font-weight: 600 !important;
+    letter-spacing: .01em !important;
+  }
+
+  .alert {
+    border: none !important;
+    font-weight: 600 !important;
+  }
+</style>
+{% endif %}
+{% endblock %}
+
+{% block body %}
+<div class="wrapper">
+  <aside class="navbar navbar-expand-lg navbar-vertical navbar-expand-md navbar-dark">
+    <div class="container-fluid">
+      <h1 class="navbar-brand navbar-brand-autodark">
+        <a href="{{ url_for('admin:index') }}">
+          {% if admin.logo_url %}
+          <img src="{{ admin.logo_url }}" width="64" height="64" alt="Admin" class="navbar-brand-image" />
+          {% elif _is_master %}
+          <span style="color:#FF6B00;font-weight:800;font-size:1.3rem;">🏗 AVTOBAN</span>
+          <span style="color:#94a3b8;font-weight:300;font-size:1rem;">MASTER</span>
+          {% else %}
+          <span style="color:#FF6B00;font-weight:800;font-size:1.3rem;">🏗 AVTOBAN</span>
+          <span style="color:#FF6B00;font-weight:300;font-size:1.1rem;">STROY</span>
+          {% endif %}
+        </a>
+      </h1>
+      <nav class="navbar navbar-expand-sm" id="navbar-menu">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          {{ display_menu(admin._menu, request) }}
+        </div>
+      </nav>
+
+      <!-- Language switcher -->
+      <div class="lang-divider"></div>
+      <div class="lang-switch">
+        {% set cl = current_lang() %}
+        {% set cur_path = request.url.path %}
+        {% set lang_base = '/master-panel/set-lang' if '/master-panel/' in cur_path else '/set-lang' %}
+        {% for lc in SUPPORTED_LANGS %}
+        <a href="{{ lang_base }}?lang={{ lc }}&next={{ cur_path }}" class="{{ 'active' if cl == lc else '' }}">
+          {{ LANG_FLAGS.get(lc, '') }}
+          {% if lc == 'uz_lat' %}Lot{% elif lc == 'uz_cyr' %}Кир{% else %}Ру{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+
+      {% if admin.authentication_backend %}
+      <a href="{{ request.url_for('admin:logout') }}" class="btn btn-secondary btn-icon" style="margin-top:8px;">
+        <i class="fa fa-sign-out"></i>
+        <span>{{ t('login_btn') if t is defined else 'Logout' }}</span>
+      </a>
+      {% endif %}
+    </div>
+  </aside>
+  <div class="page-wrapper">
+    <div class="container-fluid">
+      <div class="page-header d-print-none">
+        {% block content_header %}
+        <div class="row align-items-center">
+          <div class="col">
+            <h2 class="page-title">{{ title }}</h2>
+            <div class="page-pretitle">{{ subtitle }}</div>
+          </div>
+        </div>
+        {% endblock %}
+      </div>
+    </div>
+    <div class="page-body flex-grow-1">
+      <div class="container-fluid">
+        <div class="row row-deck row-cards">
+          {% block content %} {% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    // Sidebar menu translation map: Latin text → translation key
+    var M = {
+      "Foydalanuvchilar": "v_users", "Foydalanuvchi": "v_users",
+      "Zakazlar": "v_orders", "Zakaz": "v_orders",
+      "Xarajatlar": "v_expenses", "Xarajat": "v_expenses",
+      "Material so'rovlar": "v_material_req", "Material so'rov": "v_material_req",
+      "Kategoriyalar": "v_categories", "Kategoriya": "v_categories",
+      "Sub-kategoriyalar": "v_subcategories", "Sub-kategoriya": "v_subcategories",
+      "Materiallar": "v_materials", "Material": "v_materials",
+      "Viloyatlar": "v_viloyat", "Viloyat": "v_viloyat",
+      "Tumanlar": "v_tuman", "Tuman": "v_tuman",
+      "Hududlar (eski)": "v_region", "Hudud": "v_region",
+      "Zavodlar": "v_zavod", "Zavod": "v_zavod",
+      "Do'kon Kategoriyalar": "v_shop_cat", "Do'kon Kategoriya": "v_shop_cat",
+      "Mahsulotlar": "v_products", "Mahsulot": "v_products",
+      "Portfoliolar": "v_portfolio", "Portfolio": "v_portfolio",
+      "Do'kon Buyurtmalar": "v_shop_orders", "Do'kon Buyurtma": "v_shop_orders",
+      "Hisobotlar": "v_reports", "Hisobot": "v_reports",
+      "Dashboard": "v_dashboard",
+      "Zakazlarni Boshqarish": "v_order_actions",
+      "Usta Tayinlash": "v_usta_assign",
+      "Xarajat Kiritish": "v_expense_entry",
+      "Klientlar": "v_clients",
+      "Komissiya Hisoboti": "v_commission"
+    };
+    var L = {
+      "v_users": "{{ t('v_users') }}", "v_orders": "{{ t('v_orders') }}", "v_expenses": "{{ t('v_expenses') }}",
+      "v_material_req": "{{ t('v_material_req') }}", "v_categories": "{{ t('v_categories') }}",
+      "v_subcategories": "{{ t('v_subcategories') }}", "v_materials": "{{ t('v_materials') }}",
+      "v_viloyat": "{{ t('v_viloyat') }}", "v_tuman": "{{ t('v_tuman') }}", "v_region": "{{ t('v_region') }}",
+      "v_zavod": "{{ t('v_zavod') }}", "v_shop_cat": "{{ t('v_shop_cat') }}", "v_products": "{{ t('v_products') }}",
+      "v_portfolio": "{{ t('v_portfolio') }}", "v_shop_orders": "{{ t('v_shop_orders') }}",
+      "v_reports": "{{ t('v_reports') }}", "v_dashboard": "{{ t('v_dashboard') }}",
+      "v_order_actions": "{{ t('v_order_actions') }}", "v_usta_assign": "{{ t('v_usta_assign') }}",
+      "v_expense_entry": "{{ t('v_expense_entry') }}", "v_clients": "{{ t('v_clients') }}",
+      "v_commission": "{{ t('v_commission') }}"
+    };
+    var T = function (k) { return L[k] || k; };
+    document.querySelectorAll('.nav-link span, .nav-link-title').forEach(function (el) {
+      var txt = el.textContent.trim();
+      if (M[txt]) { el.textContent = T(M[txt]); }
+    });
+    // Also translate page title
+    var pt = document.querySelector('.page-title');
+    if (pt) { var tt = pt.textContent.trim(); if (M[tt]) pt.textContent = T(M[tt]); }
+  })();
+</script>
+{% endblock %}
