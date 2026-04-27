@@ -1,91 +1,103 @@
 {% extends "sqladmin/layout.html" %}
 
-{% block head_css %}
-{{ super() }}
-<link rel="stylesheet" href="/static/custom_admin.css">
-{% endblock %}
-
 {% block content %}
-<div class="container-fluid p-4">
-    <!-- Header -->
-    <div class="dashboard-header fade-in">
-        <h1>👥 Mening Klientlarim</h1>
-        <p>Barcha klientlar va ularning zakaz tarixi</p>
-    </div>
+<div class="col-12" style="padding:0;">
+    <div style="max-width:1200px;margin:0 auto;padding:16px;">
 
-    <!-- Clients Table -->
-    <div class="row fade-in">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    📋 Klientlar Ro'yxati
+        <!-- Header -->
+        <div style="margin-bottom:20px;">
+            <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:4px;">👥 {{ t('my_clients') }}</h2>
+            <p style="color:#64748b;font-size:.85rem;">{{ t('clients_sub') }}</p>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card" style="border-radius:14px;border:none;box-shadow:0 1px 6px rgba(0,0,0,.06);">
+                    <div class="card-body text-center" style="padding:20px;">
+                        <h3 style="color:#FF6B00;font-weight:900;font-size:1.6rem;margin:0;">{{ clients|length }}</h3>
+                        <p style="color:#64748b;font-size:.82rem;margin:6px 0 0;">{{ t('total_clients') }}</p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Klient Ismi</th>
-                                    <th>Telefon</th>
-                                    <th>Zakazlar Soni</th>
-                                    <th>Jami Tushum</th>
-                                    <th>Jami Komissiya</th>
-                                    <th>Oxirgi Zakaz</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for client in clients %}
-                                <tr>
-                                    <td>{{ loop.index }}</td>
-                                    <td><strong>{{ client.name }}</strong></td>
-                                    <td>{{ client.phone }}</td>
-                                    <td>
-                                        <span class="badge badge-primary">{{ client.order_count }} ta</span>
-                                    </td>
-                                    <td>{{ "{:,.0f}".format(client.total_revenue) }} so'm</td>
-                                    <td>
-                                        <strong style="color: #FF6B00;">
-                                            {{ "{:,.0f}".format(client.total_commission) }} so'm
-                                        </strong>
-                                    </td>
-                                    <td>{{ client.last_order_date.strftime('%d.%m.%Y') if client.last_order_date else '-' }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            </div>
+            <div class="col-md-4">
+                <div class="card" style="border-radius:14px;border:none;box-shadow:0 1px 6px rgba(0,0,0,.06);">
+                    <div class="card-body text-center" style="padding:20px;">
+                        <h3 style="color:#FF6B00;font-weight:900;font-size:1.6rem;margin:0;">{{
+                            clients|sum(attribute='order_count') }}</h3>
+                        <p style="color:#64748b;font-size:.82rem;margin:6px 0 0;">{{ t('total_orders') }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card" style="border-radius:14px;border:none;box-shadow:0 1px 6px rgba(0,0,0,.06);">
+                    <div class="card-body text-center" style="padding:20px;">
+                        <h3 style="color:#FF6B00;font-weight:900;font-size:1.6rem;margin:0;">{{
+                            "{:,.0f}".format(clients|sum(attribute='total_commission')) }} {{ t('som') }}</h3>
+                        <p style="color:#64748b;font-size:.82rem;margin:6px 0 0;">{{ t('total_commission') }}</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Summary Stats -->
-    <div class="row mt-4 fade-in">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 style="color: #FF6B00;">{{ clients|length }}</h3>
-                    <p class="text-muted">Jami Klientlar</p>
-                </div>
+        <!-- Clients Table -->
+        {% if clients %}
+        <div class="card" style="border-radius:14px;border:none;box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.85rem;">
+                    <thead>
+                        <tr style="background:#f8fafc;">
+                            <th
+                                style="font-size:.72rem;text-transform:uppercase;color:#64748b;letter-spacing:.03em;padding:12px;">
+                                #</th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('client_name') }}
+                            </th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('phone') }}</th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('orders_count') }}
+                            </th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('total_revenue')
+                                }}</th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{
+                                t('total_commission') }}</th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('last_order') }}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for client in clients %}
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:10px 12px;color:#94a3b8;">{{ loop.index }}</td>
+                            <td style="padding:10px 12px;font-weight:600;">{{ client['name'] or '—' }}</td>
+                            <td style="padding:10px 12px;">{{ client['phone'] or '—' }}</td>
+                            <td style="padding:10px 12px;">
+                                <span class="badge"
+                                    style="background:#fff3e0;color:#e65100;border:1px solid #ffe0b2;border-radius:20px;padding:4px 10px;font-size:.72rem;font-weight:700;">
+                                    {{ client['order_count'] }} {{ t('ta') }}
+                                </span>
+                            </td>
+                            <td style="padding:10px 12px;">{{ "{:,.0f}".format(client['total_revenue']|float) }} {{
+                                t('som') }}</td>
+                            <td style="padding:10px 12px;">
+                                <strong style="color:#FF6B00;">{{ "{:,.0f}".format(client['total_commission']|float) }}
+                                    {{ t('som') }}</strong>
+                            </td>
+                            <td style="padding:10px 12px;color:#64748b;">
+                                {{ client['last_order_date'].strftime('%d.%m.%Y') if client['last_order_date'] else '—'
+                                }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 style="color: #FF6B00;">{{ clients|sum(attribute='order_count') }}</h3>
-                    <p class="text-muted">Jami Zakazlar</p>
-                </div>
-            </div>
+        {% else %}
+        <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+            <div style="font-size:2rem;">📭</div>
+            <p>{{ t('no_orders_msg') }}</p>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h3 style="color: #FF6B00;">{{ "{:,.0f}".format(clients|sum(attribute='total_commission')) }} so'm</h3>
-                    <p class="text-muted">Jami Komissiya</p>
-                </div>
-            </div>
-        </div>
+        {% endif %}
+
     </div>
 </div>
 {% endblock %}

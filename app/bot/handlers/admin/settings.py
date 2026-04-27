@@ -69,7 +69,8 @@ async def view_category(callback: CallbackQuery, session) -> None:
                 callback_data=f"view_subcategory:{subcat.id}"
             )
     builder.button(text="➕ Yangi sub-kategoriya", callback_data=f"add_subcategory:{category_id}")
-    builder.button(text="🔙 Orqaga", callback_data="category_list")
+    builder.button(text="� Kategoriyani o'chirish", callback_data=f"delete_category:{category_id}")
+    builder.button(text="� Orqaga", callback_data="category_list")
     builder.adjust(1)
     
     await callback.message.edit_text(
@@ -166,6 +167,7 @@ async def view_subcategory(callback: CallbackQuery, session) -> None:
                 callback_data=f"view_material:{material.id}"
             )
     builder.button(text="➕ Yangi material", callback_data=f"add_material:{subcategory_id}")
+    builder.button(text="🗑 Sub-kategoriyani o'chirish", callback_data=f"delete_subcategory:{subcategory_id}")
     builder.button(text="🔙 Orqaga", callback_data=f"view_category:{subcategory.category_id}")
     builder.adjust(1)
     
@@ -290,6 +292,7 @@ async def view_material(callback: CallbackQuery, session) -> None:
     builder.button(text="💰 Narxni o'zgartirish", callback_data=f"edit_material_price:{material_id}")
     toggle_text = "🔴 O'chirish" if material.is_active else "🟢 Faollashtirish"
     builder.button(text=toggle_text, callback_data=f"toggle_material:{material_id}")
+    builder.button(text="🗑 O'chirish", callback_data=f"delete_material:{material_id}")
     if material.subcategory_id:
         builder.button(text="🔙 Orqaga", callback_data=f"view_subcategory:{material.subcategory_id}")
     builder.adjust(1)
@@ -363,3 +366,54 @@ async def handle_material_price_update(message: Message, state: FSMContext, sess
         f"📄 {material.name}: <b>{float(material.price_per_m2):,.0f} so'm/m²</b>",
         reply_markup=get_main_menu(user.role, lang),
     )
+
+
+@router.callback_query(F.data.startswith("delete_category:"), RoleFilter(*ADMIN_ROLES))
+async def delete_category(callback: CallbackQuery, session) -> None:
+    category_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    category = await cat_svc.get_category_by_id(category_id)
+    if not category:
+        await callback.answer("❌ Topilmadi", show_alert=True)
+        return
+    name = category.name
+    await cat_svc.delete_category(category_id)
+    await callback.answer(f"✅ '{name}' o'chirildi", show_alert=True)
+    await category_list(callback, session)
+
+
+@router.callback_query(F.data.startswith("delete_subcategory:"), RoleFilter(*ADMIN_ROLES))
+async def delete_subcategory(callback: CallbackQuery, session) -> None:
+    subcategory_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    subcategory = await cat_svc.get_subcategory_by_id(subcategory_id)
+    if not subcategory:
+        await callback.answer("❌ Topilmadi", show_alert=True)
+        return
+    category_id = subcategory.category_id
+    name = subcategory.name
+    await cat_svc.delete_subcategory(subcategory_id)
+    await callback.answer(f"✅ '{name}' o'chirildi", show_alert=True)
+    callback.data = f"view_category:{category_id}"
+    await view_category(callback, session)
+
+
+@router.callback_query(F.data.startswith("delete_material:"), RoleFilter(*ADMIN_ROLES))
+async def delete_material_handler(callback: CallbackQuery, session) -> None:
+    material_id = int(callback.data.split(":")[1])
+    from app.services.asphalt_service import AsphaltService
+    asphalt_svc = AsphaltService(session)
+    material = await asphalt_svc.get_by_id(material_id)
+    if not material:
+        await callback.answer("❌ Topilmadi", show_alert=True)
+        return
+    subcategory_id = material.subcategory_id
+    name = material.name
+    cat_svc = CategoryService(session)
+    await cat_svc.delete_material(material_id)
+    await callback.answer(f"✅ '{name}' o'chirildi", show_alert=True)
+    if subcategory_id:
+        callback.data = f"view_subcategory:{subcategory_id}"
+        await view_subcategory(callback, session)
+    else:
+        await category_list(callback, session)

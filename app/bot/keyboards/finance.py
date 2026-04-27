@@ -3,8 +3,66 @@ from typing import List
 from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from app.db.models import ExpenseType, MaterialRequest, Order
+from app.db.models import AsphaltCategory, AsphaltSubCategory, AsphaltType, ExpenseType, MaterialRequest, Order
 from app.services.expense_service import EXPENSE_LABELS
+
+
+def get_mat_req_categories_keyboard(categories: List[AsphaltCategory], lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for c in categories:
+        builder.button(text=f"📁 {c.name}", callback_data=f"mat_cat:{c.id}")
+    cancel_text = "❌ Bekor qilish" if lang == "uz_lat" else ("❌ Отмена" if lang == "ru" else "❌ Бекор қилиш")
+    builder.button(text=cancel_text, callback_data="mat_req_cancel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_mat_req_subcategories_keyboard(subcategories: List[AsphaltSubCategory], category_id: int, lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for s in subcategories:
+        builder.button(text=f"📂 {s.name}", callback_data=f"mat_subcat:{s.id}")
+    builder.button(text="🔙 Orqaga", callback_data=f"mat_cat_back:{category_id}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_mat_req_types_keyboard(types: List[AsphaltType], subcategory_id: int, lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for at in types:
+        price = f" — {float(at.price_per_m2):,.0f} so'm/m²" if at.price_per_m2 else ""
+        builder.button(text=f"🏗 {at.name}{price}", callback_data=f"mat_type:{at.id}")
+    builder.button(text="🔙 Orqaga", callback_data=f"mat_subcat_back:{subcategory_id}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_exp_mat_categories_keyboard(categories: List[AsphaltCategory], lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for c in categories:
+        builder.button(text=f"📁 {c.name}", callback_data=f"exp_mat_cat:{c.id}")
+    cancel_text = "❌ Bekor qilish" if lang == "uz_lat" else ("❌ Отмена" if lang == "ru" else "❌ Бекор қилиш")
+    builder.button(text=cancel_text, callback_data="exp_mat_cancel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_exp_mat_subcategories_keyboard(subcats: List[AsphaltSubCategory], category_id: int, lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for s in subcats:
+        builder.button(text=f"📂 {s.name}", callback_data=f"exp_mat_subcat:{s.id}")
+    builder.button(text="🔙 Orqaga", callback_data=f"exp_mat_cat_back:{category_id}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_exp_mat_types_keyboard(types: List[AsphaltType], subcategory_id: int, lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for at in types:
+        price = f" — {float(at.price_per_m2):,.0f} so'm/m²" if at.price_per_m2 else ""
+        builder.button(text=f"🏗 {at.name}{price}", callback_data=f"exp_mat_type:{at.id}")
+    builder.button(text="🔙 Orqaga", callback_data=f"exp_mat_subcat_back:{subcategory_id}")
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 def get_active_orders_for_material_keyboard(orders: List[Order]) -> InlineKeyboardMarkup:
@@ -150,5 +208,29 @@ def get_admin_material_detail_keyboard(req_id: int) -> InlineKeyboardMarkup:
     builder.button(text="✅ Tasdiqlash", callback_data=f"admin_approve_material:{req_id}")
     builder.button(text="❌ Rad etish", callback_data=f"admin_reject_material:{req_id}")
     builder.button(text="⬅️ Orqaga", callback_data="back_admin_materials")
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_shofer_narxi_requests_keyboard(requests: List[MaterialRequest], lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    """Inline keyboard listing material requests for shofer narxi selection."""
+    builder = InlineKeyboardBuilder()
+    for req in requests:
+        order_num = req.order.order_number if req.order else f"#{req.order_id}"
+        usta_name = (req.usta.full_name or req.usta.phone) if req.usta else "?"
+        current = f" | 🚛{float(req.delivery_price):,.0f}" if req.delivery_price else ""
+        label = f"📦 {order_num} | {usta_name} | {req.amount_tonnes}t{current}"
+        builder.button(text=label, callback_data=f"shofer_req:{req.id}")
+    cancel_text = "❌ Bekor qilish" if lang == "uz_lat" else ("❌ Отмена" if lang == "ru" else "❌ Бекор қилиш")
+    builder.button(text=cancel_text, callback_data="shofer_narxi_cancel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_shofer_narxi_confirm_keyboard(lang: str = "uz_lat") -> InlineKeyboardMarkup:
+    """Confirmation keyboard for shofer narxi update."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Saqlash" if lang == "uz_lat" else ("✅ Сохранить" if lang == "ru" else "✅ Сақлаш"), callback_data="shofer_narxi_save")
+    builder.button(text="❌ Bekor qilish" if lang == "uz_lat" else ("❌ Отмена" if lang == "ru" else "❌ Бекор қилиш"), callback_data="shofer_narxi_cancel")
     builder.adjust(2)
     return builder.as_markup()

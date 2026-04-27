@@ -279,6 +279,8 @@ async def list_products(
                 "discount_type": p.discount_type,
                 "category_id": p.category_id,
                 "category_name": p.category.name_uz if p.category else None,
+                "category_name_ru": p.category.name_ru if p.category else None,
+                "category_name_en": p.category.name_en if p.category else None,
                 "images": p.images.split(",") if p.images else [],
                 "stock": p.stock,
                 "is_featured": p.is_featured,

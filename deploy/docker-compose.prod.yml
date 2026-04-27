@@ -21,6 +21,28 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: python run_web.py
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - abtoban_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   celery:
     build:
       context: ..

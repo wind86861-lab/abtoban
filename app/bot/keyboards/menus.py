@@ -34,7 +34,28 @@ def get_main_menu(role: UserRole, lang: str = "uz_lat") -> ReplyKeyboardMarkup:
             KeyboardButton(text=t("btn_about", lang)),
         )
 
-    elif role in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
+    elif role == UserRole.SUPER_ADMIN:
+        builder.row(
+            KeyboardButton(text=t("btn_all_orders", lang)),
+            KeyboardButton(text=t("btn_add_order", lang)),
+        )
+        builder.row(
+            KeyboardButton(text=t("btn_users", lang)),
+            KeyboardButton(text=t("btn_reports", lang)),
+        )
+        builder.row(
+            KeyboardButton(text=t("btn_materials", lang)),
+            KeyboardButton(text=t("btn_finance", lang)),
+        )
+        builder.row(
+            KeyboardButton(text=t("btn_settings", lang)),
+            KeyboardButton(text=t("btn_web_panel", lang)),
+        )
+        builder.row(
+            KeyboardButton(text="🔐 Admin Parolni O'zgartirish"),
+        )
+
+    elif role == UserRole.ADMIN:
         builder.row(
             KeyboardButton(text=t("btn_all_orders", lang)),
             KeyboardButton(text=t("btn_add_order", lang)),
@@ -97,7 +118,10 @@ def get_main_menu(role: UserRole, lang: str = "uz_lat") -> ReplyKeyboardMarkup:
             KeyboardButton(text=t("btn_zavod_materials", lang)),
             KeyboardButton(text=t("btn_zavod_price", lang)),
         )
-        builder.row(KeyboardButton(text=t("btn_zavod_history", lang)))
+        builder.row(
+            KeyboardButton(text=t("btn_zavod_history", lang)),
+            KeyboardButton(text=t("btn_shofer_narxi", lang)),
+        )
 
     elif role == UserRole.SHOFER:
         builder.row(
@@ -192,6 +216,25 @@ def get_skip_keyboard(lang: str = "uz_lat") -> ReplyKeyboardMarkup:
     builder.add(KeyboardButton(text=t("btn_skip", lang)))
     builder.add(KeyboardButton(text=t("btn_cancel", lang)))
     builder.adjust(2)
+    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def get_share_location_keyboard(lang: str = "uz_lat") -> ReplyKeyboardMarkup:
+    """Keyboard: Share Location + Skip + Cancel."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text=t("btn_share_location", lang), request_location=True))
+    builder.add(KeyboardButton(text=t("btn_skip", lang)))
+    builder.add(KeyboardButton(text=t("btn_cancel", lang)))
+    builder.adjust(1, 2)
+    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def get_share_contact_keyboard(lang: str = "uz_lat") -> ReplyKeyboardMarkup:
+    """Keyboard: Share contact + Cancel."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text=t("btn_share_contact", lang), request_contact=True))
+    builder.add(KeyboardButton(text=t("btn_cancel", lang)))
+    builder.adjust(1, 1)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 

@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "admin123"
     SECRET_KEY: str = "change-me-in-production-32-chars!!"
     WEB_PORT: int = 8000
-    WEB_URL: str = "https://magazines-drunk-citysearch-specs.trycloudflare.com/tma-admin"
+    WEB_URL: str = "https://warranties-breath-unfortunately-currently.trycloudflare.com/tma-admin"
 
     # App
     DEBUG: bool = False

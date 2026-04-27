@@ -32,6 +32,8 @@ STRINGS = {
     # ── Menu buttons ──
     "btn_cancel": "❌ Bekor qilish",
     "btn_skip": "⏩ O'tkazib yuborish",
+    "btn_share_location": "📍 Lokatsiya yuborish",
+    "btn_share_contact": "📱 Kontaktni yuborish",
     "btn_back": "⬅️ Orqaga",
     "main_menu": "Asosiy menyu:",
     "btn_change_language": "🌐 Tilni o'zgartirish",
@@ -75,6 +77,7 @@ STRINGS = {
     "btn_zavod_materials": "📦 Material so'rovlar",
     "btn_zavod_price": "✅ Narx kiritish",
     "btn_zavod_history": "📋 Tarixi",
+    "btn_shofer_narxi": "🚛 Shofyor narxi",
 
     # ── Shofer buttons ──
     "btn_my_deliveries": "🚗 Mening yetkazilmalarim",
@@ -142,7 +145,7 @@ STRINGS = {
     "order_submitted": "✅ <b>Zakaz qabul qilindi!</b>\n\n🔢 Raqam: <code>{number}</code>\n📍 Manzil: {address}\n{location_link}📐 Maydon: {area} m²\n\nYaqin orada master siz bilan bog'lanadi.",
     "order_cancelled": "❌ Zakaz bekor qilindi.",
     "no_orders": "📋 <b>Mening zakazlarim</b>\n\nSizda hali zakazlar yo'q.\nZakaz qoldirish uchun 📝 tugmasini bosing.",
-    "my_orders_header": "📋 <b>Mening zakazlarim:</b>\n",
+    "my_orders_header": "📋 <b>Mening zakazlarim</b> ({count} ta):\n\nZakazni tanlang:",
     "new_order_notify": "🆕 <b>Yangi zakaz!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} m²\n🏗 {asphalt}",
 
     # ── Client notifications ──
@@ -201,7 +204,10 @@ STRINGS = {
         "📅 Yaratildi: <b>{date}</b>\n\n"
         "<i>Tasdiqlash uchun tugmani bosing.</i>"
     ),
-    "master_create_start": "➕ <b>Yangi zakaz qo'shish</b>\n\n1️⃣ Klient telefon raqamini kiriting:\nMisol: <code>998901234567</code>",
+    "master_create_start": "➕ <b>Yangi zakaz qo'shish</b>\n\n1️⃣ Klient telefon raqamini kiriting yoki <b>📱 Kontaktni yuborish</b> tugmasini bosing:\nMisol: <code>998901234567</code>",
+    "master_create_address": "5️⃣ <b>Manzilni kiriting</b>\n<i>Masalan: Amir Temur ko'chasi 25, maktab yonida</i>",
+    "master_create_location": "6️⃣ 📍 <b>Klient lokatsiyasini yuboring</b>\n\nLokatsiyani yuborish uchun pastdagi tugmani bosing yoki <b>O'tkazib yuborish</b> ni tanlang.",
+    "master_create_done": "✅ <b>Boshlang'ich ma'lumotlar saqlandi!</b>\n\n📋 Zakaz: {number}\n👤 Klient: {name}\n📱 {phone}\n📍 {address}\n\nEndi to'liq ma'lumotlarni kiritamiz...",
     "enter_client_name": "2️⃣ Klient ismini kiriting:",
     "invalid_phone": "❌ Noto'g'ri telefon raqam. Qaytadan kiriting:",
     "name_too_short": "❌ Ismni to'liq kiriting:",
@@ -244,7 +250,9 @@ STRINGS = {
     "confirm_summary": (
         "📋 <b>Tasdiqlash xulosasi — {number}</b>\n\n"
         "📐 Maydon: <b>{area} m²</b>\n"
-        "💰 Summa: <b>{total} so'm</b>\n"
+        "{line_items_text}"
+        "� Hisoblangan: <b>{calc_total} so'm</b>\n"
+        "�💰 Kelishilgan: <b>{total} so'm</b>\n"
         "💵 Zaklad: <b>{advance} so'm</b>\n"
         "💳 Qarz: <b>{debt} so'm</b>\n"
         "📍 Manzil: {address}\n"
@@ -283,10 +291,14 @@ STRINGS = {
     # ── Material request ──
     "material_start": "📦 <b>Material so'rash</b>\n\nQaysi zakaz uchun so'raysiz?",
     "material_no_active": "📦 <b>Material so'rash</b>\n\nFaol zakaz yo'q. Avval zakazni qabul qiling.",
+    "material_select_category": "📁 <b>Material kategoriyasini tanlang:</b>",
+    "material_select_subcategory": "📂 <b>Kichik kategoriyani tanlang:</b>",
+    "material_select_type": "🏗 <b>Material turini tanlang:</b>",
+    "material_no_types": "❌ Bu kategoriyada material turlari yo'q.",
     "material_enter_tonnes": "📦 Kerakli material miqdorini kiriting (<b>tonna</b>):\nMisol: <code>12.5</code>",
     "material_invalid_tonnes": "❌ Noto'g'ri miqdor. Musbat raqam kiriting (masalan: 12.5):",
     "material_enter_notes": "📝 Izoh yoki qo'shimcha ma'lumot (ixtiyoriy):",
-    "material_summary": "📦 <b>Material so'rov xulosasi</b>\n\n📐 Miqdor: <b>{tonnes} tonna</b>\n📝 Izoh: {notes}\n\nYuborasizmi?",
+    "material_summary": "📦 <b>Material so'rov xulosasi</b>\n\n🏗 Material: <b>{mat_type}</b>\n📐 Miqdor: <b>{tonnes} tonna</b>\n📝 Izoh: {notes}\n\nYuborasizmi?",
     "material_submitted": "✅ <b>So'rov yuborildi!</b>\n\n📦 {tonnes} tonna\nAdmin tekshirib, zavodga yuboradi.",
     "material_cancelled": "❌ So'rov bekor qilindi.",
     "material_new_notify": "📦 <b>Yangi material so'rov!</b>\n\n🔢 So'rov #{id}\n📍 Viloyat: {region}\n👷 Usta: {usta}\n📦 Miqdor: <b>{tonnes} tonna</b>\n📝 Izoh: {notes}\n\n⚠️ Tasdiqlash kerak!",
@@ -452,9 +464,16 @@ STRINGS = {
     "expense_select_type": "💸 Xarajat turini tanlang:",
     "expense_enter_amount": "💰 Summasini kiriting (so'm):\nMisol: <code>250000</code>",
     "expense_invalid_amount": "❌ Noto'g'ri summa. Raqam kiriting:",
-    "expense_enter_desc": "📝 Izoh kiriting (ixtiyoriy):\n'⏩' bosing o'tkazib yuborish uchun.",
+    "expense_enter_desc": "📝 <b>Izoh kiriting</b>\n\nXarajat nima uchun qilindi? (majburiy)\n<i>Masalan: Transport, ishchilar ovqati, yoqilg'i</i>",
+    "expense_desc_required": "❌ Izoh majburiy. Iltimos, xarajat nima uchun qilinganini yozing:",
     "expense_added": "✅ <b>Xarajat kiritildi!</b>\n\n{label}: <b>{amount} so'm</b>\n📝 {desc}",
     "expense_cancelled": "❌ Xarajat kiritish bekor qilindi.",
+    "expense_mat_select_category": "📁 <b>Material kategoriyasini tanlang:</b>",
+    "expense_mat_select_subcategory": "📂 <b>Kichik kategoriyani tanlang:</b>",
+    "expense_mat_select_type": "🏗 <b>Material turini tanlang:</b>",
+    "expense_mat_enter_volume": "📐 <b>{name}</b> uchun hajmni kiriting (m²):\nNarx: <b>{price} so'm/m²</b>\nMisol: <code>150</code>",
+    "expense_mat_invalid_volume": "❌ Noto'g'ri hajm. Musbat raqam kiriting (masalan: 150):",
+    "expense_mat_auto_amount": "✅ <b>Material narxi avtomatik hisoblandi</b>\n\n🏗 Tur: <b>{name}</b>\n📐 Hajm: <b>{volume} m²</b>\n💵 Narx: <b>{price} so'm/m²</b>\n💰 Jami: <b>{amount} so'm</b>\n\n📝 Izoh kiriting (ixtiyoriy):\n'⏩' bosing o'tkazib yuborish uchun.",
     "no_expenses": "📋 Bu zakaz uchun xarajat kiritilmagan.",
     "expenses_header": "💸 <b>Xarajatlar</b> (jami: {total} so'm):\n",
 
@@ -491,14 +510,29 @@ STRINGS = {
     "master_order_start": "➕ <b>Yangi zakaz qo'shish</b>\n\n1️⃣ Klient telefon raqamini kiriting:\nMisol: <code>998901234567</code>",
     "master_no_orders": "📋 <b>Mening zakazlarim</b>\n\nSizga biriktirilgan zakazlar yo'q.",
     "master_orders_list": "📋 <b>Mening zakazlarim</b> ({count} ta):",
-    "confirm_step_area": "✅ <b>Zakaz tasdiqlash: {number}</b>\n\n1/8 — Aniq maydon hajmini kiriting (m²):",
-    "confirm_step_sum": "2/8 — Umumiy summani kiriting (so'm):\nMisol: <code>45000000</code>",
-    "confirm_step_advance": "3/8 — Zaklad (avans) miqdori (so'm):\nMisol: <code>10000000</code>",
-    "confirm_step_address": "4/8 — Manzilni tasdiqlang yoki o'zgartiring:\nJoriy manzil: <b>{address}</b>\n\nYangi manzil kiriting yoki '📍 Saqlash' tugmasini bosing:",
-    "confirm_step_date": "5/8 — Ish sanasini kiriting (KK.OO.YYYY):\nMisol: <code>25.04.2026</code>",
-    "confirm_step_usta_wage": "6/8 — Usta ish haqi (so'm):\nMisol: <code>5000000</code>",
-    "confirm_step_commission": "7/8 — Sizning komissiyangiz (so'm):\nMisol: <code>2000000</code>",
-    "confirm_step_notes": "8/8 — Izoh (ixtiyoriy). Qo'shimcha ma'lumot yozing yoki o'tkazib yuboring:",
+    "confirm_step_area": "✅ <b>Zakaz tasdiqlash: {number}</b>\n\n1️⃣ Aniq maydon hajmini kiriting (m²):",
+    "confirm_step_main_cat": "2️⃣ <b>Asosiy asfalt turi</b>\n\nKategoriyani tanlang:",
+    "confirm_step_main_subcat": "2️⃣ Sub-kategoriyani tanlang:",
+    "confirm_step_main_mat": "2️⃣ Materialni tanlang:",
+    "confirm_step_extras": (
+        "3️⃣ <b>Qo'shimcha xizmatlar</b>\n\n"
+        "📐 Asosiy maydon: <b>{area} m²</b>\n"
+        "🏗 Asosiy: <b>{main_name}</b> — {main_sub} so'm\n"
+        "{extras_text}"
+        "\n💰 Hisoblangan jami: <b>{calc_total} so'm</b>\n\n"
+        "➕ Qo'shimcha xizmat qo'shish yoki ✅ davom etish:"
+    ),
+    "confirm_step_extra_cat": "➕ <b>Qo'shimcha xizmat</b>\n\nKategoriyani tanlang:",
+    "confirm_step_extra_subcat": "➕ Sub-kategoriyani tanlang:",
+    "confirm_step_extra_mat": "➕ Materialni tanlang:",
+    "confirm_step_extra_area": "📐 Maydonni kiriting (m²):\nMisol: <code>200</code>",
+    "confirm_step_sum": "4️⃣ <b>Kelishilgan summa</b>\n\nHisoblangan: <b>{calc_total} so'm</b>\n\nKelishilgan summani kiriting (so'm):\nMisol: <code>45000000</code>",
+    "confirm_step_advance": "5️⃣ Zaklad (avans) miqdori (so'm):\nMisol: <code>10000000</code>",
+    "confirm_step_address": "6️⃣ Manzilni tasdiqlang yoki o'zgartiring:\nJoriy manzil: <b>{address}</b>\n\nYangi manzil kiriting yoki '📍 Saqlash' tugmasini bosing:",
+    "confirm_step_date": "7️⃣ Ish sanasini kiriting (KK.OO.YYYY):\nMisol: <code>25.04.2026</code>",
+    "confirm_step_usta_wage": "8️⃣ Usta ish haqi (so'm):\nMisol: <code>5000000</code>",
+    "confirm_step_commission": "9️⃣ Sizning komissiyangiz (so'm):\nMisol: <code>2000000</code>",
+    "confirm_step_notes": "🔟 Izoh (ixtiyoriy). Qo'shimcha ma'lumot yozing yoki o'tkazib yuboring:",
     "order_confirmed_success": "✅ <b>Zakaz muvaffaqiyatli tasdiqlandi!</b>\n\n🔢 #{number}\n⏰ Usta tayinlash uchun 30 daqiqa vaqtingiz bor.\n'👷 Usta tayinlash' tugmasini bosing.",
     "confirm_cancelled": "❌ Tasdiqlash bekor qilindi.",
     "no_usta_pending": "👷 <b>Usta tayinlash</b>\n\nHozircha usta tayin qilinishi kerak bo'lgan zakazlar yo'q.\n(Yangi zakazni tasdiqlagandan so'ng shu yerda ko'rinadi)",
@@ -525,6 +559,19 @@ STRINGS = {
     "deliver_error": "❌ So'rov topilmadi yoki allaqachon yetkazilgan.",
     "delivered_marked": "✅ Yetkazildi deb belgilandi!",
     "delivered_success": "✅ <b>Yetkazildi!</b>\n\n📦 {amount} tonna\nUsta xabardor qilindi.",
+
+    # ── Zavod shofer narxi handler strings ──
+    "shofer_narxi_not_set": "(belgilanmagan)",
+    "shofer_narxi_no_zavod": "❌ Siz hech qanday zavodga biriktirilmagansiz. Admin bilan bog'laning.",
+    "shofer_narxi_no_requests": "📭 Sizda hozircha faol material so'rovlar yo'q.",
+    "shofer_narxi_select_request": "🚛 <b>Shofyor narxi</b>\n\nQaysi loyiha uchun narx kiritmoqchisiz?\n\n<b>{count} ta so'rov</b> topildi:",
+    "shofer_narxi_current_req": "🚛 <b>Shofyor narxi — Loyiha tanlandi</b>\n\n📦 Zakaz: <b>{order}</b>\n👷 Usta: <b>{usta}</b>\nJoriy yetkazish narxi: <b>{price}</b>\n\nYangi narx kiriting (so'm):\nMisol: <code>15000</code>",
+    "shofer_narxi_confirm_req": "🚛 <b>Shofyor narxini tasdiqlash</b>\n\n📦 Zakaz: <b>{order}</b>\n👷 Usta: <b>{usta}</b>\n💰 Yangi narx: <b>{price} so'm</b>\n\nSaqlash?",
+    "shofer_narxi_saved_req": "✅ <b>Shofyor narxi saqlandi!</b>\n\n📦 Zakaz: <b>{order}</b>\n💰 Narx: <b>{price} so'm</b>",
+    "shofer_narxi_cancelled": "❌ Narx kiritish bekor qilindi.",
+    "shofer_narxi_invalid": "❌ Noto'g'ri narx. Musbat raqam kiriting:",
+    "btn_shofer_narxi_save": "✅ Saqlash",
+    "btn_shofer_narxi_cancel": "❌ Bekor qilish",
 
     # ── Shofer handler aliases ──
     "no_deliveries": "🚗 <b>Mening yetkazilmalarim</b>\n\nHozircha yetkazish kerak bo'lgan material yo'q.",

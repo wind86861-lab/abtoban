@@ -49,6 +49,23 @@ services:
       timeout: 3s
       retries: 5
 
+  web:
+    build: .
+    container_name: avtoban_web
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./migrations:/app/migrations
+    command: python run_web.py
+
   celery:
     build: .
     container_name: avtoban_celery

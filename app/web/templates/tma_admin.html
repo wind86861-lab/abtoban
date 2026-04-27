@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Avtoban Admin</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -172,6 +173,165 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .4px
+    }
+
+    /* ── DASHBOARD REDESIGN ── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 22px
+    }
+
+    .dash-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: transform .15s ease, box-shadow .2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dash-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.1);
+    }
+
+    .dash-icon {
+      font-size: 22px;
+      margin-bottom: 6px;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dash-card:nth-child(1) .dash-icon {
+      background: rgba(33, 150, 243, 0.12);
+    }
+
+    .dash-card:nth-child(2) .dash-icon {
+      background: rgba(76, 175, 80, 0.12);
+    }
+
+    .dash-card:nth-child(3) .dash-icon {
+      background: rgba(255, 193, 7, 0.12);
+    }
+
+    .dash-card:nth-child(4) .dash-icon {
+      background: rgba(156, 39, 176, 0.12);
+    }
+
+    .dash-card:nth-child(5) .dash-icon {
+      background: rgba(0, 150, 136, 0.12);
+    }
+
+    .dash-card:nth-child(6) .dash-icon {
+      background: rgba(244, 67, 54, 0.12);
+    }
+
+    .dash-val {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.2
+    }
+
+    .dash-lbl {
+      font-size: 10px;
+      color: var(--hint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-top: 3px
+    }
+
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 16px;
+      margin-bottom: 22px
+    }
+
+    .chart-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 18px;
+      border: 1px solid var(--border);
+    }
+
+    .chart-head {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 220px
+    }
+
+    .rev-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 22px
+    }
+
+    .rev-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px 14px;
+      border: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rev-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+
+    .rev-card:nth-child(1)::before {
+      background: #2196f3
+    }
+
+    .rev-card:nth-child(2)::before {
+      background: #4caf50
+    }
+
+    .rev-card:nth-child(3)::before {
+      background: #f44336
+    }
+
+    .rev-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      margin: 4px 0 2px
+    }
+
+    .rev-lbl {
+      font-size: 11px;
+      color: var(--hint);
+      font-weight: 600
     }
 
     /* ── CARDS ── */
@@ -640,6 +800,28 @@
         font-size: 26px
       }
 
+      .dash-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 14px
+      }
+
+      .dash-val {
+        font-size: 20px
+      }
+
+      .chart-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 14px
+      }
+
+      .rev-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 14px
+      }
+
       .cards {
         grid-template-columns: 1fr
       }
@@ -764,31 +946,85 @@
     </nav>
 
     <div class="main">
-      <div class="topbar">
+      <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
         <span id="topbar-title">📊 Dashboard</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span
+            style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:rgba(33,150,243,0.15);color:var(--primary)">
+            {% if tma_role == 'super_admin' %}👑 Super Admin{% else %}🔑 Admin{% endif %}
+          </span>
+          <a href="/tma-logout"
+            style="font-size:12px;color:var(--hint);text-decoration:none;padding:4px 10px;border:1px solid var(--border);border-radius:8px;transition:color .2s"
+            onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--hint)'">🚪 Chiqish</a>
+        </div>
       </div>
 
       <!-- DASHBOARD -->
       <div class="content tab-content" id="tab-dashboard">
         <div class="inner">
-          <div class="stat-grid">
-            <div class="stat">
-              <div class="stat-val" id="s-total">—</div>
-              <div class="stat-lbl">Jami zakazlar</div>
+          <!-- Stat cards -->
+          <div class="dash-grid">
+            <div class="dash-card">
+              <div class="dash-icon">📋</div>
+              <div class="dash-val" id="d-total">—</div>
+              <div class="dash-lbl">Jami zakazlar</div>
             </div>
-            <div class="stat">
-              <div class="stat-val" id="s-new">—</div>
-              <div class="stat-lbl">Yangi</div>
+            <div class="dash-card">
+              <div class="dash-icon">🆕</div>
+              <div class="dash-val" id="d-new">—</div>
+              <div class="dash-lbl">Yangi</div>
             </div>
-            <div class="stat">
-              <div class="stat-val" id="s-work">—</div>
-              <div class="stat-lbl">Ishda</div>
+            <div class="dash-card">
+              <div class="dash-icon">✅</div>
+              <div class="dash-val" id="d-confirmed">—</div>
+              <div class="dash-lbl">Tasdiqlangan</div>
             </div>
-            <div class="stat">
-              <div class="stat-val" id="s-users">—</div>
-              <div class="stat-lbl">Foydalanuvchilar</div>
+            <div class="dash-card">
+              <div class="dash-icon">🔧</div>
+              <div class="dash-val" id="d-work">—</div>
+              <div class="dash-lbl">Ishda</div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-icon">🏁</div>
+              <div class="dash-val" id="d-done">—</div>
+              <div class="dash-lbl">Tugagan</div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-icon">👥</div>
+              <div class="dash-val" id="d-users">—</div>
+              <div class="dash-lbl">Foydalanuvchilar</div>
             </div>
           </div>
+
+          <!-- Revenue -->
+          <div class="rev-grid">
+            <div class="rev-card">
+              <div class="rev-lbl">💰 Jami narx</div>
+              <div class="rev-val" id="d-rev">—</div>
+            </div>
+            <div class="rev-card">
+              <div class="rev-lbl">💵 Oldindan to'lov</div>
+              <div class="rev-val" id="d-advance">—</div>
+            </div>
+            <div class="rev-card">
+              <div class="rev-lbl">💳 Qarz</div>
+              <div class="rev-val" id="d-debt">—</div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-head">🍩 Zakaz statuslari</div>
+              <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">📈 So'nggi 6 oy</div>
+              <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Recent orders -->
           <div class="sec-row">
             <div class="sec">📋 So'nggi zakazlar</div>
           </div>
@@ -799,7 +1035,10 @@
       <!-- ORDERS -->
       <div class="content tab-content" id="tab-orders" style="display:none">
         <div class="inner">
-          <div class="sec">📋 Zakazlar</div>
+          <div class="sec-row">
+            <div class="sec">📋 Zakazlar</div>
+            <button class="add-btn" onclick="openOrderForm()">＋ Yangi zakaz</button>
+          </div>
           <div style="position:relative;margin-bottom:12px">
             <input type="text" id="order-search" placeholder="Zakaz, mijoz yoki telefon bo'yicha qidirish..."
               oninput="renderFilteredOrders()"
@@ -875,7 +1114,7 @@
       <div class="content tab-content" id="tab-hududlar" style="display:none">
         <div class="inner">
           <div class="sec-row">
-            <div class="sec">📍 Hududlar (Joylashuvlar)</div>
+            <div class="sec">📍 Hududlar (Xizmat zonalari)</div>
             <button class="add-btn" onclick="openHududForm()">＋ Yangi hudud</button>
           </div>
           <div class="cards" id="hududlar-list"></div>
@@ -934,8 +1173,15 @@
       <!-- CATEGORIES -->
       <div class="content tab-content" id="tab-categories" style="display:none">
         <div class="inner">
+          <!-- Asfalt Categories -->
+          <div class="sec-row" style="margin-bottom:8px">
+            <div class="sec">🏗 Asfalt Kategoriyalari</div>
+            <button class="add-btn" onclick="openAsfCatForm()">＋ Yangi kategoriya</button>
+          </div>
+          <div id="asphalt-categories-list" style="margin-bottom:28px"></div>
+
           <div class="sec-row">
-            <div class="sec">📁 Kategoriyalar</div>
+            <div class="sec">📁 Do'kon Kategoriyalari</div>
             <button class="add-btn" onclick="openCatForm()">＋ Yangi kategoriya</button>
           </div>
           <div class="cards" id="categories-list"></div>
@@ -1009,6 +1255,47 @@
             </div>
             <div id="set-result" style="margin-top:10px;font-size:12px;color:var(--hint)"></div>
           </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="card-head" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:12px">
+              <div class="card-title">📞 Konsultatsiya matni</div>
+              <div style="font-size:12px;color:var(--hint);margin-top:4px">
+                Klient «📞 Konsultatsiya» tugmasini bosganda yuboriladigan matn. HTML teglar (&lt;b&gt;, &lt;i&gt;)
+                ishlaydi.
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label">🇺🇿 O'zbekcha (lotin)</label>
+              <textarea class="form-input" id="set-cons-uz_lat" rows="6" style="font-family:inherit"></textarea>
+            </div>
+            <div class="form-group"><label class="form-label">🇺🇿 Ўзбекча (кирилл)</label>
+              <textarea class="form-input" id="set-cons-uz_cyr" rows="6" style="font-family:inherit"></textarea>
+            </div>
+            <div class="form-group"><label class="form-label">🇷🇺 Русский</label>
+              <textarea class="form-input" id="set-cons-ru" rows="6" style="font-family:inherit"></textarea>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="card-head" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:12px">
+              <div class="card-title">ℹ️ Kompaniya haqida matni</div>
+              <div style="font-size:12px;color:var(--hint);margin-top:4px">
+                «ℹ️ Kompaniya haqida» tugmasi uchun matn. HTML teglar (&lt;b&gt;, &lt;i&gt;) ishlaydi.
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label">🇺🇿 O'zbekcha (lotin)</label>
+              <textarea class="form-input" id="set-about-uz_lat" rows="7" style="font-family:inherit"></textarea>
+            </div>
+            <div class="form-group"><label class="form-label">🇺🇿 Ўзбекча (кирилл)</label>
+              <textarea class="form-input" id="set-about-uz_cyr" rows="7" style="font-family:inherit"></textarea>
+            </div>
+            <div class="form-group"><label class="form-label">🇷🇺 Русский</label>
+              <textarea class="form-input" id="set-about-ru" rows="7" style="font-family:inherit"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn btn-primary btn-block" onclick="saveAppTexts()">💾 Saqlash</button>
+            </div>
+            <div id="set-texts-result" style="margin-top:10px;font-size:12px;color:var(--hint)"></div>
+          </div>
         </div>
       </div>
 
@@ -1059,6 +1346,125 @@
           onclick="closeModal('user-modal')">✕</button>
       </div>
       <div id="um-body"></div>
+    </div>
+  </div>
+
+  <!-- ORDER FORM (admin/super-admin create) -->
+  <div class="modal-ov" id="order-form-modal" onclick="bgClose(event,'order-form-modal')">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">＋ Yangi zakaz</div>
+        <button class="close-btn" onclick="closeModal('order-form-modal')">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Klient ismi *</label>
+        <input class="form-input" id="of-name" placeholder="Masalan: Aliyev Bekzod" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefon *</label>
+        <input class="form-input" id="of-phone" placeholder="998901234567" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Viloyat</label>
+        <select class="form-input" id="of-viloyat" onchange="onOrderFormViloyatChange()">
+          <option value="">— Tanlash —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tuman</label>
+        <select class="form-input" id="of-tuman">
+          <option value="">— Tanlash —</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Manzil *</label>
+        <input class="form-input" id="of-address" placeholder="Amir Temur ko'chasi 25, maktab yonida" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📍 Google Maps havola</label>
+        <input class="form-input" id="of-maps-link" placeholder="https://maps.google.com/?q=41.3111,69.2797"
+          oninput="parseMapsLink()" />
+        <div id="of-maps-info" style="font-size:12px;color:var(--hint);margin-top:4px"></div>
+        <input type="hidden" id="of-lat" />
+        <input type="hidden" id="of-lng" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Maydon (m²)</label>
+        <input class="form-input" id="of-area" type="number" step="any" placeholder="500" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Asfalt — Kategoriya</label>
+        <select class="form-input" id="of-asf-cat" onchange="onAsfCatChange()">
+          <option value="">— Kategoriya tanlash —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asfalt — Sub-kategoriya</label>
+        <select class="form-input" id="of-asf-sub" onchange="onAsfSubChange()" disabled>
+          <option value="">— Avval kategoriya tanlang —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asfalt — Tur (material)</label>
+        <select class="form-input" id="of-asphalt" disabled>
+          <option value="">— Avval sub-kategoriya tanlang —</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Kelishilgan summa (so'm)</label>
+          <input class="form-input" id="of-total" type="number" step="any" placeholder="35000000" />
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Avans/Zaklad (so'm)</label>
+          <input class="form-input" id="of-advance" type="number" step="any" placeholder="10000000" />
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Usta ish haqi (so'm)</label>
+          <input class="form-input" id="of-wage" type="number" step="any" placeholder="5000000" />
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Master komissiya (so'm)</label>
+          <input class="form-input" id="of-comm" type="number" step="any" placeholder="2000000" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ish sanasi</label>
+        <input class="form-input" id="of-date" type="date" />
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Master</label>
+          <select class="form-input" id="of-master">
+            <option value="">— Tanlanmagan —</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Usta</label>
+          <select class="form-input" id="of-usta">
+            <option value="">— Tanlanmagan —</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Izoh</label>
+        <textarea class="form-input" id="of-notes" placeholder="Qo'shimcha ma'lumot..."></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="saveOrder()">💾 Saqlash</button>
     </div>
   </div>
 
@@ -1133,6 +1539,49 @@
     </div>
   </div>
 
+  <!-- ASPHALT CATEGORY FORM -->
+  <div class="modal-ov" id="asf-cat-modal" onclick="bgClose(event,'asf-cat-modal')">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="acm-title">Yangi kategoriya</div>
+        <button class="close-btn" onclick="closeModal('asf-cat-modal')">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Kategoriya nomi *</label><input class="form-input" id="acm-name"
+          placeholder="Masalan: Asfalt turlari" /></div>
+      <button class="btn btn-primary btn-block" onclick="saveAsfCat()">💾 Saqlash</button>
+    </div>
+  </div>
+
+  <!-- ASPHALT SUBCATEGORY FORM -->
+  <div class="modal-ov" id="asf-subcat-modal" onclick="bgClose(event,'asf-subcat-modal')">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="asm-title">Yangi sub-kategoriya</div>
+        <button class="close-btn" onclick="closeModal('asf-subcat-modal')">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Sub-kategoriya nomi *</label><input class="form-input"
+          id="asm-name" placeholder="Masalan: Barcha turlar" /></div>
+      <button class="btn btn-primary btn-block" onclick="saveAsfSubcat()">💾 Saqlash</button>
+    </div>
+  </div>
+
+  <!-- ASPHALT MATERIAL FORM -->
+  <div class="modal-ov" id="asf-mat-modal" onclick="bgClose(event,'asf-mat-modal')">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title" id="amm-title">Material</div>
+        <button class="close-btn" onclick="closeModal('asf-mat-modal')">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Nomi *</label><input class="form-input" id="amm-name"
+          placeholder="Masalan: Polimer asfalt" /></div>
+      <div class="form-group"><label class="form-label">Sotish narxi (so'm/m²) *</label><input class="form-input"
+          id="amm-price" type="number" placeholder="120000" /></div>
+      <div class="form-group"><label class="form-label">Tannarx (so'm/m²)</label><input class="form-input" id="amm-cost"
+          type="number" placeholder="80000" /></div>
+      <button class="btn btn-primary btn-block" onclick="saveAsfMaterial()">💾 Saqlash</button>
+    </div>
+  </div>
+
   <!-- PRODUCT FORM -->
   <div class="modal-ov" id="prod-modal" onclick="bgClose(event,'prod-modal')">
     <div class="modal-box">
@@ -1165,9 +1614,10 @@
           <option value="">— Танланг —</option>
         </select></div>
       <div class="form-group"><label class="form-label">Расмлар</label><input type="file" accept="image/*" multiple
-          class="form-input" id="pm-images-file" onchange="uploadMultiImg(this,'pm-images-preview')" /><input
-          type="hidden" id="pm-images" />
+          class="form-input" id="pm-images-file" onchange="uploadMultiImgProd(this)" /><input type="hidden"
+          id="pm-images" />
         <div id="pm-images-preview" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div style="font-size:11px;color:var(--hint);margin-top:4px">← → кўчиринг, × ўчириш, биринчи расм асосий</div>
       </div>
       <div class="form-group"><label class="form-label">Омбордаги сони</label><input class="form-input" id="pm-stock"
           type="number" value="0" /></div>
@@ -1262,7 +1712,7 @@
       else if (tab === 'users') loadUsers();
       else if (tab === 'hududlar') loadHududlar();
       else if (tab === 'zavodlar') loadZavodlar();
-      else if (tab === 'categories') loadCategories();
+      else if (tab === 'categories') { loadCategories(); loadAsfCategories(); }
       else if (tab === 'products') loadProducts();
       else if (tab === 'morders') loadMOrders();
       else if (tab === 'portfolio') loadPortfolios();
@@ -1296,16 +1746,83 @@
     }
 
     /* ══ DASHBOARD ══ */
+    let _chartStatus = null, _chartMonthly = null;
+
     async function loadDashboard() {
       try {
         const [stats, orders] = await Promise.all([
           fetch('/tma-api/stats').then(r => r.json()),
-          fetch('/tma-api/orders?limit=8').then(r => r.json()),
+          fetch('/tma-api/orders?limit=6').then(r => r.json()),
         ]);
-        document.getElementById('s-total').textContent = stats.total_orders;
-        document.getElementById('s-new').textContent = stats.new_orders;
-        document.getElementById('s-work').textContent = stats.in_work;
-        document.getElementById('s-users').textContent = stats.total_users;
+        // ── Stat cards ──
+        document.getElementById('d-total').textContent = fmt(stats.total_orders || 0);
+        document.getElementById('d-new').textContent = fmt(stats.new_orders || 0);
+        document.getElementById('d-confirmed').textContent = fmt(stats.confirmed || 0);
+        document.getElementById('d-work').textContent = fmt(stats.in_work || 0);
+        document.getElementById('d-done').textContent = fmt(stats.done || 0);
+        document.getElementById('d-users').textContent = fmt(stats.total_users || 0);
+
+        // ── Revenue cards ──
+        document.getElementById('d-rev').textContent = fmt(stats.revenue || 0) + " so'm";
+        document.getElementById('d-advance').textContent = fmt(stats.advance || 0) + " so'm";
+        document.getElementById('d-debt').textContent = fmt(stats.debt || 0) + " so'm";
+
+        // ── Status doughnut chart ──
+        const statusLabels = ['Yangi', 'Tasdiqlangan', 'Ishda', 'Tugagan', 'Bekor'];
+        const statusData = [stats.new_orders, stats.confirmed, stats.in_work, stats.done, stats.cancelled];
+        const statusColors = ['#2196f3', '#4caf50', '#ff9800', '#009688', '#f44336'];
+        if (_chartStatus) _chartStatus.destroy();
+        _chartStatus = new Chart(document.getElementById('chart-status'), {
+          type: 'doughnut',
+          data: {
+            labels: statusLabels,
+            datasets: [{
+              data: statusData,
+              backgroundColor: statusColors,
+              borderWidth: 2,
+              borderColor: getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#ffffff',
+              hoverOffset: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } }
+            }
+          }
+        });
+
+        // ── Monthly bar chart ──
+        const months = stats.months || [];
+        if (_chartMonthly) _chartMonthly.destroy();
+        _chartMonthly = new Chart(document.getElementById('chart-monthly'), {
+          type: 'bar',
+          data: {
+            labels: months.map(m => m.label),
+            datasets: [{
+              label: 'Zakazlar',
+              data: months.map(m => m.orders),
+              backgroundColor: 'rgba(33,150,243,0.7)',
+              borderRadius: 6,
+              barThickness: 24
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+              x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            }
+          }
+        });
+
+        // ── Recent orders ──
         S.orders = orders;
         document.getElementById('d-orders').innerHTML = orders.length ? orders.map(orderCard).join('') : empty('📋', 'Zakazlar yo\'q');
       } catch (e) { console.error(e); }
@@ -1430,7 +1947,9 @@
       <tr><td>Qarz</td><td><strong style="color:${o.debt > 0 ? 'var(--red)' : 'var(--green)'}">${fmt(o.debt)} so'm</strong></td></tr>
       <tr><td>Usta haqi</td><td>${o.usta_wage ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
       <tr><td>Master komissiya</td><td>${o.master_commission ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
+      <tr><td>Qo'shimcha xarajatlar</td><td id="om-exp-total">—</td></tr>
     </table>
+    <div id="om-exp-list" style="margin-top:8px"></div>
         ${o.notes ? `<div class="divider"></div><div class="sub-sec">📝 Izoh</div><div style="padding:8px 0;color:var(--hint)">${o.notes}</div>` : ''}
     <div class="divider"></div>
     <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--hint);padding:4px 0">
@@ -1443,10 +1962,216 @@
       ${['new', 'confirmed', 'in_work', 'done', 'cancelled'].map(s => `<button class="btn ${o.status === s ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="setOrderStatus(${id},'${s}')">${STATUS_FULL[s]}</button>`).join('')}
     </div>`;
       openModal('order-modal');
+      (async () => {
+        try {
+          const exp = await fetch(`/tma-api/orders/${id}/expenses`).then(r => r.json());
+          if (exp.total > 0) {
+            document.getElementById('om-exp-total').innerHTML = `<strong>${fmt(exp.total)} so'm</strong> (${exp.count} ta)`;
+            document.getElementById('om-exp-list').innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:6px">
+              ${exp.items.map(it => `
+                <div style="background:var(--bg);padding:6px 10px;border-radius:8px;font-size:12px">
+                  <div style="display:flex;justify-content:space-between"><span>${it.description}</span><strong>${fmt(it.amount)} so'm</strong></div>
+                  <div style="color:var(--hint);font-size:10px;margin-top:2px">👤 ${it.created_by_name} · 🕐 ${it.created_at}</div>
+                </div>
+              `).join('')}
+            </div>`;
+          } else {
+            document.getElementById('om-exp-total').textContent = '—';
+            document.getElementById('om-exp-list').innerHTML = '';
+          }
+        } catch (e) { console.error(e); }
+      })();
     }
+
     async function setOrderStatus(id, status) {
       const r = await fetch(`/tma-api/orders/${id}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
       if (r.ok) { notify(); closeModal('order-modal'); loadOrders(); if (S.tab === 'dashboard') loadDashboard(); } else notify('error');
+    }
+
+    /* ══ CREATE ORDER (Admin/Super-admin) ══ */
+
+    let _ofAsfCats = [], _ofMasters = [], _ofUstas = [];
+
+    function onAsfCatChange() {
+      const catId = parseInt(document.getElementById('of-asf-cat').value, 10);
+      const subSel = document.getElementById('of-asf-sub');
+      const matSel = document.getElementById('of-asphalt');
+      subSel.innerHTML = '<option value="">— Sub-kategoriya tanlash —</option>';
+      matSel.innerHTML = '<option value="">— Avval sub-kategoriya tanlang —</option>';
+      matSel.disabled = true;
+      if (!catId) { subSel.disabled = true; return; }
+      const cat = _ofAsfCats.find(c => c.id === catId);
+      if (!cat || !cat.subcategories || !cat.subcategories.length) {
+        subSel.disabled = true;
+        return;
+      }
+      cat.subcategories.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.textContent = s.name;
+        subSel.appendChild(o);
+      });
+      subSel.disabled = false;
+    }
+
+    function onAsfSubChange() {
+      const catId = parseInt(document.getElementById('of-asf-cat').value, 10);
+      const subId = parseInt(document.getElementById('of-asf-sub').value, 10);
+      const matSel = document.getElementById('of-asphalt');
+      matSel.innerHTML = '<option value="">— Material tanlash —</option>';
+      if (!subId) { matSel.disabled = true; return; }
+      const cat = _ofAsfCats.find(c => c.id === catId);
+      const sub = cat?.subcategories?.find(s => s.id === subId);
+      if (!sub || !sub.materials || !sub.materials.length) {
+        matSel.disabled = true;
+        return;
+      }
+      sub.materials.filter(m => m.is_active).forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.id;
+        o.textContent = `${m.name} (${Number(m.price_per_m2).toLocaleString()} so'm/m²)`;
+        matSel.appendChild(o);
+      });
+      matSel.disabled = false;
+    }
+
+    function parseMapsLink() {
+      const raw = (document.getElementById('of-maps-link').value || '').trim();
+      const info = document.getElementById('of-maps-info');
+      const latEl = document.getElementById('of-lat');
+      const lngEl = document.getElementById('of-lng');
+      if (!raw) { info.textContent = ''; latEl.value = ''; lngEl.value = ''; return; }
+
+      // Try multiple patterns:
+      //  - "lat,lng"  (raw paste)
+      //  - "?q=lat,lng" or "?ll=lat,lng" or "&query=lat,lng"
+      //  - "/@lat,lng,17z"  (Google Maps place URLs)
+      //  - "!3dlat!4dlng"   (Google Maps embedded coords)
+      const patterns = [
+        /[?&](?:q|ll|query|destination)=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+        /@(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+        /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/,
+        /^(-?\d+\.?\d+)\s*,\s*(-?\d+\.?\d+)$/,
+      ];
+      let lat = null, lng = null;
+      for (const re of patterns) {
+        const m = raw.match(re);
+        if (m) { lat = parseFloat(m[1]); lng = parseFloat(m[2]); break; }
+      }
+      if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
+        latEl.value = lat;
+        lngEl.value = lng;
+        info.style.color = 'var(--success, #16a34a)';
+        info.textContent = `✅ Lat: ${lat}, Lng: ${lng}`;
+      } else {
+        latEl.value = '';
+        lngEl.value = '';
+        info.style.color = '#dc2626';
+        info.textContent = "⚠️ Havoladan koordinatalarni ololmadi. To'g'ri Google Maps URL kiriting yoki 'lat,lng' formatida yozing.";
+      }
+    }
+
+    async function openOrderForm() {
+      // Reset form
+      ['of-name', 'of-phone', 'of-address', 'of-maps-link', 'of-lat', 'of-lng', 'of-area', 'of-total', 'of-advance', 'of-wage', 'of-comm', 'of-date', 'of-notes']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      document.getElementById('of-maps-info').textContent = '';
+
+      // Populate viloyatlar
+      if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
+      const vSel = document.getElementById('of-viloyat');
+      vSel.innerHTML = '<option value="">— Tanlash —</option>' +
+        S.viloyatlar.map(v => `<option value="${v.id}">${esc(v.name)}</option>`).join('');
+      document.getElementById('of-tuman').innerHTML = '<option value="">— Tanlash —</option>';
+
+      // Load asphalt categories (cached): hierarchical category → subcategory → material
+      if (!_ofAsfCats.length) {
+        try { _ofAsfCats = await fetch('/tma-api/asphalt-categories').then(r => r.json()); } catch (e) { _ofAsfCats = []; }
+      }
+      const catSel = document.getElementById('of-asf-cat');
+      catSel.innerHTML = '<option value="">— Kategoriya tanlash —</option>' +
+        _ofAsfCats.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      const subSel = document.getElementById('of-asf-sub');
+      subSel.innerHTML = '<option value="">— Avval kategoriya tanlang —</option>';
+      subSel.disabled = true;
+      const matSel = document.getElementById('of-asphalt');
+      matSel.innerHTML = '<option value="">— Avval sub-kategoriya tanlang —</option>';
+      matSel.disabled = true;
+
+      // Load masters & ustas
+      try {
+        if (!_ofMasters.length) _ofMasters = await fetch('/tma-api/users?role=master&limit=200').then(r => r.json());
+        if (!_ofUstas.length) _ofUstas = await fetch('/tma-api/users?role=usta&limit=200').then(r => r.json());
+      } catch (e) { _ofMasters = []; _ofUstas = []; }
+      document.getElementById('of-master').innerHTML = '<option value="">— Tanlanmagan —</option>' +
+        _ofMasters.map(u => `<option value="${u.id}">${esc(u.name)} ${u.phone ? '— ' + esc(u.phone) : ''}</option>`).join('');
+      document.getElementById('of-usta').innerHTML = '<option value="">— Tanlanmagan —</option>' +
+        _ofUstas.map(u => `<option value="${u.id}">${esc(u.name)} ${u.phone ? '— ' + esc(u.phone) : ''}</option>`).join('');
+
+      openModal('order-form-modal');
+    }
+
+    function onOrderFormViloyatChange() {
+      const vId = parseInt(document.getElementById('of-viloyat').value, 10);
+      const v = S.viloyatlar.find(x => x.id === vId);
+      const tSel = document.getElementById('of-tuman');
+      tSel.innerHTML = '<option value="">— Tanlash —</option>';
+      if (v && v.tumans) {
+        v.tumans.forEach(tm => {
+          const o = document.createElement('option');
+          o.value = tm.id; o.textContent = tm.name;
+          tSel.appendChild(o);
+        });
+      }
+    }
+
+    async function saveOrder() {
+      const name = document.getElementById('of-name').value.trim();
+      const phone = document.getElementById('of-phone').value.trim();
+      const address = document.getElementById('of-address').value.trim();
+      if (!name || name.length < 2) { alert('Klient ismini kiriting'); return; }
+      if (!phone || phone.replace(/\D/g, '').length < 9) { alert("Noto'g'ri telefon"); return; }
+      if (!address || address.length < 3) { alert('Manzilni kiriting'); return; }
+
+      const num = id => { const v = document.getElementById(id).value; return v ? parseFloat(v) : null; };
+      const intVal = id => { const v = document.getElementById(id).value; return v ? parseInt(v, 10) : null; };
+
+      const body = {
+        client_name: name,
+        client_phone: phone,
+        address: address,
+        viloyat_id: intVal('of-viloyat'),
+        tuman_id: intVal('of-tuman'),
+        latitude: num('of-lat'),
+        longitude: num('of-lng'),
+        area_m2: num('of-area'),
+        asphalt_type_id: intVal('of-asphalt'),
+        total_price: num('of-total'),
+        advance_paid: num('of-advance'),
+        usta_wage: num('of-wage'),
+        master_commission: num('of-comm'),
+        work_date: document.getElementById('of-date').value || null,
+        notes: document.getElementById('of-notes').value.trim() || null,
+        master_id: intVal('of-master'),
+        usta_id: intVal('of-usta'),
+      };
+
+      const r = await fetch('/tma-api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        notify();
+        closeModal('order-form-modal');
+        alert(`✅ Zakaz yaratildi: ${data.number}`);
+        loadOrders();
+        if (S.tab === 'dashboard') loadDashboard();
+      } else {
+        const d = await r.json().catch(() => ({}));
+        alert(d.detail || 'Xatolik yuz berdi');
+      }
     }
 
     /* ══ USERS ══ */
@@ -1556,7 +2281,28 @@
         `<button class="pill${!u.zavod_id ? ' active' : ''}" onclick="setUserZavod(${id},null)">— Yo'q</button>`,
         ...S.zavodlar.map(z => `<button class="pill${u.zavod_id === z.id ? ' active' : ''}" onclick="setUserZavod(${id},${z.id})">${z.name}</button>`)
       ].join('');
-      const hChips = S.hududlar.map(h => `<div class="hchip${S.editUserHIds.includes(h.id) ? ' sel' : ''}" onclick="toggleUH(${h.id},this)"><strong>${h.viloyat}</strong><br><small>${h.tuman}</small></div>`).join('');
+      const viloyatGroups = {};
+      S.hududlar.forEach(h => { if (!viloyatGroups[h.viloyat]) viloyatGroups[h.viloyat] = []; viloyatGroups[h.viloyat].push(h); });
+      const hChips = Object.entries(viloyatGroups).map(([vil, hs], idx) => {
+        const selCount = hs.filter(h => S.editUserHIds.includes(h.id)).length;
+        const allSel = selCount === hs.length;
+        const someSel = selCount > 0;
+        const vilKey = vil.replace(/[^a-z0-9]/gi, '_');
+        const isOpen = someSel;
+        const chips = hs.map(h => `<div class="hchip${S.editUserHIds.includes(h.id) ? ' sel' : ''}" id="hchip-${h.id}" onclick="toggleUH(${h.id},this)">${h.tuman}</div>`).join('');
+        return `<div class="vil-accordion" id="vilacc-${vilKey}" style="margin-bottom:6px;border:1.5px solid ${someSel ? 'var(--primary)' : 'var(--border)'};border-radius:12px;overflow:hidden;transition:border-color .2s">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:${someSel ? 'rgba(var(--primary-rgb,33,150,243),0.07)' : 'var(--card)'}" onclick="toggleAccordion('${vilKey}')">
+            <span style="font-size:18px;line-height:1">📍</span>
+            <span style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${vil}</span>
+            ${someSel ? `<span style="background:var(--primary);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:2px 8px;min-width:20px;text-align:center">${selCount}</span>` : ''}
+            <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:3px 8px;margin-right:4px;${allSel ? 'color:var(--danger)' : 'color:var(--primary)'}" onclick="event.stopPropagation();toggleViloyatHududlar('${vil}',${allSel})" id="vtoggle-${vilKey}">${allSel ? '🔴 Hammasini olish' : '✅ Hammasini qo\'shish'}</button>
+            <span style="font-size:13px;color:var(--hint);transition:transform .25s" id="vchev-${vilKey}">${isOpen ? '▲' : '▼'}</span>
+          </div>
+          <div id="vbody-${vilKey}" style="padding:${isOpen ? '10px 12px' : '0 12px'};max-height:${isOpen ? '500px' : '0'};overflow:hidden;transition:max-height .3s ease,padding .3s ease">
+            <div class="hudud-grid" style="margin:0">${chips}</div>
+          </div>
+        </div>`;
+      }).join('');
 
       const uLoc = u.viloyat_name ? `${u.viloyat_name}${u.tuman_name ? ', ' + u.tuman_name : ''}` : '—';
       document.getElementById('um-body').innerHTML = `
@@ -1599,7 +2345,7 @@
     <div class="info-box">
       <div class="sub-sec" style="margin-top:0">📍 Hududlar &nbsp;<span style="font-size:11px;font-weight:400;color:var(--hint)">(birdan ko'p tanlash mumkin)</span></div>
       <p style="font-size:12px;color:var(--hint);margin-bottom:10px">Tanlangan: <strong id="uh-count">${S.editUserHIds.length}</strong> ta</p>
-      <div class="hudud-grid">${hChips}</div>
+      <div>${hChips}</div>
       <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="saveUH(${id})">💾 Hududlarni saqlash</button>
     </div>
 
@@ -1737,6 +2483,64 @@
       if (i === -1) { S.editUserHIds.push(hId); el.classList.add('sel'); }
       else { S.editUserHIds.splice(i, 1); el.classList.remove('sel'); }
       const c = document.getElementById('uh-count'); if (c) c.textContent = S.editUserHIds.length;
+      const h = S.hududlar.find(x => x.id === hId);
+      if (h) {
+        const vilKey = h.viloyat.replace(/[^a-z0-9]/gi, '_');
+        const group = S.hududlar.filter(x => x.viloyat === h.viloyat);
+        const selCount = group.filter(x => S.editUserHIds.includes(x.id)).length;
+        const nowAll = selCount === group.length;
+        const acc = document.getElementById('vilacc-' + vilKey);
+        const btn = document.getElementById('vtoggle-' + vilKey);
+        if (acc) acc.style.borderColor = selCount > 0 ? 'var(--primary)' : 'var(--border)';
+        if (btn) { btn.textContent = nowAll ? '🔴 Hammasini olish' : '✅ Hammasini qo\'shish'; btn.style.color = nowAll ? 'var(--danger)' : 'var(--primary)'; btn.setAttribute('onclick', `event.stopPropagation();toggleViloyatHududlar('${h.viloyat}',${nowAll})`); }
+        const badgeId = 'vbadge-' + vilKey;
+        let badge = document.getElementById(badgeId);
+        if (!badge && selCount > 0) {
+          const span = document.createElement('span');
+          span.id = badgeId;
+          span.style.cssText = 'background:var(--primary);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:2px 8px;min-width:20px;text-align:center';
+          span.textContent = selCount;
+          if (btn) btn.parentNode.insertBefore(span, btn);
+        } else if (badge) {
+          if (selCount > 0) badge.textContent = selCount; else badge.remove();
+        }
+      }
+    }
+    function toggleAccordion(vilKey) {
+      const body = document.getElementById('vbody-' + vilKey);
+      const chev = document.getElementById('vchev-' + vilKey);
+      const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '0';
+      if (isOpen) {
+        body.style.maxHeight = '0'; body.style.padding = '0 12px'; if (chev) chev.textContent = '▼';
+      } else {
+        body.style.maxHeight = '500px'; body.style.padding = '10px 12px'; if (chev) chev.textContent = '▲';
+      }
+    }
+    function toggleViloyatHududlar(vilName, allSelected) {
+      haptic();
+      const group = S.hududlar.filter(h => h.viloyat === vilName);
+      const vilKey = vilName.replace(/[^a-z0-9]/gi, '_');
+      const acc = document.getElementById('vilacc-' + vilKey);
+      const btn = document.getElementById('vtoggle-' + vilKey);
+      const body = document.getElementById('vbody-' + vilKey);
+      const chev = document.getElementById('vchev-' + vilKey);
+      group.forEach(h => {
+        const idx = S.editUserHIds.indexOf(h.id);
+        const chip = document.getElementById('hchip-' + h.id);
+        if (allSelected) {
+          if (idx !== -1) S.editUserHIds.splice(idx, 1);
+          if (chip) chip.classList.remove('sel');
+        } else {
+          if (idx === -1) S.editUserHIds.push(h.id);
+          if (chip) chip.classList.add('sel');
+        }
+      });
+      const c = document.getElementById('uh-count'); if (c) c.textContent = S.editUserHIds.length;
+      const nowAll = group.every(h => S.editUserHIds.includes(h.id));
+      const selCount = group.filter(h => S.editUserHIds.includes(h.id)).length;
+      if (btn) { btn.textContent = nowAll ? '🔴 Hammasini olish' : '✅ Hammasini qo\'shish'; btn.style.color = nowAll ? 'var(--danger)' : 'var(--primary)'; btn.setAttribute('onclick', `event.stopPropagation();toggleViloyatHududlar('${vilName}',${nowAll})`); }
+      if (acc) acc.style.borderColor = selCount > 0 ? 'var(--primary)' : 'var(--border)';
+      if (!allSelected && body && body.style.maxHeight === '0px') { body.style.maxHeight = '500px'; body.style.padding = '10px 12px'; if (chev) chev.textContent = '▲'; }
     }
     async function saveUH(userId) {
       const r = await fetch(`/tma-api/users/${userId}/hududlar`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hudud_ids: S.editUserHIds }) });
@@ -1948,12 +2752,14 @@
         let html = '';
         Object.keys(grouped).sort().forEach(viloyat => {
           const tumans = grouped[viloyat];
+          const subTumans = tumans.filter(h => h.tuman !== h.viloyat);
+          const hasGeneral = tumans.some(h => h.tuman === h.viloyat);
           html += `<div class="card" style="margin-bottom:16px">
             <div class="card-head" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
-              <div><div class="card-title" style="font-size:16px">📍 ${viloyat}</div><div style="font-size:11px;color:var(--hint);margin-top:2px">${tumans.length} ta tuman</div></div>
+              <div><div class="card-title" style="font-size:16px">📍 ${viloyat}${hasGeneral ? ' <span style="font-size:11px;color:var(--hint);font-weight:400">(umumiy)</span>' : ''}</div><div style="font-size:11px;color:var(--hint);margin-top:2px">${subTumans.length} ta tuman</div></div>
               <button class="btn btn-ghost btn-sm" onclick="openHududFormFor('${esc(viloyat)}')">＋ Tuman</button>
             </div>
-            ${tumans.map(h => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.04)">
+            ${subTumans.map(h => `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.04)">
               <div style="display:flex;align-items:center;gap:8px">
                 <span class="badge ${h.is_active ? 'badge-active' : 'badge-inactive'}" style="font-size:9px">${h.is_active ? '✓' : '✕'}</span>
                 <span style="font-size:14px;font-weight:500">${h.tuman}</span>
@@ -1962,6 +2768,7 @@
               <div style="display:flex;gap:6px">
                 <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="editHudud(${h.id},'${esc(h.viloyat)}','${esc(h.tuman)}','${esc(h.tafsif)}')">✏️</button>
                 <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="toggleHudud(${h.id})">${h.is_active ? '🔴' : '🟢'}</button>
+                <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;color:#e53935" onclick="deleteHudud(${h.id},'${esc(h.tuman)}')">🗑️</button>
               </div>
             </div>`).join('')}
           </div>`;
@@ -1980,6 +2787,83 @@
       if (r.ok) { notify(); closeModal('hudud-modal'); loadHududlar(); } else { const d2 = await r.json().catch(() => ({})); alert(d2.detail || 'Xatolik'); }
     }
     async function toggleHudud(id) { const r = await fetch(`/tma-api/hududlar/${id}/toggle`, { method: 'PATCH' }); if (r.ok) { notify(); loadHududlar(); } else notify('error'); }
+    async function deleteHudud(id, name) {
+      if (!confirm(`"${name}" o'chirilsinmi?`)) return;
+      const r = await fetch(`/tma-api/hududlar/${id}`, { method: 'DELETE' });
+      if (r.ok) { notify(); loadHududlar(); } else notify('error');
+    }
+
+    /* ══ VILOYATLAR ADMIN ══ */
+    let _viloyatlarAll = [];
+    let _editViloyatId = null, _editTumanId = null;
+
+    async function loadViloyatlarAdmin() {
+      const data = await fetch('/tma-api/viloyatlar').then(r => r.json());
+      _viloyatlarAll = data;
+      let html = '';
+      data.forEach(v => {
+        html += `<div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:8px">
+            <strong style="font-size:15px">📍 ${v.name}</strong>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openTumanForm(${v.id},'${esc(v.name)}')">＋ Tuman</button>
+              <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="editViloyat(${v.id},'${esc(v.name)}')">✏️</button>
+              <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#e53935" onclick="deleteViloyat(${v.id},'${esc(v.name)}')">🗑️</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${v.tumans.map(t => `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-size:12px">
+              ${t.name}
+              <button onclick="editTuman(${t.id},'${esc(t.name)}',${v.id})" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--hint);padding:0">✏️</button>
+              <button onclick="deleteTuman(${t.id},'${esc(t.name)}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:#e53935;padding:0">✕</button>
+            </span>`).join('')}
+            ${v.tumans.length === 0 ? '<span style="font-size:12px;color:var(--hint)">Tumanlar yo\'q</span>' : ''}
+          </div>
+        </div>`;
+      });
+      document.getElementById('viloyatlar-admin-list').innerHTML = html || '<p style="color:var(--hint)">Viloyatlar yo\'q</p>';
+    }
+
+    function openViloyatForm() {
+      _editViloyatId = null;
+      const name = prompt('Yangi viloyat nomi:');
+      if (!name || !name.trim()) return;
+      fetch('/tma-api/viloyatlar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() }) })
+        .then(r => r.ok ? (notify(), S.viloyatlar = [], loadViloyatlarAdmin()) : notify('error'));
+    }
+
+    function editViloyat(id, currentName) {
+      const name = prompt('Viloyat nomini o\'zgartiring:', currentName);
+      if (!name || !name.trim() || name.trim() === currentName) return;
+      fetch(`/tma-api/viloyatlar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() }) })
+        .then(r => r.ok ? (notify(), S.viloyatlar = [], loadViloyatlarAdmin()) : notify('error'));
+    }
+
+    async function deleteViloyat(id, name) {
+      if (!confirm(`"${name}" viloyati va barcha tumanlari o'chirilsinmi?`)) return;
+      const r = await fetch(`/tma-api/viloyatlar/${id}`, { method: 'DELETE' });
+      if (r.ok) { notify(); S.viloyatlar = []; loadViloyatlarAdmin(); } else notify('error');
+    }
+
+    function openTumanForm(viloyatId, viloyatName) {
+      const name = prompt(`"${viloyatName}" uchun yangi tuman nomi:`);
+      if (!name || !name.trim()) return;
+      fetch('/tma-api/tumanlar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), viloyat_id: viloyatId }) })
+        .then(r => r.ok ? (notify(), S.viloyatlar = [], loadViloyatlarAdmin()) : notify('error'));
+    }
+
+    function editTuman(id, currentName, viloyatId) {
+      const name = prompt('Tuman nomini o\'zgartiring:', currentName);
+      if (!name || !name.trim() || name.trim() === currentName) return;
+      fetch(`/tma-api/tumanlar/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), viloyat_id: viloyatId }) })
+        .then(r => r.ok ? (notify(), S.viloyatlar = [], loadViloyatlarAdmin()) : notify('error'));
+    }
+
+    async function deleteTuman(id, name) {
+      if (!confirm(`"${name}" tumani o'chirilsinmi?`)) return;
+      const r = await fetch(`/tma-api/tumanlar/${id}`, { method: 'DELETE' });
+      if (r.ok) { notify(); S.viloyatlar = []; loadViloyatlarAdmin(); } else notify('error');
+    }
 
     /* ══ ZAVODLAR ══ */
     let _zavodStatusFilter = '';
@@ -1997,13 +2881,17 @@
     }
 
     function zavodCard(z) {
+      const shoferPrice = z.shofer_narxi ? `💰 ${fmt(z.shofer_narxi)} so'm` : '💰 —';
       return `<div class="card" onclick="showZavodDet(${z.id})">
         <div class="card-head"><div class="card-title">🏭 ${z.name}</div><span class="badge ${z.is_active ? 'badge-active' : 'badge-inactive'}">${z.is_active ? 'Faol' : 'Nofaol'}</span></div>
         ${z.tafsif ? `<div class="card-sub" style="margin-bottom:8px">${z.tafsif}</div>` : ''}
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
           ${z.hududlar.length ? z.hududlar.map(h => `<span class="loc-tag">📍 ${h.viloyat} – ${h.tuman}</span>`).join('') : '<span style="font-size:12px;color:var(--hint)">Hudud biriktirilmagan</span>'}
         </div>
-        <div style="margin-top:8px;font-size:12px;color:var(--hint)">👤 ${z.user_count} foydalanuvchi</div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--hint)">👤 ${z.user_count} foydalanuvchi</span>
+          <span style="font-size:12px;color:var(--accent);font-weight:600">🚛 ${shoferPrice}/m²</span>
+        </div>
       </div>`;
     }
 
@@ -2050,6 +2938,7 @@
       S.editZavodId = id; S.editZavodHIds = z.hududlar.map(h => h.id);
       document.getElementById('zdm-title').textContent = z.name;
       const hc = S.hududlar.map(h => `<div class="hchip${S.editZavodHIds.includes(h.id) ? ' sel' : ''}" onclick="toggleZDetH(${z.id},${h.id},this)"><strong>${h.viloyat}</strong><br><small>${h.tuman}</small></div>`).join('');
+      const shoferPriceVal = z.shofer_narxi || '';
       document.getElementById('zdm-body').innerHTML = `
     <table class="info-tbl">
       <tr><td>Nomi</td><td>${z.name}</td></tr>
@@ -2057,6 +2946,12 @@
       <tr><td>Foydalanuvchilar</td><td>${z.user_count} ta</td></tr>
       <tr><td>Holat</td><td><span class="badge ${z.is_active ? 'badge-active' : 'badge-inactive'}">${z.is_active ? 'Faol' : 'Nofaol'}</span></td></tr>
     </table>
+    <div class="divider"></div>
+    <div class="sub-sec">🚛 Shofyor narxi (m² uchun)</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="number" id="zdm-shofer-narxi" value="${shoferPriceVal}" placeholder="Masalan: 15000" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:14px;outline:none" />
+      <button class="btn btn-primary" onclick="saveZavodShoferNarxi(${z.id})">💾 Saqlash</button>
+    </div>
     <div class="divider"></div>
     <div class="sub-sec">📍 Hududlar</div>
     <div class="hudud-grid">${hc}</div>
@@ -2085,6 +2980,17 @@
       const r = await fetch(`/tma-api/zavodlar/${id}/toggle`, { method: 'PATCH' });
       if (r.ok) { notify(); closeModal('zavod-det-modal'); loadZavodlar(); } else notify('error');
     }
+    async function saveZavodShoferNarxi(zavodId) {
+      const price = document.getElementById('zdm-shofer-narxi').value;
+      const body = price ? { shofer_narxi: parseFloat(price) } : { shofer_narxi: null };
+      const r = await fetch(`/tma-api/zavodlar/${zavodId}/shofer-narxi`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (r.ok) {
+        notify();
+        const z = S.zavodlar.find(x => x.id === zavodId);
+        if (z) z.shofer_narxi = body.shofer_narxi;
+        renderFilteredZavodlar();
+      } else notify('error');
+    }
 
     /* ══ CATEGORIES ══ */
     const MO_STATUS = { new: '🆕 Yangi', processing: '⏳ Jarayonda', completed: '✅ Tugagan', cancelled: '❌ Bekor' };
@@ -2102,6 +3008,157 @@
       <button class="btn btn-danger btn-sm" onclick="deleteCat(${c.id})">🗑</button>
     </div>
   </div>`;
+    }
+
+    /* ══ ASFALT KATEGORIYALARI ══ */
+    let _asfCats = [];
+    let _asfEditMatId = null, _asfMatSubcatId = null;
+
+    async function loadAsfCategories() {
+      _asfCats = await fetch('/tma-api/asphalt-categories').then(r => r.json());
+      let html = '';
+      _asfCats.forEach(c => {
+        html += `<div class="card" style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:10px">
+            <strong style="font-size:15px">🏗 ${c.name}</strong>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openAsfSubcatForm(${c.id},'${esc(c.name)}')">＋ Sub</button>
+              <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="editAsfCat(${c.id},'${esc(c.name)}')">✏️</button>
+              <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#e53935" onclick="deleteAsfCat(${c.id},'${esc(c.name)}')">🗑️</button>
+            </div>
+          </div>
+          ${c.subcategories.map(s => `
+          <div style="margin-bottom:10px;padding-left:10px;border-left:3px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:13px;font-weight:600">📂 ${s.name}</span>
+              <div style="display:flex;gap:5px">
+                <button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="openAsfMatForm(${s.id},'${esc(s.name)}')">＋ Material</button>
+                <button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="editAsfSubcat(${s.id},'${esc(s.name)}',${c.id})">✏️</button>
+                <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#e53935" onclick="deleteAsfSubcat(${s.id},'${esc(s.name)}')">🗑️</button>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              ${s.materials.map(m => `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg);border-radius:8px;font-size:12px">
+                <span>${m.is_active ? '' : '<s style="color:var(--hint)">'}📄 ${m.name} — <b>${fmt(m.price_per_m2)} so'm/m²</b>${m.is_active ? '' : '</s>'}</span>
+                <div style="display:flex;gap:4px">
+                  <button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="editAsfMat(${m.id},'${esc(m.name)}',${m.price_per_m2},${m.cost_price_per_m2},${s.id})">✏️</button>
+                  <button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="toggleAsfMat(${m.id})">${m.is_active ? '🔴' : '🟢'}</button>
+                  <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#e53935" onclick="deleteAsfMat(${m.id},'${esc(m.name)}')">🗑️</button>
+                </div>
+              </div>`).join('')}
+              ${s.materials.length === 0 ? '<span style="font-size:11px;color:var(--hint);padding:4px 8px">Material yo\'q</span>' : ''}
+            </div>
+          </div>`).join('')}
+          ${c.subcategories.length === 0 ? '<p style="font-size:12px;color:var(--hint);margin:0">Sub-kategoriya yo\'q</p>' : ''}
+        </div>`;
+      });
+      document.getElementById('asphalt-categories-list').innerHTML = html || '<p style="color:var(--hint)">Kategoriyalar yo\'q</p>';
+    }
+
+    let _asfCatEditId = null, _asfSubEditId = null, _asfSubEditCatId = null;
+
+
+    function openAsfCatForm() {
+      _asfCatEditId = null;
+      document.getElementById('acm-title').textContent = 'Yangi kategoriya qo\'shish';
+      document.getElementById('acm-name').value = '';
+      openModal('asf-cat-modal');
+      setTimeout(() => document.getElementById('acm-name').focus(), 200);
+    }
+
+    function editAsfCat(id, currentName) {
+      _asfCatEditId = id;
+      document.getElementById('acm-title').textContent = 'Kategoriyani tahrirlash';
+      document.getElementById('acm-name').value = currentName;
+      openModal('asf-cat-modal');
+      setTimeout(() => document.getElementById('acm-name').focus(), 200);
+    }
+
+    async function saveAsfCat() {
+      const name = document.getElementById('acm-name').value.trim();
+      if (!name) { document.getElementById('acm-name').focus(); return; }
+      const url = _asfCatEditId ? `/tma-api/asphalt-categories/${_asfCatEditId}` : '/tma-api/asphalt-categories';
+      const method = _asfCatEditId ? 'PATCH' : 'POST';
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      r.ok ? (notify(), closeModal('asf-cat-modal'), loadAsfCategories()) : notify('error');
+    }
+
+    async function deleteAsfCat(id, name) {
+      if (!confirm(`"${name}" kategoriyasi o'chirilsinmi?`)) return;
+      const r = await fetch(`/tma-api/asphalt-categories/${id}`, { method: 'DELETE' });
+      r.ok ? (notify(), loadAsfCategories()) : notify('error');
+    }
+
+    function openAsfSubcatForm(catId, catName) {
+      _asfSubEditId = null; _asfSubEditCatId = catId;
+      document.getElementById('asm-title').textContent = `"${catName}" — yangi sub-kategoriya`;
+      document.getElementById('asm-name').value = '';
+      openModal('asf-subcat-modal');
+      setTimeout(() => document.getElementById('asm-name').focus(), 200);
+    }
+
+    function editAsfSubcat(id, currentName, catId) {
+      _asfSubEditId = id; _asfSubEditCatId = catId;
+      document.getElementById('asm-title').textContent = 'Sub-kategoriyani tahrirlash';
+      document.getElementById('asm-name').value = currentName;
+      openModal('asf-subcat-modal');
+      setTimeout(() => document.getElementById('asm-name').focus(), 200);
+    }
+
+    async function saveAsfSubcat() {
+      const name = document.getElementById('asm-name').value.trim();
+      if (!name) { document.getElementById('asm-name').focus(); return; }
+      const url = _asfSubEditId ? `/tma-api/asphalt-subcategories/${_asfSubEditId}` : '/tma-api/asphalt-subcategories';
+      const method = _asfSubEditId ? 'PATCH' : 'POST';
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, category_id: _asfSubEditCatId }) });
+      r.ok ? (notify(), closeModal('asf-subcat-modal'), loadAsfCategories()) : notify('error');
+    }
+
+    async function deleteAsfSubcat(id, name) {
+      if (!confirm(`"${name}" sub-kategoriyasi o'chirilsinmi?`)) return;
+      const r = await fetch(`/tma-api/asphalt-subcategories/${id}`, { method: 'DELETE' });
+      r.ok ? (notify(), loadAsfCategories()) : notify('error');
+    }
+
+    function openAsfMatForm(subcatId, subcatName) {
+      _asfEditMatId = null; _asfMatSubcatId = subcatId;
+      document.getElementById('amm-title').textContent = `"${subcatName}" — yangi material`;
+      ['amm-name', 'amm-price', 'amm-cost'].forEach(id => document.getElementById(id).value = '');
+      openModal('asf-mat-modal');
+    }
+
+    function editAsfMat(id, name, price, cost, subcatId) {
+      _asfEditMatId = id; _asfMatSubcatId = subcatId;
+      document.getElementById('amm-title').textContent = 'Materialni tahrirlash';
+      document.getElementById('amm-name').value = name;
+      document.getElementById('amm-price').value = price;
+      document.getElementById('amm-cost').value = cost || '';
+      openModal('asf-mat-modal');
+    }
+
+    async function saveAsfMaterial() {
+      const name = document.getElementById('amm-name').value.trim();
+      const price = parseFloat(document.getElementById('amm-price').value);
+      const cost = parseFloat(document.getElementById('amm-cost').value) || 0;
+      if (!name || !price) { alert('Nom va narxni kiriting!'); return; }
+      if (_asfEditMatId) {
+        const r = await fetch(`/tma-api/asphalt-materials/${_asfEditMatId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, price_per_m2: price, cost_price_per_m2: cost }) });
+        r.ok ? (notify(), closeModal('asf-mat-modal'), loadAsfCategories()) : notify('error');
+      } else {
+        const r = await fetch('/tma-api/asphalt-materials', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, subcategory_id: _asfMatSubcatId, price_per_m2: price, cost_price_per_m2: cost }) });
+        r.ok ? (notify(), closeModal('asf-mat-modal'), loadAsfCategories()) : notify('error');
+      }
+    }
+
+    async function toggleAsfMat(id) {
+      const r = await fetch(`/tma-api/asphalt-materials/${id}/toggle`, { method: 'PATCH' });
+      r.ok ? (notify(), loadAsfCategories()) : notify('error');
+    }
+
+    async function deleteAsfMat(id, name) {
+      if (!confirm(`"${name}" o'chirilsinmi?`)) return;
+      const r = await fetch(`/tma-api/asphalt-materials/${id}`, { method: 'DELETE' });
+      r.ok ? (notify(), loadAsfCategories()) : notify('error');
     }
 
     async function loadCategories() {
@@ -2218,6 +3275,54 @@
       openModal('prod-modal');
     }
 
+    // Helper: render editable image list with delete and move buttons
+    function renderEditableImages(containerId, hiddenId) {
+      const urls = document.getElementById(hiddenId).value.split(',').filter(Boolean);
+      const container = document.getElementById(containerId);
+      if (!urls.length) { container.innerHTML = ''; return; }
+      container.innerHTML = urls.map((url, idx) => `
+        <div style="position:relative;display:inline-block;margin:4px">
+          <img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border)" />
+          <div style="position:absolute;top:-8px;right:-8px;display:flex;gap:4px">
+            <button type="button" onclick="moveProdImg(${idx},-1,'${containerId}','${hiddenId}')" style="width:22px;height:22px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:11px;cursor:pointer;${idx === 0 ? 'visibility:hidden;' : ''}">←</button>
+            <button type="button" onclick="moveProdImg(${idx},1,'${containerId}','${hiddenId}')" style="width:22px;height:22px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:11px;cursor:pointer;${idx === urls.length - 1 ? 'visibility:hidden;' : ''}">→</button>
+            <button type="button" onclick="deleteProdImg(${idx},'${containerId}','${hiddenId}')" style="width:22px;height:22px;border-radius:50%;border:none;background:#e53935;color:#fff;font-size:13px;cursor:pointer">×</button>
+          </div>
+          ${idx === 0 ? '<div style="position:absolute;bottom:4px;left:4px;background:var(--accent);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px">Asosiy</div>' : ''}
+        </div>
+      `).join('');
+    }
+    function deleteProdImg(idx, containerId, hiddenId) {
+      const urls = document.getElementById(hiddenId).value.split(',').filter(Boolean);
+      urls.splice(idx, 1);
+      document.getElementById(hiddenId).value = urls.join(',');
+      renderEditableImages(containerId, hiddenId);
+    }
+    function moveProdImg(idx, dir, containerId, hiddenId) {
+      const urls = document.getElementById(hiddenId).value.split(',').filter(Boolean);
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= urls.length) return;
+      [urls[idx], urls[newIdx]] = [urls[newIdx], urls[idx]];
+      document.getElementById(hiddenId).value = urls.join(',');
+      renderEditableImages(containerId, hiddenId);
+    }
+    // Override uploadMultiImg to use editable render for products
+    async function uploadMultiImgProd(input) {
+      const files = input.files; if (!files.length) return;
+      const hiddenId = input.id.replace('-file', '');
+      const previewId = input.id.replace('-file', '-preview');
+      const existing = document.getElementById(hiddenId).value;
+      const urls = existing ? existing.split(',').filter(Boolean) : [];
+      for (const file of files) {
+        const fd = new FormData(); fd.append('file', file);
+        const r = await fetch('/market-api/upload', { method: 'POST', body: fd });
+        if (r.ok) { const d = await r.json(); urls.push(d.url); }
+      }
+      document.getElementById(hiddenId).value = urls.join(',');
+      renderEditableImages(previewId, hiddenId);
+      input.value = ''; // Clear so same files can be selected again if needed
+    }
+
     async function editProd(id) {
       const p = S.products.find(x => x.id === id); if (!p) return;
       S.editProdId = id;
@@ -2231,7 +3336,8 @@
       document.getElementById('pm-disc-type').value = p.discount_type || '';
       document.getElementById('pm-images').value = (p.images || []).join(',');
       document.getElementById('pm-images-file').value = '';
-      document.getElementById('pm-images-preview').innerHTML = (p.images || []).map(u => `<img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:8px" />`).join('');
+      // Use editable image renderer
+      renderEditableImages('pm-images-preview', 'pm-images');
       document.getElementById('pm-stock').value = p.stock;
       document.getElementById('pm-featured').checked = p.is_featured;
       if (!S.categories.length) S.categories = await fetch('/market-api/categories').then(r => r.json());
@@ -2434,6 +3540,50 @@
         const info = await fetch('/tma-api/bot-info').then(r => r.json());
         document.getElementById('set-shop-url').value = info.shop_url || '';
       } catch (e) { console.error(e); }
+      try {
+        const s = await fetch('/tma-api/app-settings').then(r => r.json());
+        const map = {
+          'set-cons-uz_lat': 'consultation_text_uz_lat',
+          'set-cons-uz_cyr': 'consultation_text_uz_cyr',
+          'set-cons-ru': 'consultation_text_ru',
+          'set-about-uz_lat': 'about_text_uz_lat',
+          'set-about-uz_cyr': 'about_text_uz_cyr',
+          'set-about-ru': 'about_text_ru',
+        };
+        for (const [el, key] of Object.entries(map)) {
+          const node = document.getElementById(el);
+          if (node) node.value = s[key] || '';
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function saveAppTexts() {
+      const res = document.getElementById('set-texts-result');
+      res.textContent = '⏳ Saqlanmoqda...'; res.style.color = 'var(--hint)';
+      const payload = {
+        consultation_text_uz_lat: document.getElementById('set-cons-uz_lat').value,
+        consultation_text_uz_cyr: document.getElementById('set-cons-uz_cyr').value,
+        consultation_text_ru: document.getElementById('set-cons-ru').value,
+        about_text_uz_lat: document.getElementById('set-about-uz_lat').value,
+        about_text_uz_cyr: document.getElementById('set-about-uz_cyr').value,
+        about_text_ru: document.getElementById('set-about-ru').value,
+      };
+      try {
+        const r = await fetch('/tma-api/app-settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: payload }),
+        });
+        if (r.ok) {
+          res.textContent = '✅ Saqlandi! Bot endi yangi matnni ko\'rsatadi.';
+          res.style.color = 'var(--green)';
+          notify();
+        } else {
+          const d = await r.json().catch(() => ({}));
+          res.textContent = '❌ Xatolik: ' + (d.detail || 'Noma\'lum');
+          res.style.color = 'var(--red)';
+        }
+      } catch (e) { res.textContent = '❌ Tarmoq xatoligi'; res.style.color = 'var(--red)'; }
     }
     async function applyMenuButton() {
       const url = document.getElementById('set-shop-url').value.trim();

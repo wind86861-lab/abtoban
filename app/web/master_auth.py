@@ -66,10 +66,11 @@ class MasterAuth(AuthenticationBackend):
         return True
 
     async def authenticate(self, request: Request) -> bool:
-        token = request.session.get("token")
-        user_role = request.session.get("user_role")
-        
-        if token == "master_authenticated" and user_role == "master":
+        # New custom-login token (set by master_app custom /admin/login POST)
+        if request.session.get("master_token") == "authenticated":
             return True
-        
+        # Legacy fallback: old sqladmin-based login token
+        if (request.session.get("token") == "master_authenticated"
+                and request.session.get("user_role") == "master"):
+            return True
         return False

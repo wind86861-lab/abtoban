@@ -32,6 +32,8 @@ STRINGS = {
     # ── Menu buttons ──
     "btn_cancel": "❌ Бекор қилиш",
     "btn_skip": "⏩ Ўтказиб юбориш",
+    "btn_share_location": "📍 Локация юбориш",
+    "btn_share_contact": "📱 Контактни юбориш",
     "btn_back": "⬅️ Орқага",
     "main_menu": "Асосий меню:",
     "btn_change_language": "🌐 Тилни ўзгартириш",
@@ -75,6 +77,7 @@ STRINGS = {
     "btn_zavod_materials": "📦 Материал сўровлар",
     "btn_zavod_price": "✅ Нарх киритиш",
     "btn_zavod_history": "📋 Тарихи",
+    "btn_shofer_narxi": "🚛 Шофёр нархи",
 
     # ── Shofer buttons ──
     "btn_my_deliveries": "🚗 Менинг етказилмаларим",
@@ -142,7 +145,7 @@ STRINGS = {
     "order_submitted": "✅ <b>Буюртма қабул қилинди!</b>\n\n🔢 Рақам: <code>{number}</code>\n📍 Манзил: {address}\n{location_link}📐 Майдон: {area} м²\n\nЯқин орада мастер сиз билан боғланади.",
     "order_cancelled": "❌ Буюртма бекор қилинди.",
     "no_orders": "📋 <b>Менинг буюртмаларим</b>\n\nСизда ҳали буюртмалар йўқ.\nБуюртма қолдириш учун 📝 тугмасини босинг.",
-    "my_orders_header": "📋 <b>Менинг буюртмаларим:</b>\n",
+    "my_orders_header": "📋 <b>Менинг буюртмаларим</b> ({count} та):\n\nБуюртмани танланг:",
     "new_order_notify": "🆕 <b>Янги буюртма!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} м²\n🏗 {asphalt}",
 
     # ── Client notifications ──
@@ -201,6 +204,9 @@ STRINGS = {
         "📅 Яратилди: <b>{date}</b>\n\n"
         "<i>Тасдиқлаш учун тугмани босинг.</i>"
     ),
+    "master_create_address": "5️⃣ <b>Манзилни киритинг</b>\n<i>Масалан: Амир Темур кўчаси 25, мактаб ёнида</i>",
+    "master_create_location": "6️⃣ 📍 <b>Клиент локациясини юборинг</b>\n\nЛокацияни юбориш учун пастдаги тугмани босинг ёки <b>Ўтказиб юбориш</b> ни танланг.",
+    "master_create_done": "✅ <b>Бошланғич маълумотлар сақланди!</b>\n\n📋 Буюртма: {number}\n👤 Клиент: {name}\n📱 {phone}\n📍 {address}\n\nЭнди тўлиқ маълумотларни киритамиз...",
     "master_create_start": "➕ <b>Янги буюртма қўшиш</b>\n\n1️⃣ Клиент телефон рақамини киритинг:\nМисол: <code>998901234567</code>",
     "enter_client_name": "2️⃣ Клиент исмини киритинг:",
     "invalid_phone": "❌ Нотўғри телефон рақам. Қайтадан киритинг:",
@@ -244,7 +250,9 @@ STRINGS = {
     "confirm_summary": (
         "📋 <b>Тасдиқлаш хулосаси — {number}</b>\n\n"
         "📐 Майдон: <b>{area} м²</b>\n"
-        "💰 Сумма: <b>{total} сўм</b>\n"
+        "{line_items_text}"
+        "� Ҳисобланган: <b>{calc_total} сўм</b>\n"
+        "�💰 Келишилган: <b>{total} сўм</b>\n"
         "💵 Заклад: <b>{advance} сўм</b>\n"
         "💳 Қарз: <b>{debt} сўм</b>\n"
         "📍 Манзил: {address}\n"
@@ -283,10 +291,14 @@ STRINGS = {
     # ── Material request ──
     "material_start": "📦 <b>Материал сўраш</b>\n\nҚайси буюртма учун сўрайсиз?",
     "material_no_active": "📦 <b>Материал сўраш</b>\n\nФаол буюртма йўқ. Аввал буюртмани қабул қилинг.",
+    "material_select_category": "📁 <b>Материал категориясини танланг:</b>",
+    "material_select_subcategory": "📂 <b>Кичик категорияни танланг:</b>",
+    "material_select_type": "🏗 <b>Материал турини танланг:</b>",
+    "material_no_types": "❌ Бу категорияда материал турлари йўқ.",
     "material_enter_tonnes": "📦 Керакли материал миқдорини киритинг (<b>тонна</b>):\nМисол: <code>12.5</code>",
     "material_invalid_tonnes": "❌ Нотўғри миқдор. Мусбат рақам киритинг (масалан: 12.5):",
     "material_enter_notes": "📝 Изоҳ ёки қўшимча маълумот (ихтиёрий):",
-    "material_summary": "📦 <b>Материал сўров хулосаси</b>\n\n📐 Миқдор: <b>{tonnes} тонна</b>\n📝 Изоҳ: {notes}\n\nЮборасизми?",
+    "material_summary": "📦 <b>Материал сўров хулосаси</b>\n\n🏗 Материал: <b>{mat_type}</b>\n📐 Миқдор: <b>{tonnes} тонна</b>\n📝 Изоҳ: {notes}\n\nЮборасизми?",
     "material_submitted": "✅ <b>Сўров юборилди!</b>\n\n📦 {tonnes} тонна\nАдмин текшириб, заводга юборади.",
     "material_cancelled": "❌ Сўров бекор қилинди.",
     "material_new_notify": "📦 <b>Янги материал сўров!</b>\n\n🔢 Сўров #{id}\n📍 Вилоят: {region}\n👷 Уста: {usta}\n📦 Миқдор: <b>{tonnes} тонна</b>\n📝 Изоҳ: {notes}\n\n⚠️ Тасдиқлаш керак!",
@@ -452,9 +464,16 @@ STRINGS = {
     "expense_select_type": "💸 Харажат турини танланг:",
     "expense_enter_amount": "💰 Суммасини киритинг (сўм):\nМисол: <code>250000</code>",
     "expense_invalid_amount": "❌ Нотўғри сумма. Рақам киритинг:",
-    "expense_enter_desc": "📝 Изоҳ киритинг (ихтиёрий):\n'⏩' босинг ўтказиб юбориш учун.",
+    "expense_enter_desc": "📝 <b>Изоҳ киритинг</b>\n\nХаражат нима учун қилинди? (мажбурий)\n<i>Мисолучун: Транспорт, ишчилар овқати, ёқилғи</i>",
+    "expense_desc_required": "❌ Изоҳ мажбурий. Илтимос, харажат нима учун қилинганини ёзинг:",
     "expense_added": "✅ <b>Харажат киритилди!</b>\n\n{label}: <b>{amount} сўм</b>\n📝 {desc}",
     "expense_cancelled": "❌ Харажат киритиш бекор қилинди.",
+    "expense_mat_select_category": "📁 <b>Материал категориясини танланг:</b>",
+    "expense_mat_select_subcategory": "📂 <b>Кичик категорияни танланг:</b>",
+    "expense_mat_select_type": "🏗 <b>Материал турини танланг:</b>",
+    "expense_mat_enter_volume": "📐 <b>{name}</b> учун ҳажмни киритинг (м²):\nНарх: <b>{price} сўм/м²</b>\nМисол: <code>150</code>",
+    "expense_mat_invalid_volume": "❌ Нотўғри ҳажм. Мусбат рақам киритинг (масалан: 150):",
+    "expense_mat_auto_amount": "✅ <b>Материал нархи автоматик ҳисобланди</b>\n\n🏗 Тур: <b>{name}</b>\n📐 Ҳажм: <b>{volume} м²</b>\n💵 Нарх: <b>{price} сўм/м²</b>\n💰 Жами: <b>{amount} сўм</b>\n\n📝 Изоҳ киритинг (ихтиёрий):\n'⏩' босинг ўтказиб юбориш учун.",
     "no_expenses": "📋 Бу буюртма учун харажат киритилмаган.",
     "expenses_header": "💸 <b>Харажатлар</b> (жами: {total} сўм):\n",
 
@@ -491,14 +510,29 @@ STRINGS = {
     "master_order_start": "➕ <b>Янги буюртма қўшиш</b>\n\n1️⃣ Клиент телефон рақамини киритинг:\nМисол: <code>998901234567</code>",
     "master_no_orders": "📋 <b>Менинг буюртмаларим</b>\n\nСизга бириктирилган буюртмалар йўқ.",
     "master_orders_list": "📋 <b>Менинг буюртмаларим</b> ({count} та):",
-    "confirm_step_area": "✅ <b>Буюртма тасдиқлаш: {number}</b>\n\n1/8 — Аниқ майдон ҳажмини киритинг (м²):",
-    "confirm_step_sum": "2/8 — Умумий сумманы киритинг (сўм):\nМисол: <code>45000000</code>",
-    "confirm_step_advance": "3/8 — Заклад (аванс) миқдори (сўм):\nМисол: <code>10000000</code>",
-    "confirm_step_address": "4/8 — Манзилни тасдиқланг ёки ўзгартиринг:\nЖорий манзил: <b>{address}</b>\n\nЯнги манзил киритинг ёки '📍 Сақлаш' тугмасини босинг:",
-    "confirm_step_date": "5/8 — Иш санасини киритинг (КК.ОО.ЙЙЙЙ):\nМисол: <code>25.04.2026</code>",
-    "confirm_step_usta_wage": "6/8 — Уста иш ҳақи (сўм):\nМисол: <code>5000000</code>",
-    "confirm_step_commission": "7/8 — Сизнинг комиссиянгиз (сўм):\nМисол: <code>2000000</code>",
-    "confirm_step_notes": "8/8 — Изоҳ (ихтиёрий). Қўшимча маълумот ёзинг ёки ўтказиб юборинг:",
+    "confirm_step_area": "✅ <b>Буюртма тасдиқлаш: {number}</b>\n\n1️⃣ Аниқ майдон ҳажмини киритинг (м²):",
+    "confirm_step_main_cat": "2️⃣ <b>Асосий асфалт тури</b>\n\nКатегорияни танланг:",
+    "confirm_step_main_subcat": "2️⃣ Суб-категорияни танланг:",
+    "confirm_step_main_mat": "2️⃣ Материални танланг:",
+    "confirm_step_extras": (
+        "3️⃣ <b>Қўшимча хизматлар</b>\n\n"
+        "📐 Асосий майдон: <b>{area} м²</b>\n"
+        "🏗 Асосий: <b>{main_name}</b> — {main_sub} сўм\n"
+        "{extras_text}"
+        "\n💰 Ҳисобланган жами: <b>{calc_total} сўм</b>\n\n"
+        "➕ Қўшимча хизмат қўшиш ёки ✅ давом этиш:"
+    ),
+    "confirm_step_extra_cat": "➕ <b>Қўшимча хизмат</b>\n\nКатегорияни танланг:",
+    "confirm_step_extra_subcat": "➕ Суб-категорияни танланг:",
+    "confirm_step_extra_mat": "➕ Материални танланг:",
+    "confirm_step_extra_area": "📐 Майдонни киритинг (м²):\nМисол: <code>200</code>",
+    "confirm_step_sum": "4️⃣ <b>Келишилган сумма</b>\n\nҲисобланган: <b>{calc_total} сўм</b>\n\nКелишилган сумманы киритинг (сўм):\nМисол: <code>45000000</code>",
+    "confirm_step_advance": "5️⃣ Заклад (аванс) миқдори (сўм):\nМисол: <code>10000000</code>",
+    "confirm_step_address": "6️⃣ Манзилни тасдиқланг ёки ўзгартиринг:\nЖорий манзил: <b>{address}</b>\n\nЯнги манзил киритинг ёки '📍 Сақлаш' тугмасини босинг:",
+    "confirm_step_date": "7️⃣ Иш санасини киритинг (КК.ОО.ЙЙЙЙ):\nМисол: <code>25.04.2026</code>",
+    "confirm_step_usta_wage": "8️⃣ Уста иш ҳақи (сўм):\nМисол: <code>5000000</code>",
+    "confirm_step_commission": "9️⃣ Сизнинг комиссиянгиз (сўм):\nМисол: <code>2000000</code>",
+    "confirm_step_notes": "🔟 Изоҳ (ихтиёрий). Қўшимча маълумот ёзинг ёки ўтказиб юборинг:",
     "order_confirmed_success": "✅ <b>Буюртма муваффақиятли тасдиқланди!</b>\n\n🔢 #{number}\n⏰ Уста тайинлаш учун 30 дақиқа вақтингиз бор.\n'👷 Уста тайинлаш' тугмасини босинг.",
     "confirm_cancelled": "❌ Тасдиқлаш бекор қилинди.",
     "no_usta_pending": "👷 <b>Уста тайинлаш</b>\n\nҲозирча уста тайин қилиниши керак бўлган буюртмалар йўқ.\n(Янги буюртмани тасдиқлагандан сўнг шу ерда кўринади)",
@@ -525,6 +559,19 @@ STRINGS = {
     "deliver_error": "❌ Сўров топилмади ёки аллақачон етказилган.",
     "delivered_marked": "✅ Етказилди деб белгиланди!",
     "delivered_success": "✅ <b>Етказилди!</b>\n\n📦 {amount} тонна\nУста хабардор қилинди.",
+
+    # ── Zavod shofer narxi handler strings ──
+    "shofer_narxi_not_set": "(белгиланмаган)",
+    "shofer_narxi_no_zavod": "❌ Сиз ҳеч қандай заводга бириктирилмагансиз. Админ билан боғланинг.",
+    "shofer_narxi_no_requests": "📭 Сизда ҳозирча фаол материал сўровлар йўқ.",
+    "shofer_narxi_select_request": "🚛 <b>Шофёр нархи</b>\n\nҚайси лойиҳа учун нарх киритмоқчисиз?\n\n<b>{count} та сўров</b> топилди:",
+    "shofer_narxi_current_req": "🚛 <b>Шофёр нархи — Лойиҳа танланди</b>\n\n📦 Заказ: <b>{order}</b>\n👷 Уста: <b>{usta}</b>\nЖорий етказиш нархи: <b>{price}</b>\n\nЯнги нарх киритинг (сўм):\nМисол: <code>15000</code>",
+    "shofer_narxi_confirm_req": "🚛 <b>Шофёр нархини тасдиқлаш</b>\n\n📦 Заказ: <b>{order}</b>\n👷 Уста: <b>{usta}</b>\n💰 Янги нарх: <b>{price} сўм</b>\n\nСақлаш?",
+    "shofer_narxi_saved_req": "✅ <b>Шофёр нархи сақланди!</b>\n\n📦 Заказ: <b>{order}</b>\n💰 Нарх: <b>{price} сўм</b>",
+    "shofer_narxi_cancelled": "❌ Нарх киритиш бекор қилинди.",
+    "shofer_narxi_invalid": "❌ Нотўғри нарх. Мусбат рақам киритинг:",
+    "btn_shofer_narxi_save": "✅ Сақлаш",
+    "btn_shofer_narxi_cancel": "❌ Бекор қилиш",
 
     # ── Shofer handler aliases ──
     "no_deliveries": "🚗 <b>Менинг етказилмаларим</b>\n\nҲозирча етказиш керак бўлган материал йўқ.",

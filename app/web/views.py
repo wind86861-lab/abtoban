@@ -1,12 +1,19 @@
 from sqladmin import ModelView
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from app.db.models import (
     AsphaltCategory,
     AsphaltSubCategory,
     AsphaltType,
+    Category,
     Expense,
+    MarketOrder,
+    MarketOrderStatus,
     MaterialRequest,
     Order,
+    OrderStatus,
+    Portfolio,
+    Product,
     Region,
     Tuman,
     User,
@@ -94,25 +101,21 @@ class UserAdmin(ModelView, model=User):
     ]
     
     form_ajax_refs = {
-        "viloyat_id": {
+        "viloyat": {
             "fields": ("name",),
             "order_by": "name",
-            "model": Viloyat,
         },
-        "tuman_id": {
+        "tuman_rel": {
             "fields": ("name",),
             "order_by": "name",
-            "model": Tuman,
         },
-        "region_id": {
+        "region": {
             "fields": ("name",),
             "order_by": "name",
-            "model": Region,
         },
-        "zavod_id": {
+        "zavod": {
             "fields": ("name",),
             "order_by": "name",
-            "model": Zavod,
         },
     }
 
@@ -251,36 +254,79 @@ class OrderAdmin(ModelView, model=Order):
     }
 
     form_columns = [
+        Order.client_id,
         Order.client_name,
         Order.client_phone,
         Order.viloyat_id,
         Order.tuman_id,
         Order.region_id,
         Order.address,
+        Order.latitude,
+        Order.longitude,
         Order.area_m2,
+        Order.asphalt_type_id,
         Order.total_price,
         Order.advance_paid,
         Order.debt,
+        Order.usta_wage,
+        Order.master_commission,
         Order.status,
         Order.work_date,
         Order.notes,
         Order.master_id,
         Order.usta_id,
-        Order.asphalt_type_id,
     ]
 
-    can_create = False
+    form_args = {
+        "client_id": {"description": "Klient User.id (Foydalanuvchilar ro'yxatidan tekshiring)"},
+        "client_name": {"description": "Klient ismi"},
+        "client_phone": {"description": "998901234567 formatida"},
+        "address": {"description": "To'liq manzil"},
+        "area_m2": {"description": "Maydon m² (masalan: 500)"},
+        "total_price": {"description": "Kelishilgan summa (so'm)"},
+        "advance_paid": {"description": "Zaklad/avans (so'm)"},
+        "usta_wage": {"description": "Usta ish haqi (so'm)"},
+        "master_commission": {"description": "Master komissiyasi (so'm)"},
+        "work_date": {"description": "Ish sanasi"},
+    }
+
+    can_create = True
     page_size = 25
+
+    async def on_model_change(self, data, model, is_created, request):
+        """Auto-generate order_number on create."""
+        if is_created and not getattr(model, "order_number", None):
+            from datetime import datetime
+            from sqlalchemy import func, select
+            from app.db.session import async_session_maker
+            today = datetime.now().strftime("%Y%m%d")
+            async with async_session_maker() as session:
+                result = await session.execute(
+                    select(func.count(Order.id)).where(
+                        Order.order_number.like(f"AVT-{today}-%")
+                    )
+                )
+                count = result.scalar_one() + 1
+            model.order_number = f"AVT-{today}-{count:04d}"
+            if not model.status:
+                model.status = OrderStatus.NEW
+        return await super().on_model_change(data, model, is_created, request)
 
     column_select_related_list = [
         "master", "usta", "client", "asphalt_type", "viloyat", "tuman_rel", "region"
     ]
 
     def _fmt_master(m, a):
-        return f"{m.master.full_name} ({m.master.phone})" if m.master else "-"
+        try:
+            return f"{m.master.full_name} ({m.master.phone})" if m.master else "-"
+        except DetachedInstanceError:
+            return f"#{m.master_id}" if m.master_id else "-"
 
     def _fmt_usta(m, a):
-        return f"{m.usta.full_name} ({m.usta.phone})" if m.usta else "-"
+        try:
+            return f"{m.usta.full_name} ({m.usta.phone})" if m.usta else "-"
+        except DetachedInstanceError:
+            return f"#{m.usta_id}" if m.usta_id else "-"
 
     def _fmt_expenses(m, a):
         items = getattr(m, "expenses", []) or []
@@ -298,22 +344,52 @@ class OrderAdmin(ModelView, model=Order):
             f"#{mr.id} {mr.amount_tonnes}t {mr.status}" for mr in items[:20]
         )
 
+    def _fmt_viloyat(m, a):
+        try:
+            return m.viloyat.name if m.viloyat else "-"
+        except DetachedInstanceError:
+            return f"#{m.viloyat_id}" if m.viloyat_id else "-"
+
+    def _fmt_tuman(m, a):
+        try:
+            return m.tuman_rel.name if m.tuman_rel else "-"
+        except DetachedInstanceError:
+            return f"#{m.tuman_id}" if m.tuman_id else "-"
+
+    def _fmt_asphalt(m, a):
+        try:
+            return m.asphalt_type.name if m.asphalt_type else "-"
+        except DetachedInstanceError:
+            return f"#{m.asphalt_type_id}" if m.asphalt_type_id else "-"
+
+    def _fmt_client(m, a):
+        try:
+            return f"{m.client.full_name} ({m.client.phone})" if m.client else "-"
+        except DetachedInstanceError:
+            return m.client_name or "-"
+
+    def _fmt_region(m, a):
+        try:
+            return m.region.name if m.region else "-"
+        except DetachedInstanceError:
+            return f"#{m.region_id}" if m.region_id else "-"
+
     column_formatters = {
         Order.master_id: _fmt_master,
         Order.usta_id: _fmt_usta,
-        Order.viloyat_id: lambda m, a: m.viloyat.name if m.viloyat else "-",
-        Order.tuman_id: lambda m, a: m.tuman_rel.name if m.tuman_rel else "-",
-        Order.asphalt_type_id: lambda m, a: m.asphalt_type.name if m.asphalt_type else "-",
+        Order.viloyat_id: _fmt_viloyat,
+        Order.tuman_id: _fmt_tuman,
+        Order.asphalt_type_id: _fmt_asphalt,
     }
 
     column_formatters_detail = {
         Order.master_id: _fmt_master,
         Order.usta_id: _fmt_usta,
-        Order.client_id: lambda m, a: f"{m.client.full_name} ({m.client.phone})" if m.client else "-",
-        Order.viloyat_id: lambda m, a: m.viloyat.name if m.viloyat else "-",
-        Order.tuman_id: lambda m, a: m.tuman_rel.name if m.tuman_rel else "-",
-        Order.region_id: lambda m, a: m.region.name if m.region else "-",
-        Order.asphalt_type_id: lambda m, a: m.asphalt_type.name if m.asphalt_type else "-",
+        Order.client_id: _fmt_client,
+        Order.viloyat_id: _fmt_viloyat,
+        Order.tuman_id: _fmt_tuman,
+        Order.region_id: _fmt_region,
+        Order.asphalt_type_id: _fmt_asphalt,
         "expenses": _fmt_expenses,
         "material_requests": _fmt_materials,
     }
@@ -487,6 +563,186 @@ class AsphaltTypeAdmin(ModelView, model=AsphaltType):
         AsphaltType.subcategory_id: lambda m, a: f"{m.subcategory.category.name} → {m.subcategory.name}" if m.subcategory else "-",
     }
     
+    page_size = 25
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MARKETPLACE ADMIN VIEWS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class ShopCategoryAdmin(ModelView, model=Category):
+    name = "Do'kon Kategoriya"
+    name_plural = "Do'kon Kategoriyalar"
+    icon = "fa-solid fa-folder"
+
+    column_list = [
+        Category.id,
+        Category.name_uz,
+        Category.name_ru,
+        Category.name_en,
+        Category.order,
+        Category.is_active,
+    ]
+    column_searchable_list = [Category.name_uz, Category.name_ru, Category.name_en]
+    column_sortable_list = [Category.id, Category.name_uz, Category.order, Category.is_active]
+    column_filters = [Category.is_active]
+
+    column_labels = {
+        Category.name_uz: "Nomi (Lotin)",
+        Category.name_ru: "Название (Рус)",
+        Category.name_en: "Name (En)",
+        Category.order: "Tartib",
+    }
+
+    form_columns = [
+        Category.name_uz,
+        Category.name_ru,
+        Category.name_en,
+        Category.parent_id,
+        Category.image,
+        Category.order,
+        Category.is_active,
+    ]
+    page_size = 25
+
+
+class ProductAdmin(ModelView, model=Product):
+    name = "Mahsulot"
+    name_plural = "Mahsulotlar"
+    icon = "fa-solid fa-box"
+
+    column_list = [
+        Product.id,
+        Product.name_uz,
+        Product.name_ru,
+        Product.price,
+        Product.stock,
+        Product.category_id,
+        Product.is_featured,
+        Product.is_active,
+    ]
+    column_searchable_list = [Product.name_uz, Product.name_ru, Product.name_en]
+    column_sortable_list = [
+        Product.id, Product.name_uz, Product.price,
+        Product.stock, Product.is_featured, Product.is_active,
+    ]
+    column_filters = [Product.category_id, Product.is_featured, Product.is_active]
+
+    column_labels = {
+        Product.name_uz: "Nomi (Lotin)",
+        Product.name_ru: "Название (Рус)",
+        Product.name_en: "Name (En)",
+        Product.description_uz: "Tavsif (Lotin)",
+        Product.description_ru: "Описание (Рус)",
+        Product.description_en: "Description (En)",
+        Product.price: "Narxi",
+        Product.discount_value: "Chegirma",
+        Product.discount_type: "Chegirma turi",
+        Product.stock: "Ombor",
+        Product.category_id: "Kategoriya",
+        Product.images: "Rasmlar (URL, vergul bilan)",
+    }
+
+    form_columns = [
+        Product.name_uz,
+        Product.name_ru,
+        Product.name_en,
+        Product.description_uz,
+        Product.description_ru,
+        Product.description_en,
+        Product.price,
+        Product.discount_value,
+        Product.discount_type,
+        Product.category_id,
+        Product.images,
+        Product.stock,
+        Product.is_featured,
+        Product.is_active,
+    ]
+
+    column_select_related_list = ["category"]
+    column_formatters = {
+        Product.category_id: lambda m, a: m.category.name_uz if m.category else "—",
+    }
+    page_size = 25
+
+
+class PortfolioAdmin(ModelView, model=Portfolio):
+    name = "Portfolio"
+    name_plural = "Portfoliolar"
+    icon = "fa-solid fa-images"
+
+    column_list = [
+        Portfolio.id,
+        Portfolio.title_uz,
+        Portfolio.title_ru,
+        Portfolio.year,
+        Portfolio.location,
+        Portfolio.order,
+        Portfolio.is_active,
+    ]
+    column_searchable_list = [Portfolio.title_uz, Portfolio.title_ru, Portfolio.location]
+    column_sortable_list = [
+        Portfolio.id, Portfolio.title_uz, Portfolio.year,
+        Portfolio.order, Portfolio.is_active,
+    ]
+    column_filters = [Portfolio.is_active, Portfolio.year]
+
+    column_labels = {
+        Portfolio.title_uz: "Sarlavha (Lotin)",
+        Portfolio.title_ru: "Заголовок (Рус)",
+        Portfolio.title_en: "Title (En)",
+        Portfolio.description_uz: "Tavsif (Lotin)",
+        Portfolio.description_ru: "Описание (Рус)",
+        Portfolio.description_en: "Description (En)",
+        Portfolio.location: "Joylashuv",
+        Portfolio.client_name: "Buyurtmachi",
+        Portfolio.year: "Yil",
+        Portfolio.images: "Rasmlar (URL, vergul bilan)",
+        Portfolio.order: "Tartib",
+    }
+
+    form_columns = [
+        Portfolio.title_uz,
+        Portfolio.title_ru,
+        Portfolio.title_en,
+        Portfolio.description_uz,
+        Portfolio.description_ru,
+        Portfolio.description_en,
+        Portfolio.location,
+        Portfolio.client_name,
+        Portfolio.year,
+        Portfolio.images,
+        Portfolio.order,
+        Portfolio.is_active,
+    ]
+    page_size = 25
+
+
+class MarketOrderAdmin(ModelView, model=MarketOrder):
+    name = "Do'kon Buyurtma"
+    name_plural = "Do'kon Buyurtmalar"
+    icon = "fa-solid fa-receipt"
+
+    column_list = [
+        MarketOrder.id,
+        MarketOrder.customer_phone,
+        MarketOrder.total_price,
+        MarketOrder.status,
+        MarketOrder.created_at,
+    ]
+    column_sortable_list = [MarketOrder.id, MarketOrder.total_price, MarketOrder.created_at]
+    column_filters = [MarketOrder.status]
+    column_searchable_list = [MarketOrder.customer_phone]
+
+    column_labels = {
+        MarketOrder.customer_phone: "Telefon",
+        MarketOrder.total_price: "Jami",
+        MarketOrder.status: "Holat",
+    }
+
+    form_columns = [MarketOrder.status, MarketOrder.comment]
     page_size = 25
 
 

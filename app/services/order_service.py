@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import AuditLog, Order, OrderStatus, User, UserRole
+from app.db.models import AuditLog, Order, OrderLineItem, OrderStatus, User, UserRole
 
 
 class OrderService:
@@ -76,20 +76,33 @@ class OrderService:
         client_name: str,
         client_phone: str,
         address: str,
-        area_m2: Decimal,
+        area_m2: Decimal = Decimal("0"),
         region_id: Optional[int] = None,
         asphalt_type_id: Optional[int] = None,
         viloyat_id: Optional[int] = None,
         tuman_id: Optional[int] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
     ) -> Order:
         order_number = await self.generate_order_number()
-        # Use master as client_id placeholder
+        # Try to resolve existing klient user by phone; otherwise use master as fallback
+        client_id = master_id
+        if client_phone:
+            normalized = client_phone.replace("+", "").replace(" ", "").replace("-", "")
+            res = await self.session.execute(
+                select(User).where(User.phone == normalized, User.role == UserRole.KLIENT)
+            )
+            existing = res.scalar_one_or_none()
+            if existing:
+                client_id = existing.id
         order = Order(
             order_number=order_number,
-            client_id=master_id,
+            client_id=client_id,
             client_name=client_name,
             client_phone=client_phone,
             address=address,
+            latitude=latitude,
+            longitude=longitude,
             area_m2=area_m2,
             region_id=region_id,
             viloyat_id=viloyat_id,
@@ -177,6 +190,7 @@ class OrderService:
                 selectinload(Order.region),
                 selectinload(Order.viloyat),
                 selectinload(Order.tuman_rel),
+                selectinload(Order.line_items).selectinload(OrderLineItem.asphalt_type),
             )
             .where(Order.id == order_id)
         )
@@ -283,6 +297,8 @@ class OrderService:
         usta_wage: Decimal,
         master_commission: Decimal,
         notes: Optional[str] = None,
+        line_items: Optional[List[dict]] = None,
+        calculated_total: Optional[Decimal] = None,
     ) -> Optional[Order]:
         order = await self.get_by_id(order_id)
         if not order or order.status != OrderStatus.NEW:
@@ -299,9 +315,44 @@ class OrderService:
         order.usta_wage = usta_wage
         order.master_commission = master_commission
         order.notes = notes
+        order.calculated_total = calculated_total
         order.status = OrderStatus.CONFIRMED
         order.confirmed_at = now
         order.usta_assignment_deadline = now + timedelta(minutes=30)
+
+        # Create line items and set main asphalt_type_id
+        calc_total = Decimal("0")
+        if line_items:
+            main_asphalt_set = False
+            for item in line_items:
+                at_id = int(item.get("asphalt_type_id") or 0) or None
+                area = Decimal(str(item.get("area_m2", area_m2)))
+                price = Decimal(str(item.get("price_per_m2", 0)))
+                cost = Decimal(str(item.get("cost_price_per_m2", 0)))
+                desc = item.get("description")
+                is_main = bool(item.get("is_main", False))
+                subtotal = area * price
+
+                li = OrderLineItem(
+                    order_id=order_id,
+                    asphalt_type_id=at_id,
+                    description=desc,
+                    area_m2=area,
+                    price_per_m2=price,
+                    cost_price_per_m2=cost,
+                    subtotal=subtotal,
+                    is_main=is_main,
+                )
+                self.session.add(li)
+                calc_total += subtotal
+
+                # Set main asphalt type on order for backward compat
+                if is_main and at_id and not main_asphalt_set:
+                    order.asphalt_type_id = at_id
+                    main_asphalt_set = True
+
+            if calculated_total is None:
+                order.calculated_total = calc_total
 
         await self.session.flush()
 

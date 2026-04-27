@@ -28,7 +28,7 @@ class AdminAuth(AuthenticationBackend):
         #    /sqladmin/login to still sign in. The main app has a redirect
         #    middleware that will forward them to /master-panel/admin/.
         if username and password:
-            async with async_session_maker() as session:
+            async with async_session_maker() as session: 
                 result = await session.execute(
                     select(User).where(
                         User.phone == username,

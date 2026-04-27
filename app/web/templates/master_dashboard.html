@@ -1,171 +1,688 @@
 {% extends "sqladmin/layout.html" %}
 
-{% block head_css %}
+{% block head %}
 {{ super() }}
-<link rel="stylesheet" href="/static/custom_admin.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    /* === MASTER DASHBOARD — light mode, prefix mdb- === */
+    .mdb-wrap {
+        padding: 20px 24px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Header */
+    .mdb-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-bottom: 24px !important;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .mdb-header h1 {
+        font-size: 1.55rem !important;
+        font-weight: 800 !important;
+        margin: 0 !important;
+        color: #1e293b !important;
+    }
+
+    .mdb-header p {
+        margin: 4px 0 0 !important;
+        color: #64748b !important;
+        font-size: .88rem !important;
+    }
+
+    .mdb-pill {
+        background: rgba(255, 107, 0, .1) !important;
+        border: 1px solid rgba(255, 107, 0, .35) !important;
+        color: #e55a00 !important;
+        padding: 7px 16px !important;
+        border-radius: 24px !important;
+        font-size: .82rem !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        display: inline-block !important;
+    }
+
+    /* KPI Grid */
+    .mdb-kpi-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 16px !important;
+        margin-bottom: 20px !important;
+    }
+
+    @media(max-width:1200px) {
+        .mdb-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    @media(max-width:640px) {
+        .mdb-kpi-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    .mdb-kpi {
+        border-radius: 14px !important;
+        padding: 22px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, .13) !important;
+        transition: transform .2s, box-shadow .2s !important;
+        display: block !important;
+    }
+
+    .mdb-kpi:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .18) !important;
+    }
+
+    .mdb-kpi::after {
+        content: '';
+        position: absolute;
+        right: -20px;
+        top: -20px;
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .1);
+    }
+
+    .mdb-kpi-orange {
+        background: linear-gradient(135deg, #d95200, #FF6B00 50%, #ff8c36) !important;
+        color: #fff !important;
+    }
+
+    .mdb-kpi-green {
+        background: linear-gradient(135deg, #009670, #00b894 50%, #00d4ab) !important;
+        color: #fff !important;
+    }
+
+    .mdb-kpi-blue {
+        background: linear-gradient(135deg, #0660b5, #0984e3 50%, #30a0f5) !important;
+        color: #fff !important;
+    }
+
+    .mdb-kpi-purple {
+        background: linear-gradient(135deg, #4e3ac0, #6c5ce7 50%, #9480f9) !important;
+        color: #fff !important;
+    }
+
+    .mdb-kpi-icon {
+        font-size: 1.35rem !important;
+        margin-bottom: 12px !important;
+        display: block !important;
+    }
+
+    .mdb-kpi-val {
+        font-size: 1.6rem !important;
+        font-weight: 900 !important;
+        line-height: 1.1 !important;
+        margin-bottom: 5px !important;
+        display: block !important;
+        color: #fff !important;
+    }
+
+    .mdb-kpi-lbl {
+        font-size: .7rem !important;
+        opacity: .88 !important;
+        text-transform: uppercase !important;
+        letter-spacing: .7px !important;
+        display: block !important;
+        font-weight: 600 !important;
+        color: #fff !important;
+    }
+
+    .mdb-kpi-sub {
+        position: absolute !important;
+        top: 14px !important;
+        right: 14px !important;
+        font-size: .7rem !important;
+        font-weight: 700 !important;
+        background: rgba(255, 255, 255, .25) !important;
+        padding: 3px 9px !important;
+        border-radius: 20px !important;
+        color: #fff !important;
+    }
+
+    /* Panel (white card) */
+    .mdb-panel {
+        background: #fff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 14px !important;
+        padding: 22px !important;
+        box-shadow: 0 1px 8px rgba(0, 0, 0, .07) !important;
+        box-sizing: border-box;
+    }
+
+    .mdb-ph {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+        font-size: .95rem !important;
+        font-weight: 700 !important;
+        color: #1e293b !important;
+    }
+
+    .mdb-phi {
+        width: 32px !important;
+        height: 32px !important;
+        background: rgba(255, 107, 0, .12) !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: .95rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Layouts */
+    .mdb-two {
+        display: grid !important;
+        grid-template-columns: 1.65fr 1fr !important;
+        gap: 18px !important;
+        margin-bottom: 18px !important;
+        align-items: start !important;
+    }
+
+    @media(max-width:960px) {
+        .mdb-two {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    .mdb-bot {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 18px !important;
+        margin-bottom: 18px !important;
+    }
+
+    @media(max-width:800px) {
+        .mdb-bot {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    .mdb-right {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 18px !important;
+    }
+
+    /* Table */
+    .mdb-tbl-wrap {
+        max-height: 360px !important;
+        overflow-y: auto !important;
+    }
+
+    .mdb-tbl-wrap::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .mdb-tbl-wrap::-webkit-scrollbar-thumb {
+        background: rgba(255, 107, 0, .4);
+        border-radius: 4px;
+    }
+
+    .mdb-tbl {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: .84rem !important;
+    }
+
+    .mdb-tbl thead th {
+        padding: 9px 12px !important;
+        text-align: left !important;
+        font-size: .68rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: .7px !important;
+        color: #94a3b8 !important;
+        border-bottom: 2px solid #f1f5f9 !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        background: #fff !important;
+    }
+
+    .mdb-tbl tbody tr {
+        border-bottom: 1px solid #f1f5f9 !important;
+        transition: background .15s;
+    }
+
+    .mdb-tbl tbody tr:hover {
+        background: #fff7f0 !important;
+    }
+
+    .mdb-tbl td {
+        padding: 11px 12px !important;
+        vertical-align: middle !important;
+    }
+
+    .mdb-td-num {
+        color: #1e293b !important;
+        font-weight: 700 !important;
+        font-size: .82rem !important;
+        white-space: nowrap !important;
+    }
+
+    .mdb-td-comm {
+        color: #e55a00 !important;
+        font-weight: 800 !important;
+    }
+
+    .mdb-td-sub {
+        color: #94a3b8 !important;
+        font-size: .77rem !important;
+        margin-top: 2px;
+    }
+
+    .mdb-td-name {
+        color: #1e293b !important;
+        font-weight: 600 !important;
+        font-size: .84rem !important;
+    }
+
+    .mdb-td-val {
+        color: #475569 !important;
+    }
+
+    /* Badges */
+    .mdb-badge {
+        display: inline-block !important;
+        padding: 3px 9px !important;
+        border-radius: 20px !important;
+        font-size: .68rem !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        letter-spacing: .5px !important;
+        white-space: nowrap !important;
+    }
+
+    .mdb-s-new {
+        background: #e0f7fa !important;
+        color: #00838f !important;
+        border: 1px solid #b2ebf2 !important;
+    }
+
+    .mdb-s-confirmed {
+        background: #e8f5e9 !important;
+        color: #2e7d32 !important;
+        border: 1px solid #c8e6c9 !important;
+    }
+
+    .mdb-s-in_work {
+        background: #fff3e0 !important;
+        color: #e65100 !important;
+        border: 1px solid #ffe0b2 !important;
+    }
+
+    .mdb-s-done {
+        background: #ede7f6 !important;
+        color: #4527a0 !important;
+        border: 1px solid #d1c4e9 !important;
+    }
+
+    .mdb-s-cancelled {
+        background: #fce4ec !important;
+        color: #b71c1c !important;
+        border: 1px solid #f8bbd9 !important;
+    }
+
+    .mdb-s-default {
+        background: #f1f5f9 !important;
+        color: #64748b !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    /* Chart */
+    .mdb-chart-box {
+        position: relative !important;
+        height: 200px !important;
+    }
+
+    /* Payment */
+    .mdb-debts {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .mdb-di {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .mdb-di-lbl {
+        color: #64748b !important;
+        font-size: .8rem !important;
+    }
+
+    .mdb-di-val {
+        font-weight: 800 !important;
+        font-size: .9rem !important;
+    }
+
+    .mdb-di-total .mdb-di-val {
+        color: #1e293b !important;
+    }
+
+    .mdb-di-adv .mdb-di-val {
+        color: #059669 !important;
+    }
+
+    .mdb-di-debt .mdb-di-val {
+        color: #dc2626 !important;
+    }
+
+    .mdb-bar-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        margin-top: 12px !important;
+        margin-bottom: 5px !important;
+        font-size: .79rem !important;
+    }
+
+    .mdb-bar-bg {
+        height: 7px !important;
+        border-radius: 6px !important;
+        background: #e2e8f0 !important;
+        overflow: hidden !important;
+    }
+
+    .mdb-bar-fill {
+        height: 100% !important;
+        border-radius: 6px !important;
+        background: linear-gradient(90deg, #FF6B00, #ffaa55) !important;
+    }
+
+    /* Month strip */
+    .mdb-month {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+    }
+
+    .mdb-mc {
+        text-align: center !important;
+        padding: 18px 8px !important;
+        border-radius: 12px !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .mdb-mc-val {
+        font-size: 1.2rem !important;
+        font-weight: 900 !important;
+        color: #FF6B00 !important;
+        display: block !important;
+    }
+
+    .mdb-mc-lbl {
+        font-size: .69rem !important;
+        color: #94a3b8 !important;
+        margin-top: 5px !important;
+        text-transform: uppercase !important;
+        letter-spacing: .5px !important;
+        display: block !important;
+    }
+
+    /* Status chips */
+    .mdb-schips {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
+
+    .mdb-sc {
+        flex: 1 !important;
+        min-width: 100px !important;
+        padding: 14px !important;
+        border-radius: 12px !important;
+        text-align: center !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        transition: all .2s;
+    }
+
+    .mdb-sc:hover {
+        background: #fff7f0 !important;
+        border-color: rgba(255, 107, 0, .35) !important;
+    }
+
+    .mdb-sc-n {
+        font-size: 1.5rem !important;
+        font-weight: 900 !important;
+        color: #FF6B00 !important;
+        display: block !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-4">
-    <!-- Dashboard Header -->
-    <div class="dashboard-header fade-in">
-        <h1>👋 Salom, {{ stats.master_name }}!</h1>
-        <p>Master Panel - Sizning zakazlaringiz va komissiyangiz</p>
-    </div>
+{% set now_str = stats.recent_orders[0].created_at.strftime('%B %Y') if stats.recent_orders else '' %}
+<div class="col-12" style="padding:0;">
+    <div class="mdb-wrap">
 
-    <!-- Stats Cards Row -->
-    <div class="row mb-4 fade-in">
-        <!-- Total Commission Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card">
-                <i class="fas fa-dollar-sign fa-3x mb-3" style="opacity: 0.8;"></i>
-                <h3>{{ "{:,.0f}".format(stats.total_commission) }}</h3>
-                <p>Jami Komissiya (so'm)</p>
+        <!-- Header -->
+        <div class="mdb-header">
+            <div>
+                <h1>👋 {{ t('hello') }}, {{ stats.master_name }}!</h1>
+                <p>{{ t('master_panel_sub') }}</p>
+            </div>
+            <span class="mdb-pill">📅 {{ now_str }}</span>
+        </div>
+
+        <!-- KPI row -->
+        <div class="mdb-kpi-grid">
+            <div class="mdb-kpi mdb-kpi-orange">
+                <span class="mdb-kpi-sub">{{ t('this_month') }}: {{ "{:,.0f}".format(stats.month_commission) }}</span>
+                <span class="mdb-kpi-icon">💰</span>
+                <span class="mdb-kpi-val">{{ "{:,.0f}".format(stats.total_commission) }}</span>
+                <span class="mdb-kpi-lbl">{{ t('total_commission') }} ({{ t('som') }})</span>
+            </div>
+            <div class="mdb-kpi mdb-kpi-green">
+                <span class="mdb-kpi-sub">{{ t('this_month') }}: {{ stats.month_orders }}</span>
+                <span class="mdb-kpi-icon">📋</span>
+                <span class="mdb-kpi-val">{{ stats.total_orders }}</span>
+                <span class="mdb-kpi-lbl">{{ t('total_orders') }}</span>
+            </div>
+            <div class="mdb-kpi mdb-kpi-blue">
+                <span class="mdb-kpi-sub">{{ t('this_month') }}: {{ "{:,.0f}".format(stats.month_revenue) }}</span>
+                <span class="mdb-kpi-icon">💸</span>
+                <span class="mdb-kpi-val">{{ "{:,.0f}".format(stats.total_revenue) }}</span>
+                <span class="mdb-kpi-lbl">{{ t('total_revenue') }} ({{ t('som') }})</span>
+            </div>
+            <div class="mdb-kpi mdb-kpi-purple">
+                {% set paid_pct = ((stats.total_advance / stats.total_revenue * 100) if stats.total_revenue else
+                0)|round(0)|int %}
+                <span class="mdb-kpi-sub">{{ t('debt') }}: {{ "{:,.0f}".format(stats.total_debt) }}</span>
+                <span class="mdb-kpi-icon">📊</span>
+                <span class="mdb-kpi-val">{{ paid_pct }}%</span>
+                <span class="mdb-kpi-lbl">{{ t('payment_share') }}</span>
             </div>
         </div>
 
-        <!-- Total Orders Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card" style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);">
-                <i class="fas fa-clipboard-list fa-3x mb-3" style="opacity: 0.8;"></i>
-                <h3>{{ stats.total_orders }}</h3>
-                <p>Jami Zakazlar</p>
-            </div>
-        </div>
+        <!-- Middle: table + right sidebar -->
+        <div class="mdb-two">
 
-        <!-- Total Revenue Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card" style="background: linear-gradient(135deg, #17a2b8 0%, #3dc2d4 100%);">
-                <i class="fas fa-money-bill-wave fa-3x mb-3" style="opacity: 0.8;"></i>
-                <h3>{{ "{:,.0f}".format(stats.total_revenue) }}</h3>
-                <p>Jami Tushum (so'm)</p>
-            </div>
-        </div>
-
-        <!-- Month Commission Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #ffdb4d 100%);">
-                <i class="fas fa-calendar-alt fa-3x mb-3" style="opacity: 0.8; color: #1a1a1a;"></i>
-                <h3 style="color: #1a1a1a;">{{ "{:,.0f}".format(stats.month_commission) }}</h3>
-                <p style="color: #1a1a1a;">Bu Oy Komissiya</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Month Stats Row -->
-    <div class="row mb-4 fade-in">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    📅 Bu Oy Statistika
+            <div class="mdb-panel">
+                <div class="mdb-ph">
+                    <div class="mdb-phi">📋</div>{{ t('recent_orders') }}
                 </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <h4 style="color: #FF6B00;">{{ stats.month_orders }}</h4>
-                            <p class="text-muted">Zakazlar</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(stats.month_revenue) }} so'm</h4>
-                            <p class="text-muted">Tushum</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(stats.month_commission) }} so'm</h4>
-                            <p class="text-muted">Komissiya</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Order Status Breakdown -->
-    <div class="row mb-4 fade-in">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    📊 Zakazlar Holati
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        {% for status, count in stats.status_counts.items() %}
-                        <div class="col-md-3 mb-3">
-                            <div class="p-3 border rounded">
-                                <h4 style="color: #FF6B00;">{{ count }}</h4>
-                                <p class="text-muted">{{ status }}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Orders -->
-    <div class="row fade-in">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    📋 Oxirgi Zakazlar
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>№</th>
-                                    <th>Klient</th>
-                                    <th>Manzil</th>
-                                    <th>Summa</th>
-                                    <th>Komissiya</th>
-                                    <th>Status</th>
-                                    <th>Sana</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in stats.recent_orders %}
-                                <tr>
-                                    <td><strong>{{ order.order_number }}</strong></td>
-                                    <td>{{ order.client_name or order.client_phone }}</td>
-                                    <td>{{ order.address[:30] }}...</td>
-                                    <td>{{ "{:,.0f}".format(order.total_price or 0) }} so'm</td>
-                                    <td><strong style="color: #FF6B00;">{{ "{:,.0f}".format(order.master_commission or 0) }} so'm</strong></td>
-                                    <td>
-                                        <span class="badge badge-primary">{{ order.status.value }}</span>
-                                    </td>
-                                    <td>{{ order.created_at.strftime('%d.%m.%Y') }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment Info -->
-    <div class="row mt-4 fade-in">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    💰 To'lov Ma'lumotlari
-                </div>
-                <div class="card-body">
-                    <table class="table table-sm">
-                        <tr>
-                            <td><strong>Oldindan to'lov:</strong></td>
-                            <td class="text-right">{{ "{:,.0f}".format(stats.total_advance) }} so'm</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Qarz:</strong></td>
-                            <td class="text-right text-danger">{{ "{:,.0f}".format(stats.total_debt) }} so'm</td>
-                        </tr>
+                <div class="mdb-tbl-wrap">
+                    <table class="mdb-tbl">
+                        <thead>
+                            <tr>
+                                <th>{{ t('th_number') }}</th>
+                                <th>{{ t('th_client') }}</th>
+                                <th>{{ t('th_address') }}</th>
+                                <th>{{ t('th_amount') }}</th>
+                                <th>{{ t('th_commission') }}</th>
+                                <th>{{ t('th_status') }}</th>
+                                <th>{{ t('th_date') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for o in stats.recent_orders %}
+                            {% set sv = o.status.value %}
+                            {% if sv=='confirmed' %}{% set sc='mdb-s-confirmed' %}
+                            {% elif sv=='in_work' %}{% set sc='mdb-s-in_work' %}
+                            {% elif sv in ['done','finished'] %}{% set sc='mdb-s-done' %}
+                            {% elif sv=='cancelled' %}{% set sc='mdb-s-cancelled' %}
+                            {% elif sv=='new' %}{% set sc='mdb-s-new' %}
+                            {% else %}{% set sc='mdb-s-default' %}{% endif %}
+                            <tr>
+                                <td class="mdb-td-num">{{ o.order_number }}</td>
+                                <td>
+                                    <div class="mdb-td-name">{{ o.client_name or '—' }}</div>
+                                    <div class="mdb-td-sub">{{ o.client_phone or '' }}</div>
+                                </td>
+                                <td class="mdb-td-sub">{{ (o.address or '—')[:24] }}{% if o.address and o.address|length
+                                    > 24 %}…{% endif %}</td>
+                                <td class="mdb-td-val">{{ "{:,.0f}".format(o.total_price or 0) }}</td>
+                                <td class="mdb-td-comm">{{ "{:,.0f}".format(o.master_commission or 0) }}</td>
+                                <td><span class="mdb-badge {{ sc }}">{{ sv }}</span></td>
+                                <td class="mdb-td-sub" style="white-space:nowrap;">{{ o.created_at.strftime('%d.%m.%Y')
+                                    }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">{{ t('no_orders')
+                                    }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
                     </table>
                 </div>
             </div>
+
+            <div class="mdb-right">
+
+                <div class="mdb-panel">
+                    <div class="mdb-ph">
+                        <div class="mdb-phi">🥧</div>{{ t('order_status') }}
+                    </div>
+                    <div class="mdb-chart-box">
+                        <canvas id="mdbStatusChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="mdb-panel">
+                    <div class="mdb-ph">
+                        <div class="mdb-phi">💳</div>{{ t('payment_status') }}
+                    </div>
+                    <div class="mdb-debts">
+                        <div class="mdb-di mdb-di-total">
+                            <span class="mdb-di-lbl">{{ t('total_revenue') }}</span>
+                            <span class="mdb-di-val">{{ "{:,.0f}".format(stats.total_revenue) }} {{ t('som') }}</span>
+                        </div>
+                        <div class="mdb-di mdb-di-adv">
+                            <span class="mdb-di-lbl">{{ t('paid') }}</span>
+                            <span class="mdb-di-val">{{ "{:,.0f}".format(stats.total_advance) }} {{ t('som') }}</span>
+                        </div>
+                        <div class="mdb-di mdb-di-debt">
+                            <span class="mdb-di-lbl">{{ t('debt') }}</span>
+                            <span class="mdb-di-val">{{ "{:,.0f}".format(stats.total_debt) }} {{ t('som') }}</span>
+                        </div>
+                    </div>
+                    {% if stats.total_revenue %}
+                    {% set adv_p = [((stats.total_advance / stats.total_revenue)*100)|round(0)|int,100]|min %}
+                    <div class="mdb-bar-row">
+                        <span style="color:#64748b;">{{ t('payment_share') }}</span>
+                        <span style="color:#059669;font-weight:800;">{{ adv_p }}%</span>
+                    </div>
+                    <div class="mdb-bar-bg">
+                        <div class="mdb-bar-fill" style="width:{{ adv_p }}%;"></div>
+                    </div>
+                    {% endif %}
+                </div>
+
+            </div>
         </div>
+
+        <!-- Bottom row -->
+        <div class="mdb-bot">
+
+            <div class="mdb-panel">
+                <div class="mdb-ph">
+                    <div class="mdb-phi">📅</div>{{ t('month_results') }}
+                </div>
+                <div class="mdb-month">
+                    <div class="mdb-mc">
+                        <span class="mdb-mc-val">{{ stats.month_orders }}</span>
+                        <span class="mdb-mc-lbl">{{ t('orders') }}</span>
+                    </div>
+                    <div class="mdb-mc">
+                        <span class="mdb-mc-val">{{ "{:,.0f}".format(stats.month_revenue) }}</span>
+                        <span class="mdb-mc-lbl">{{ t('revenue_som') }}</span>
+                    </div>
+                    <div class="mdb-mc">
+                        <span class="mdb-mc-val">{{ "{:,.0f}".format(stats.month_commission) }}</span>
+                        <span class="mdb-mc-lbl">{{ t('commission_som') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mdb-panel">
+                <div class="mdb-ph">
+                    <div class="mdb-phi">📊</div>{{ t('by_status') }}
+                </div>
+                <div class="mdb-schips">
+                    {% for status, count in stats.status_counts.items() %}
+                    {% if status=='confirmed' %}{% set sc2='mdb-s-confirmed' %}
+                    {% elif status=='in_work' %}{% set sc2='mdb-s-in_work' %}
+                    {% elif status in ['done','finished'] %}{% set sc2='mdb-s-done' %}
+                    {% elif status=='cancelled' %}{% set sc2='mdb-s-cancelled' %}
+                    {% elif status=='new' %}{% set sc2='mdb-s-new' %}
+                    {% else %}{% set sc2='mdb-s-default' %}{% endif %}
+                    <div class="mdb-sc">
+                        <span class="mdb-sc-n">{{ count }}</span>
+                        <div style="margin-top:7px;"><span class="mdb-badge {{ sc2 }}">{{ status }}</span></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
     </div>
 </div>
+
+<div id="mdb-cdata" style="display:none;" data-s='{{ stats.status_counts | tojson | safe }}'></div>
+
+<script>
+    (function () {
+        var el = document.getElementById('mdb-cdata'); if (!el) return;
+        var raw = {}; try { raw = JSON.parse(el.getAttribute('data-s')); } catch (e) { }
+        var labels = Object.keys(raw), values = Object.values(raw);
+        if (!labels.length) return;
+        var palette = ['#FF6B00', '#00b894', '#0984e3', '#6c5ce7', '#e17055', '#fdcb6e', '#55efc4', '#fd79a8'];
+        var ctx = document.getElementById('mdbStatusChart'); if (!ctx) return;
+        new Chart(ctx, {
+            type: 'doughnut', data: {
+                labels: labels, datasets: [{
+                    data: values,
+                    backgroundColor: palette.slice(0, labels.length), borderColor: '#fff', borderWidth: 3, hoverOffset: 8
+                }]
+            },
+            options: {
+                cutout: '68%', plugins: {
+                    legend: { position: 'bottom', labels: { color: '#475569', padding: 12, font: { size: 10 }, boxWidth: 10 } },
+                    tooltip: { callbacks: { label: function (c) { return '  ' + c.label + ': ' + c.raw + ' ta'; } } }
+                },
+                animation: { animateRotate: true, duration: 900 }
+            }
+        });
+    })();
+</script>
 {% endblock %}

@@ -4,6 +4,7 @@ from typing import Any
 from sqladmin import BaseView, expose
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import RedirectResponse
 
 from app.db.models import Order, OrderStatus, User
 from app.db.session import async_session_maker
@@ -16,14 +17,9 @@ class MasterDashboardView(BaseView):
     @expose("/dashboard", methods=["GET"])
     async def dashboard_page(self, request):
         """Master dashboard showing orders and commission stats"""
-        user_id = request.session.get('user_id')
-        
+        user_id = request.session.get('user_id') or request.session.get('master_user_id')
         if not user_id:
-            return await self.templates.TemplateResponse(
-                request,
-                "error.html",
-                context={"error": "Unauthorized"}
-            )
+            return RedirectResponse(url="/master-panel/admin/login", status_code=302)
         
         async with async_session_maker() as session:
             stats = await self._calculate_master_stats(session, user_id)

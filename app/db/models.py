@@ -232,6 +232,7 @@ class Zavod(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     tafsif: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    shofer_narxi: Mapped[Optional[float]] = mapped_column(Numeric(14, 2), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -366,6 +367,7 @@ class Order(Base):
     usta_assignment_deadline: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    calculated_total: Mapped[Optional[Decimal]] = mapped_column(Numeric(15, 2), nullable=True)
 
     client: Mapped["User"] = relationship("User", back_populates="client_orders", foreign_keys=[client_id])
     master: Mapped[Optional["User"]] = relationship("User", back_populates="master_orders", foreign_keys=[master_id])
@@ -376,6 +378,29 @@ class Order(Base):
     asphalt_type: Mapped[Optional["AsphaltType"]] = relationship("AsphaltType", back_populates="orders")
     expenses: Mapped[List["Expense"]] = relationship("Expense", back_populates="order")
     material_requests: Mapped[List["MaterialRequest"]] = relationship("MaterialRequest", back_populates="order")
+    line_items: Mapped[List["OrderLineItem"]] = relationship(
+        "OrderLineItem", back_populates="order", cascade="all, delete-orphan",
+        order_by="OrderLineItem.id"
+    )
+
+
+class OrderLineItem(Base):
+    """Individual service/material line in an order (asphalt, zalivka, geo-textile, etc.)"""
+    __tablename__ = "order_line_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    asphalt_type_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("asphalt_types.id"), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    area_m2: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    price_per_m2: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    cost_price_per_m2: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True, default=0)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    is_main: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    order: Mapped["Order"] = relationship("Order", back_populates="line_items")
+    asphalt_type: Mapped[Optional["AsphaltType"]] = relationship("AsphaltType")
 
 
 class Expense(Base):
@@ -406,6 +431,8 @@ class MaterialRequest(Base):
         Integer, ForeignKey("zavods.id"), nullable=True
     )
 
+    asphalt_type_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("asphalt_types.id"), nullable=True)
+
     amount_tonnes: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
     material_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(15, 2), nullable=True)
     delivery_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(15, 2), nullable=True)
@@ -423,6 +450,7 @@ class MaterialRequest(Base):
     usta: Mapped["User"] = relationship("User", foreign_keys=[usta_id])
     zavod: Mapped[Optional["User"]] = relationship("User", foreign_keys=[zavod_id])
     assigned_zavod: Mapped[Optional["Zavod"]] = relationship("Zavod")
+    asphalt_type: Mapped[Optional["AsphaltType"]] = relationship("AsphaltType")
 
 
 class AuditLog(Base):
@@ -439,6 +467,17 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship("User", back_populates="audit_logs", foreign_keys=[user_id])
+
+
+class AppSetting(Base):
+    """Generic key/value settings store for runtime-editable app configuration."""
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════

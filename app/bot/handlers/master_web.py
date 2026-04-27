@@ -23,7 +23,7 @@ async def master_web_panel(message: Message, lang: str) -> None:
     # We need: https://domain.com/master-panel/admin
     base_url = settings.WEB_URL.rsplit("/", 1)[0]  # Remove last path segment
     # Append timestamp to bypass Telegram WebApp caching
-    web_url = f"{base_url}/master-panel/admin/login?t={int(time.time())}"
+    web_url = f"{base_url}/master-panel/admin/dashboard?t={int(time.time())}"
     
     # Create inline keyboard with web app button
     builder = InlineKeyboardBuilder()

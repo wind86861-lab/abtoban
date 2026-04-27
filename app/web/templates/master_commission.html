@@ -1,158 +1,190 @@
 {% extends "sqladmin/layout.html" %}
 
-{% block head_css %}
-{{ super() }}
-<link rel="stylesheet" href="/static/custom_admin.css">
-{% endblock %}
+{% macro status_badge(sv) %}
+{% if sv == 'new' %}<span class="badge"
+    style="background:#e0f7fa;color:#00838f;border:1px solid #b2ebf2;border-radius:20px;padding:4px 10px;font-size:.72rem;">🆕
+    {{ t('status_new') }}</span>
+{% elif sv == 'confirmed' %}<span class="badge"
+    style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:20px;padding:4px 10px;font-size:.72rem;">✅
+    {{ t('status_confirmed') }}</span>
+{% elif sv == 'in_work' %}<span class="badge"
+    style="background:#fff3e0;color:#e65100;border:1px solid #ffe0b2;border-radius:20px;padding:4px 10px;font-size:.72rem;">🔧
+    {{ t('status_in_work') }}</span>
+{% elif sv == 'done' %}<span class="badge"
+    style="background:#ede7f6;color:#4527a0;border:1px solid #d1c4e9;border-radius:20px;padding:4px 10px;font-size:.72rem;">🏁
+    {{ t('status_done') }}</span>
+{% elif sv == 'cancelled' %}<span class="badge"
+    style="background:#fce4ec;color:#b71c1c;border:1px solid #f8bbd0;border-radius:20px;padding:4px 10px;font-size:.72rem;">❌
+    {{ t('status_cancelled') }}</span>
+{% else %}<span class="badge bg-secondary" style="border-radius:20px;padding:4px 10px;font-size:.72rem;">{{ sv }}</span>
+{% endif %}
+{% endmacro %}
 
 {% block content %}
-<div class="container-fluid p-4">
-    <!-- Header -->
-    <div class="dashboard-header fade-in">
-        <h1>💰 Komissiya Hisoboti</h1>
-        <p>Sizning komissiya daromadingiz va tafsilotlar</p>
-    </div>
+<div class="col-12" style="padding:0;">
+    <div style="max-width:1200px;margin:0 auto;padding:16px;">
 
-    <!-- Stats Cards Row -->
-    <div class="row mb-4 fade-in">
-        <!-- Total Commission -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card">
-                <i class="fas fa-dollar-sign fa-3x mb-3" style="opacity: 0.8;"></i>
-                <h3>{{ "{:,.0f}".format(total_commission) }}</h3>
-                <p>Jami Komissiya (so'm)</p>
-            </div>
+        <!-- Header -->
+        <div style="margin-bottom:20px;">
+            <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:4px;">💰 {{ t('commission_report') }}</h2>
+            <p style="color:#64748b;font-size:.85rem;">{{ t('commission_sub') }}</p>
         </div>
 
-        <!-- Month Commission -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card" style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);">
-                <i class="fas fa-calendar-month fa-3x mb-3" style="opacity: 0.8;"></i>
-                <h3>{{ "{:,.0f}".format(month_commission) }}</h3>
-                <p>Bu Oy ({{ month_orders }} zakaz)</p>
-            </div>
-        </div>
-
-        <!-- Week Commission -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card" style="background: linear-gradient(135deg, #17a2b8 0%, #3dc2d4 100%);">
-                <i class="fas fa-calendar-week fa-3x mb-3" style="opacity: 0.8;"></i>
-                <h3>{{ "{:,.0f}".format(week_commission) }}</h3>
-                <p>Bu Hafta ({{ week_orders }} zakaz)</p>
-            </div>
-        </div>
-
-        <!-- Total Orders -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #ffdb4d 100%);">
-                <i class="fas fa-clipboard-list fa-3x mb-3" style="opacity: 0.8; color: #1a1a1a;"></i>
-                <h3 style="color: #1a1a1a;">{{ total_orders }}</h3>
-                <p style="color: #1a1a1a;">Jami Zakazlar</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Revenue Breakdown -->
-    <div class="row mb-4 fade-in">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    📊 Moliyaviy Tafsilotlar
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card"
+                    style="border-radius:14px;border:none;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);">
+                    <div
+                        style="background:linear-gradient(135deg,#d95200,#FF6B00);color:#fff;padding:22px;position:relative;">
+                        <div style="font-size:1.1rem;margin-bottom:4px;">💰</div>
+                        <div style="font-size:1.5rem;font-weight:900;">{{ "{:,.0f}".format(total_commission) }}</div>
+                        <div style="font-size:.72rem;text-transform:uppercase;opacity:.85;letter-spacing:.5px;">{{
+                            t('total_commission') }} ({{ t('som') }})</div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(total_revenue) }} so'm</h4>
-                            <p class="text-muted">Jami Tushum</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h4 style="color: #28a745;">{{ "{:,.0f}".format(total_advance) }} so'm</h4>
-                            <p class="text-muted">Oldindan To'lov</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h4 style="color: #dc3545;">{{ "{:,.0f}".format(total_debt) }} so'm</h4>
-                            <p class="text-muted">Qarz</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h4 style="color: #FF6B00;">{{ "{:,.0f}".format(total_commission) }} so'm</h4>
-                            <p class="text-muted">Mening Komissiyam</p>
-                        </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card"
+                    style="border-radius:14px;border:none;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);">
+                    <div style="background:linear-gradient(135deg,#009670,#00b894);color:#fff;padding:22px;">
+                        <div style="font-size:1.1rem;margin-bottom:4px;">📅</div>
+                        <div style="font-size:1.5rem;font-weight:900;">{{ "{:,.0f}".format(month_commission) }}</div>
+                        <div style="font-size:.72rem;text-transform:uppercase;opacity:.85;letter-spacing:.5px;">{{
+                            t('this_month') }} ({{ month_orders }} {{ t('orders') }})</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card"
+                    style="border-radius:14px;border:none;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);">
+                    <div style="background:linear-gradient(135deg,#0660b5,#0984e3);color:#fff;padding:22px;">
+                        <div style="font-size:1.1rem;margin-bottom:4px;">📊</div>
+                        <div style="font-size:1.5rem;font-weight:900;">{{ "{:,.0f}".format(week_commission) }}</div>
+                        <div style="font-size:.72rem;text-transform:uppercase;opacity:.85;letter-spacing:.5px;">{{
+                            t('this_week') }} ({{ week_orders }} {{ t('orders') }})</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card"
+                    style="border-radius:14px;border:none;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);">
+                    <div style="background:linear-gradient(135deg,#4e3ac0,#6c5ce7);color:#fff;padding:22px;">
+                        <div style="font-size:1.1rem;margin-bottom:4px;">📋</div>
+                        <div style="font-size:1.5rem;font-weight:900;">{{ total_orders }}</div>
+                        <div style="font-size:.72rem;text-transform:uppercase;opacity:.85;letter-spacing:.5px;">{{
+                            t('total_orders') }}</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Status Breakdown -->
-    <div class="row mb-4 fade-in">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    📈 Holat Bo'yicha Komissiya
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Holat</th>
-                                    <th>Zakazlar Soni</th>
-                                    <th>Komissiya</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in status_breakdown %}
-                                <tr>
-                                    <td><span class="badge badge-primary">{{ item.status }}</span></td>
-                                    <td>{{ item.count }} ta</td>
-                                    <td><strong style="color: #FF6B00;">{{ "{:,.0f}".format(item.commission) }} so'm</strong></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+        <!-- Financial Details -->
+        <div class="card mb-4" style="border-radius:14px;border:none;box-shadow:0 1px 6px rgba(0,0,0,.06);">
+            <div class="card-header"
+                style="background:transparent;border-bottom:1px solid #f1f5f9;font-weight:700;padding:16px 20px;">
+                📊 {{ t('financial_details') }}
+            </div>
+            <div class="card-body" style="padding:20px;">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h4 style="color:#FF6B00;font-weight:800;margin:0;">{{ "{:,.0f}".format(total_revenue) }}</h4>
+                        <p style="color:#64748b;font-size:.82rem;margin:4px 0 0;">{{ t('total_revenue') }} ({{ t('som')
+                            }})</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 style="color:#059669;font-weight:800;margin:0;">{{ "{:,.0f}".format(total_advance) }}</h4>
+                        <p style="color:#64748b;font-size:.82rem;margin:4px 0 0;">{{ t('advance_payment') }} ({{
+                            t('som') }})</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 style="color:#dc2626;font-weight:800;margin:0;">{{ "{:,.0f}".format(total_debt) }}</h4>
+                        <p style="color:#64748b;font-size:.82rem;margin:4px 0 0;">{{ t('debt') }} ({{ t('som') }})</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 style="color:#FF6B00;font-weight:800;margin:0;">{{ "{:,.0f}".format(total_commission) }}
+                        </h4>
+                        <p style="color:#64748b;font-size:.82rem;margin:4px 0 0;">{{ t('my_commission') }} ({{ t('som')
+                            }})</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Commission History -->
-    <div class="row fade-in">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    📋 Oxirgi Komissiyalar
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Zakaz №</th>
-                                    <th>Klient</th>
-                                    <th>Jami Summa</th>
-                                    <th>Komissiya</th>
-                                    <th>Holat</th>
-                                    <th>Sana</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in commission_history %}
-                                <tr>
-                                    <td><strong>{{ item.order_number }}</strong></td>
-                                    <td>{{ item.client_name }}</td>
-                                    <td>{{ "{:,.0f}".format(item.total_price) }} so'm</td>
-                                    <td><strong style="color: #FF6B00;">{{ "{:,.0f}".format(item.commission) }} so'm</strong></td>
-                                    <td><span class="badge badge-primary">{{ item.status }}</span></td>
-                                    <td>{{ item.date.strftime('%d.%m.%Y') if item.date else '-' }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- Status Breakdown -->
+        <div class="card mb-4"
+            style="border-radius:14px;border:none;box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;">
+            <div class="card-header"
+                style="background:transparent;border-bottom:1px solid #f1f5f9;font-weight:700;padding:16px 20px;">
+                📈 {{ t('status_commission') }}
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.85rem;">
+                    <thead>
+                        <tr style="background:#f8fafc;">
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;padding:12px;">{{
+                                t('status_col') }}</th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('orders_count') }}
+                            </th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('th_commission')
+                                }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in status_breakdown %}
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:10px 12px;">{{ status_badge(item.status) }}</td>
+                            <td style="padding:10px 12px;">{{ item.count }} {{ t('ta') }}</td>
+                            <td style="padding:10px 12px;"><strong style="color:#FF6B00;">{{
+                                    "{:,.0f}".format(item.commission) }} {{ t('som') }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
+
+        <!-- Commission History -->
+        <div class="card" style="border-radius:14px;border:none;box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;">
+            <div class="card-header"
+                style="background:transparent;border-bottom:1px solid #f1f5f9;font-weight:700;padding:16px 20px;">
+                📋 {{ t('recent_commissions') }}
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.85rem;">
+                    <thead>
+                        <tr style="background:#f8fafc;">
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;padding:12px;">{{
+                                t('order_number') }}</th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('th_client') }}
+                            </th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('total_amount') }}
+                            </th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('th_commission')
+                                }}</th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('status_col') }}
+                            </th>
+                            <th style="font-size:.72rem;text-transform:uppercase;color:#64748b;">{{ t('th_date') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in commission_history %}
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:10px 12px;"><strong>{{ item.order_number }}</strong></td>
+                            <td style="padding:10px 12px;">{{ item.client_name or '—' }}</td>
+                            <td style="padding:10px 12px;">{{ "{:,.0f}".format(item.total_price) }} {{ t('som') }}</td>
+                            <td style="padding:10px 12px;"><strong style="color:#FF6B00;">{{
+                                    "{:,.0f}".format(item.commission) }} {{ t('som') }}</strong></td>
+                            <td style="padding:10px 12px;">{{ status_badge(item.status) }}</td>
+                            <td style="padding:10px 12px;color:#64748b;">{{ item.date.strftime('%d.%m.%Y') if item.date
+                                else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

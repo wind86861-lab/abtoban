@@ -7,7 +7,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from app.db.models import ORDER_STATUS_LABELS, AsphaltType, Order, OrderStatus, Region, Tuman, User, Viloyat
+from app.db.models import ORDER_STATUS_LABELS, AsphaltCategory, AsphaltSubCategory, AsphaltType, Order, OrderStatus, Region, Tuman, User, Viloyat
 
 
 def get_regions_keyboard(regions: List[Region]) -> InlineKeyboardMarkup:
@@ -39,24 +39,41 @@ def get_viloyatlar_keyboard(viloyatlar: List[Viloyat]) -> InlineKeyboardMarkup:
 def get_tumanlar_keyboard(tumanlar: List[Tuman]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for t in tumanlar:
-        # Show viloyat name with tuman: "Viloyat — Tuman"
-        viloyat_name = t.viloyat.name if t.viloyat else ""
-        display_text = f"📍 {viloyat_name} — {t.name}" if viloyat_name else f"🏘 {t.name}"
+        # Show only tuman name (viloyat already selected above)
         builder.button(
-            text=display_text,
+            text=f"📍 {t.name}",
             callback_data=f"tuman:{t.id}",
         )
     builder.adjust(2)
     return builder.as_markup()
 
 
-def get_asphalt_keyboard(asphalt_types: List[AsphaltType]) -> InlineKeyboardMarkup:
+def get_asphalt_categories_keyboard(categories: List[AsphaltCategory]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for c in categories:
+        builder.button(text=f"📁 {c.name}", callback_data=f"asfcat:{c.id}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_asphalt_subcategories_keyboard(subcategories: List[AsphaltSubCategory], category_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for s in subcategories:
+        builder.button(text=f"📂 {s.name}", callback_data=f"asfsubcat:{s.id}")
+    builder.button(text="🔙 Orqaga", callback_data=f"asfcat_back:{category_id}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_asphalt_keyboard(asphalt_types: List[AsphaltType], subcat_id: int | None = None) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for at in asphalt_types:
         builder.button(
             text=f"🏗 {at.name} — {float(at.price_per_m2):,.0f} so'm/m²",
             callback_data=f"asphalt:{at.id}",
         )
+    if subcat_id is not None:
+        builder.button(text="🔙 Orqaga", callback_data=f"asfsubcat_back:{subcat_id}")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -118,6 +135,19 @@ def get_master_confirmed_order_keyboard(order_id: int) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def get_master_my_order_keyboard(order_id: int, status: str) -> InlineKeyboardMarkup:
+    """Return action buttons for a master viewing their own order, based on status."""
+    builder = InlineKeyboardBuilder()
+    if status == "confirmed":
+        builder.button(text="🔧 Ishga olish", callback_data=f"set_status:{order_id}:in_work")
+        builder.button(text="👷 Usta o'zgartirish", callback_data=f"change_usta:{order_id}")
+    elif status == "in_work":
+        builder.button(text="✅ Ishni tugatish", callback_data=f"set_status:{order_id}:done")
+    builder.button(text="⬅️ Orqaga", callback_data="back_my_orders")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def get_ustas_for_confirm_keyboard(ustas_with_count: List[Tuple[User, int]]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for usta, count in ustas_with_count:
@@ -128,6 +158,15 @@ def get_ustas_for_confirm_keyboard(ustas_with_count: List[Tuple[User, int]]) -> 
             callback_data=f"confirm_usta:{usta.id}",
         )
     builder.button(text="⏩ O'tkazib yuborish", callback_data="confirm_usta:skip")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_extras_keyboard() -> InlineKeyboardMarkup:
+    """Keyboard shown after main asphalt is selected — add extra or proceed."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="➕ Qo'shimcha xizmat qo'shish", callback_data="add_extra_service")
+    builder.button(text="✅ Davom etish", callback_data="extras_done")
     builder.adjust(1)
     return builder.as_markup()
 

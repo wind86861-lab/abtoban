@@ -32,6 +32,8 @@ STRINGS = {
     # ── Menu buttons ──
     "btn_cancel": "❌ Отменить",
     "btn_skip": "⏩ Пропустить",
+    "btn_share_location": "📍 Отправить локацию",
+    "btn_share_contact": "📱 Отправить контакт",
     "btn_back": "⬅️ Назад",
     "main_menu": "Главное меню:",
     "btn_change_language": "🌐 Сменить язык",
@@ -75,6 +77,7 @@ STRINGS = {
     "btn_zavod_materials": "📦 Заявки на материалы",
     "btn_zavod_price": "✅ Указать цену",
     "btn_zavod_history": "📋 История",
+    "btn_shofer_narxi": "🚛 Цена водителя",
 
     # ── Shofer buttons ──
     "btn_my_deliveries": "🚗 Мои доставки",
@@ -142,7 +145,7 @@ STRINGS = {
     "order_submitted": "✅ <b>Заказ принят!</b>\n\n🔢 Номер: <code>{number}</code>\n📍 Адрес: {address}\n{location_link}📐 Площадь: {area} м²\n\nВ ближайшее время мастер с вами свяжется.",
     "order_cancelled": "❌ Заказ отменён.",
     "no_orders": "📋 <b>Мои заказы</b>\n\nУ вас пока нет заказов.\nНажмите 📝 чтобы оставить заказ.",
-    "my_orders_header": "📋 <b>Мои заказы:</b>\n",
+    "my_orders_header": "📋 <b>Мои заказы</b> ({count} шт.):\n\nВыберите заказ:",
     "new_order_notify": "🆕 <b>Новый заказ!</b>\n\n🔢 #{number}\n👤 {name}\n📱 {phone}\n📍 {address}\n{location_link}📐 {area} м²\n🏗 {asphalt}",
 
     # ── Client notifications ──
@@ -201,6 +204,9 @@ STRINGS = {
         "📅 Создан: <b>{date}</b>\n\n"
         "<i>Нажмите кнопку для подтверждения.</i>"
     ),
+    "master_create_address": "5️⃣ <b>Введите адрес</b>\n<i>Например: ул. Амира Темура 25, рядом со школой</i>",
+    "master_create_location": "6️⃣ 📍 <b>Отправьте локацию клиента</b>\n\nНажмите кнопку ниже или <b>Пропустить</b>.",
+    "master_create_done": "✅ <b>Начальные данные сохранены!</b>\n\n📋 Заказ: {number}\n👤 Клиент: {name}\n📱 {phone}\n📍 {address}\n\nТеперь введём полные детали...",
     "master_create_start": "➕ <b>Добавить заказ</b>\n\n1️⃣ Введите телефон клиента:\nПример: <code>998901234567</code>",
     "enter_client_name": "2️⃣ Введите имя клиента:",
     "invalid_phone": "❌ Неправильный номер. Повторите ввод:",
@@ -244,7 +250,9 @@ STRINGS = {
     "confirm_summary": (
         "📋 <b>Сводка подтверждения — {number}</b>\n\n"
         "📐 Площадь: <b>{area} м²</b>\n"
-        "💰 Сумма: <b>{total} сум</b>\n"
+        "{line_items_text}"
+        "📊 Расчётная: <b>{calc_total} сум</b>\n"
+        "💰 Согласованная: <b>{total} сум</b>\n"
         "💵 Залог: <b>{advance} сум</b>\n"
         "💳 Долг: <b>{debt} сум</b>\n"
         "📍 Адрес: {address}\n"
@@ -283,10 +291,14 @@ STRINGS = {
     # ── Material request ──
     "material_start": "📦 <b>Запросить материал</b>\n\nДля какого заказа?",
     "material_no_active": "📦 <b>Запросить материал</b>\n\nНет активных заказов. Сначала примите заказ.",
+    "material_select_category": "📁 <b>Выберите категорию материала:</b>",
+    "material_select_subcategory": "📂 <b>Выберите подкатегорию:</b>",
+    "material_select_type": "🏗 <b>Выберите тип материала:</b>",
+    "material_no_types": "❌ В этой категории нет типов материала.",
     "material_enter_tonnes": "📦 Введите количество материала (<b>тонн</b>):\nПример: <code>12.5</code>",
     "material_invalid_tonnes": "❌ Неправильное количество. Введите положительное число (например: 12.5):",
     "material_enter_notes": "📝 Примечание или доп. информация (необязательно):",
-    "material_summary": "📦 <b>Сводка запроса материала</b>\n\n📐 Количество: <b>{tonnes} тонн</b>\n📝 Примечание: {notes}\n\nОтправить?",
+    "material_summary": "📦 <b>Сводка запроса материала</b>\n\n🏗 Материал: <b>{mat_type}</b>\n📐 Количество: <b>{tonnes} тонн</b>\n📝 Примечание: {notes}\n\nОтправить?",
     "material_submitted": "✅ <b>Запрос отправлен!</b>\n\n📦 {tonnes} тонн\nАдмин проверит и передаст на завод.",
     "material_cancelled": "❌ Запрос отменён.",
     "material_new_notify": "📦 <b>Новый запрос материала!</b>\n\n🔢 Запрос #{id}\n📍 Область: {region}\n👷 Мастер: {usta}\n📦 Количество: <b>{tonnes} тонн</b>\n📝 Примечание: {notes}\n\n⚠️ Требуется подтверждение!",
@@ -452,9 +464,16 @@ STRINGS = {
     "expense_select_type": "💸 Выберите тип расхода:",
     "expense_enter_amount": "💰 Введите сумму (сум):\nПример: <code>250000</code>",
     "expense_invalid_amount": "❌ Неправильная сумма. Введите число:",
-    "expense_enter_desc": "📝 Введите примечание (необязательно):\nНажмите '⏩' для пропуска.",
+    "expense_enter_desc": "📝 <b>Опишите расход</b>\n\nЗа что этот расход? (обязательно)\n<i>Например: Транспорт, питание, топливо</i>",
+    "expense_desc_required": "❌ Описание обязательно. Напишите, за что этот расход:",
     "expense_added": "✅ <b>Расход добавлен!</b>\n\n{label}: <b>{amount} сум</b>\n📝 {desc}",
     "expense_cancelled": "❌ Добавление расхода отменено.",
+    "expense_mat_select_category": "📁 <b>Выберите категорию материала:</b>",
+    "expense_mat_select_subcategory": "📂 <b>Выберите подкатегорию:</b>",
+    "expense_mat_select_type": "🏗 <b>Выберите тип материала:</b>",
+    "expense_mat_enter_volume": "📐 Введите объём для <b>{name}</b> (м²):\nЦена: <b>{price} сум/м²</b>\nПример: <code>150</code>",
+    "expense_mat_invalid_volume": "❌ Неправильный объём. Введите положительное число (например: 150):",
+    "expense_mat_auto_amount": "✅ <b>Стоимость материала рассчитана автоматически</b>\n\n🏗 Тип: <b>{name}</b>\n📐 Объём: <b>{volume} м²</b>\n💵 Цена: <b>{price} сум/м²</b>\n💰 Итого: <b>{amount} сум</b>\n\n📝 Введите примечание (необязательно):\nНажмите '⏩' для пропуска.",
     "no_expenses": "📋 Для этого заказа расходы не внесены.",
     "expenses_header": "💸 <b>Расходы</b> (итого: {total} сум):\n",
 
@@ -491,14 +510,29 @@ STRINGS = {
     "master_order_start": "➕ <b>Добавить заказ</b>\n\n1️⃣ Введите телефон клиента:\nПример: <code>998901234567</code>",
     "master_no_orders": "📋 <b>Мои заказы</b>\n\nЗакреплённых за вами заказов нет.",
     "master_orders_list": "📋 <b>Мои заказы</b> ({count} шт.):",
-    "confirm_step_area": "✅ <b>Подтверждение заказа: {number}</b>\n\n1/8 — Введите точную площадь (м²):",
-    "confirm_step_sum": "2/8 — Введите общую сумму (сум):\nПример: <code>45000000</code>",
-    "confirm_step_advance": "3/8 — Сумма залога (аванса) (сум):\nПример: <code>10000000</code>",
-    "confirm_step_address": "4/8 — Подтвердите или измените адрес:\nТекущий адрес: <b>{address}</b>\n\nВведите новый адрес или нажмите 'Сохранить':",
-    "confirm_step_date": "5/8 — Введите дату работ (ДД.ММ.ГГГГ):\nПример: <code>25.04.2026</code>",
-    "confirm_step_usta_wage": "6/8 — Зарплата мастера-исполнителя (сум):\nПример: <code>5000000</code>",
-    "confirm_step_commission": "7/8 — Ваша комиссия (сум):\nПример: <code>2000000</code>",
-    "confirm_step_notes": "8/8 — Примечание (необязательно). Введите или пропустите:",
+    "confirm_step_area": "✅ <b>Подтверждение заказа: {number}</b>\n\n1️⃣ Введите точную площадь (м²):",
+    "confirm_step_main_cat": "2️⃣ <b>Основной тип асфальта</b>\n\nВыберите категорию:",
+    "confirm_step_main_subcat": "2️⃣ Выберите подкатегорию:",
+    "confirm_step_main_mat": "2️⃣ Выберите материал:",
+    "confirm_step_extras": (
+        "3️⃣ <b>Дополнительные услуги</b>\n\n"
+        "📐 Основная площадь: <b>{area} м²</b>\n"
+        "🏗 Основной: <b>{main_name}</b> — {main_sub} сум\n"
+        "{extras_text}"
+        "\n💰 Расчётная итого: <b>{calc_total} сум</b>\n\n"
+        "➕ Добавить услугу или ✅ продолжить:"
+    ),
+    "confirm_step_extra_cat": "➕ <b>Дополнительная услуга</b>\n\nВыберите категорию:",
+    "confirm_step_extra_subcat": "➕ Выберите подкатегорию:",
+    "confirm_step_extra_mat": "➕ Выберите материал:",
+    "confirm_step_extra_area": "📐 Введите площадь (м²):\nПример: <code>200</code>",
+    "confirm_step_sum": "4️⃣ <b>Согласованная сумма</b>\n\nРасчётная: <b>{calc_total} сум</b>\n\nВведите согласованную сумму (сум):\nПример: <code>45000000</code>",
+    "confirm_step_advance": "5️⃣ Сумма залога (аванса) (сум):\nПример: <code>10000000</code>",
+    "confirm_step_address": "6️⃣ Подтвердите или измените адрес:\nТекущий адрес: <b>{address}</b>\n\nВведите новый адрес или нажмите 'Сохранить':",
+    "confirm_step_date": "7️⃣ Введите дату работ (ДД.ММ.ГГГГ):\nПример: <code>25.04.2026</code>",
+    "confirm_step_usta_wage": "8️⃣ Зарплата мастера-исполнителя (сум):\nПример: <code>5000000</code>",
+    "confirm_step_commission": "9️⃣ Ваша комиссия (сум):\nПример: <code>2000000</code>",
+    "confirm_step_notes": "🔟 Примечание (необязательно). Введите или пропустите:",
     "order_confirmed_success": "✅ <b>Заказ успешно подтверждён!</b>\n\n🔢 #{number}\n⏰ У вас 30 минут на назначение мастера-исполнителя.\nНажмите '👷 Назначить мастера'.",
     "confirm_cancelled": "❌ Подтверждение отменено.",
     "no_usta_pending": "👷 <b>Назначить мастера</b>\n\nПока нет заказов, требующих назначения.\n(Появится после подтверждения нового заказа)",
@@ -525,6 +559,19 @@ STRINGS = {
     "deliver_error": "❌ Запрос не найден или уже доставлен.",
     "delivered_marked": "✅ Отмечено как доставлено!",
     "delivered_success": "✅ <b>Доставлено!</b>\n\n📦 {amount} тонн\nМастер уведомлён.",
+
+    # ── Zavod shofer narxi handler strings ──
+    "shofer_narxi_not_set": "(не указана)",
+    "shofer_narxi_no_zavod": "❌ Вы не привязаны к заводу. Свяжитесь с админом.",
+    "shofer_narxi_no_requests": "📭 У вас пока нет активных заявок на материал.",
+    "shofer_narxi_select_request": "🚛 <b>Цена водителя</b>\n\nДля какого проекта указать цену?\n\nНайдено <b>{count} заявок</b>:",
+    "shofer_narxi_current_req": "🚛 <b>Цена водителя — Проект выбран</b>\n\n📦 Заказ: <b>{order}</b>\n👷 Мастер: <b>{usta}</b>\nТекущая цена доставки: <b>{price}</b>\n\nВведите новую цену (сум):\nПример: <code>15000</code>",
+    "shofer_narxi_confirm_req": "🚛 <b>Подтверждение цены водителя</b>\n\n📦 Заказ: <b>{order}</b>\n👷 Мастер: <b>{usta}</b>\n💰 Новая цена: <b>{price} сум</b>\n\nСохранить?",
+    "shofer_narxi_saved_req": "✅ <b>Цена водителя сохранена!</b>\n\n📦 Заказ: <b>{order}</b>\n💰 Цена: <b>{price} сум</b>",
+    "shofer_narxi_cancelled": "❌ Ввод отменён.",
+    "shofer_narxi_invalid": "❌ Неверная цена. Введите положительное число:",
+    "btn_shofer_narxi_save": "✅ Сохранить",
+    "btn_shofer_narxi_cancel": "❌ Отмена",
 
     # ── Shofer handler aliases ──
     "no_deliveries": "🚗 <b>Мои доставки</b>\n\nПока нет материалов для доставки.",

@@ -9,14 +9,16 @@ from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.i18n.core import location_link
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
 from app.bot.keyboards.order import (
+    get_asphalt_categories_keyboard,
     get_asphalt_keyboard,
+    get_asphalt_subcategories_keyboard,
     get_order_confirm_keyboard,
     get_regions_keyboard,
     get_tumanlar_keyboard,
     get_viloyatlar_keyboard,
 )
 from app.bot.states.order import KlientOrderStates, PriceCalculatorStates
-from app.db.models import ORDER_STATUS_LABELS, User, UserRole
+from app.db.models import ORDER_STATUS_LABELS, Order, User, UserRole
 from app.services.asphalt_service import AsphaltService
 from app.services.order_service import OrderService
 from app.services.user_service import UserService
@@ -144,22 +146,62 @@ async def handle_order_area(message: Message, state: FSMContext, session, lang: 
 
     await state.update_data(area_m2=str(area))
 
-    asphalt_svc = AsphaltService(session)
-    asphalt_types = await asphalt_svc.get_all_active()
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_all_categories()
+    if categories:
+        await state.set_state(KlientOrderStates.selecting_asphalt_category)
+        await message.answer(t("select_asphalt", lang), reply_markup=get_asphalt_categories_keyboard(categories))
+    else:
+        asphalt_svc = AsphaltService(session)
+        asphalt_types = await asphalt_svc.get_all_active()
+        if not asphalt_types:
+            await message.answer(t("no_asphalt_types", lang), reply_markup=get_main_menu(UserRole.KLIENT, lang))
+            await state.clear()
+            return
+        await state.set_state(KlientOrderStates.selecting_asphalt)
+        await message.answer(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(asphalt_types))
 
-    if not asphalt_types:
-        await message.answer(
-            t("no_asphalt_types", lang),
-            reply_markup=get_main_menu(UserRole.KLIENT, lang),
-        )
-        await state.clear()
+
+@router.callback_query(KlientOrderStates.selecting_asphalt_category, F.data.startswith("asfcat:"))
+async def klient_select_category(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    category_id = int(callback.data.split(":")[1])
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    subcategories = await cat_svc.get_subcategories_by_category(category_id)
+    if subcategories:
+        await state.set_state(KlientOrderStates.selecting_asphalt_subcategory)
+        await callback.message.edit_text(t("select_asphalt", lang), reply_markup=get_asphalt_subcategories_keyboard(subcategories, category_id))
+    else:
+        asphalt_svc = AsphaltService(session)
+        types = await asphalt_svc.get_all_active()
+        await state.set_state(KlientOrderStates.selecting_asphalt)
+        await callback.message.edit_text(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(types))
+    await callback.answer()
+
+
+@router.callback_query(KlientOrderStates.selecting_asphalt_subcategory, F.data.startswith("asfsubcat:"))
+async def klient_select_subcategory(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    subcategory_id = int(callback.data.split(":")[1])
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    materials = await cat_svc.get_materials_by_subcategory(subcategory_id)
+    if not materials:
+        await callback.answer(t("no_asphalt_types", lang), show_alert=True)
         return
-
     await state.set_state(KlientOrderStates.selecting_asphalt)
-    await message.answer(
-        t("select_asphalt", lang),
-        reply_markup=get_asphalt_keyboard(asphalt_types),
-    )
+    await callback.message.edit_text(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(materials))
+    await callback.answer()
+
+
+@router.callback_query(KlientOrderStates.selecting_asphalt_subcategory, F.data.startswith("asfcat_back:"))
+async def klient_back_to_categories(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_all_categories()
+    await state.set_state(KlientOrderStates.selecting_asphalt_category)
+    await callback.message.edit_text(t("select_asphalt", lang), reply_markup=get_asphalt_categories_keyboard(categories))
+    await callback.answer()
 
 
 @router.callback_query(KlientOrderStates.selecting_asphalt, F.data.startswith("asphalt:"))
@@ -257,6 +299,20 @@ async def cancel_order_creation(callback: CallbackQuery, state: FSMContext, lang
 
 # ── My orders ─────────────────────────────────────────────────────────────────
 
+def _client_orders_keyboard(orders: list):
+    from aiogram.types import InlineKeyboardMarkup
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    for o in orders:
+        status_label = ORDER_STATUS_LABELS.get(o.status, o.status.value)
+        builder.button(
+            text=f"📋 {o.order_number} — {status_label}",
+            callback_data=f"klient_order:{o.id}",
+        )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 @router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_my_orders", set())), RoleFilter(UserRole.KLIENT))
 async def my_orders(message: Message, user: User, session, lang: str) -> None:
     order_svc = OrderService(session)
@@ -266,30 +322,43 @@ async def my_orders(message: Message, user: User, session, lang: str) -> None:
         await message.answer(t("no_orders", lang))
         return
 
-    lines = [t("my_orders_header", lang)]
-    for o in orders:
-        status_label = ORDER_STATUS_LABELS.get(o.status, o.status.value)
-        price_str = f"{float(o.total_price):,.0f}" if o.total_price else "—"
-        advance_str = f"{float(o.advance_paid):,.0f}" if o.advance_paid else "0"
-        debt_str = f"{float(o.debt):,.0f}" if o.debt else "0"
-        asphalt = o.asphalt_type.name if o.asphalt_type else "—"
-        master_name = o.master.full_name if o.master else "—"
-        usta_name = o.usta.full_name if o.usta else "—"
-        work_date = o.work_date.strftime("%d.%m.%Y") if o.work_date else "—"
-        loc = location_link(o.latitude, o.longitude)
-        lines.append(
-            f"\n🔢 <code>{o.order_number}</code> — {status_label}\n"
-            f"  � {o.address or '—'}\n"
-            f"  {loc}"
-            f"  🏗 {asphalt}  �📐 {o.area_m2 or '?'} m²\n"
-            f"  📅 Ish sanasi: {work_date}\n"
-            f"  👷 Master: {master_name}\n"
-            f"  � Usta: {usta_name}\n"
-            f"  �💰 Narx: {price_str}  � Oldindan: {advance_str}\n"
-            f"  �💳 Qarz: <b>{debt_str}</b>"
-        )
+    await message.answer(
+        t("my_orders_header", lang, count=len(orders)),
+        reply_markup=_client_orders_keyboard(orders),
+    )
 
-    await message.answer("\n".join(lines))
+
+@router.callback_query(F.data.startswith("klient_order:"))
+async def klient_order_detail(callback: CallbackQuery, user: User, session, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    order_svc = OrderService(session)
+    o = await order_svc.get_by_id_full(order_id)
+    if not o:
+        await callback.answer(t("order_not_found", lang), show_alert=True)
+        return
+
+    from app.bot.handlers._order_view import format_order_full
+    text = format_order_full(o, user.role, lang)
+
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⬅️ Orqaga", callback_data="klient_orders_back")
+    await callback.message.edit_text(text, reply_markup=builder.as_markup())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "klient_orders_back")
+async def klient_orders_back(callback: CallbackQuery, user: User, session, lang: str) -> None:
+    order_svc = OrderService(session)
+    orders = await order_svc.get_by_client(user.id)
+    if not orders:
+        await callback.message.edit_text(t("no_orders", lang))
+    else:
+        await callback.message.edit_text(
+            t("my_orders_header", lang, count=len(orders)),
+            reply_markup=_client_orders_keyboard(orders),
+        )
+    await callback.answer()
 
 
 # ── Price calculator ───────────────────────────────────────────────────────────
@@ -320,10 +389,48 @@ async def calculator_area(message: Message, state: FSMContext, session, lang: st
         return
 
     await state.update_data(calc_area=str(area))
-    asphalt_svc = AsphaltService(session)
-    types = await asphalt_svc.get_all_active()
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_all_categories()
+    if categories:
+        await state.set_state(PriceCalculatorStates.selecting_asphalt_category)
+        await message.answer(t("select_asphalt", lang), reply_markup=get_asphalt_categories_keyboard(categories))
+    else:
+        asphalt_svc = AsphaltService(session)
+        types = await asphalt_svc.get_all_active()
+        await state.set_state(PriceCalculatorStates.selecting_asphalt)
+        await message.answer(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(types))
+
+
+@router.callback_query(PriceCalculatorStates.selecting_asphalt_category, F.data.startswith("asfcat:"))
+async def calc_select_category(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    category_id = int(callback.data.split(":")[1])
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    subcategories = await cat_svc.get_subcategories_by_category(category_id)
+    if subcategories:
+        await state.set_state(PriceCalculatorStates.selecting_asphalt_subcategory)
+        await callback.message.edit_text(t("select_asphalt", lang), reply_markup=get_asphalt_subcategories_keyboard(subcategories, category_id))
+    else:
+        asphalt_svc = AsphaltService(session)
+        types = await asphalt_svc.get_all_active()
+        await state.set_state(PriceCalculatorStates.selecting_asphalt)
+        await callback.message.edit_text(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(types))
+    await callback.answer()
+
+
+@router.callback_query(PriceCalculatorStates.selecting_asphalt_subcategory, F.data.startswith("asfsubcat:"))
+async def calc_select_subcategory(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    subcategory_id = int(callback.data.split(":")[1])
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    materials = await cat_svc.get_materials_by_subcategory(subcategory_id)
+    if not materials:
+        await callback.answer(t("no_asphalt_types", lang), show_alert=True)
+        return
     await state.set_state(PriceCalculatorStates.selecting_asphalt)
-    await message.answer(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(types))
+    await callback.message.edit_text(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(materials))
+    await callback.answer()
 
 
 @router.callback_query(PriceCalculatorStates.selecting_asphalt, F.data.startswith("asphalt:"))
@@ -356,9 +463,13 @@ async def calculator_result(callback: CallbackQuery, state: FSMContext, session,
 
 @router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_consultation", set())), RoleFilter(UserRole.KLIENT))
 async def consultation(message: Message, lang: str) -> None:
-    await message.answer(t("consultation", lang))
+    from app.services.app_settings_service import get_setting, lang_key
+    text = await get_setting(lang_key("consultation_text", lang), default=t("consultation", lang))
+    await message.answer(text)
 
 
 @router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_about", set())), RoleFilter(UserRole.KLIENT))
 async def about_company(message: Message, lang: str) -> None:
-    await message.answer(t("about_company", lang))
+    from app.services.app_settings_service import get_setting, lang_key
+    text = await get_setting(lang_key("about_text", lang), default=t("about_company", lang))
+    await message.answer(text)

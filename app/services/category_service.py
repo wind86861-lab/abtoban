@@ -1,7 +1,7 @@
 from typing import List, Optional
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,6 +17,15 @@ class CategoryService:
         result = await self.session.execute(
             select(AsphaltCategory)
             .options(selectinload(AsphaltCategory.subcategories))
+            .where(AsphaltCategory.is_active == True)
+            .order_by(AsphaltCategory.name)
+        )
+        return list(result.scalars().all())
+
+    async def get_categories_light(self) -> List[AsphaltCategory]:
+        """Get all active categories without loading relationships (faster)."""
+        result = await self.session.execute(
+            select(AsphaltCategory)
             .where(AsphaltCategory.is_active == True)
             .order_by(AsphaltCategory.name)
         )
@@ -39,10 +48,20 @@ class CategoryService:
         return category
 
     async def get_subcategories_by_category(self, category_id: int) -> List[AsphaltSubCategory]:
-        """Get all subcategories for a category."""
+        """Get all subcategories for a category (with materials - slower)."""
         result = await self.session.execute(
             select(AsphaltSubCategory)
             .options(selectinload(AsphaltSubCategory.asphalt_types))
+            .where(AsphaltSubCategory.category_id == category_id)
+            .where(AsphaltSubCategory.is_active == True)
+            .order_by(AsphaltSubCategory.name)
+        )
+        return list(result.scalars().all())
+
+    async def get_subcategories_light(self, category_id: int) -> List[AsphaltSubCategory]:
+        """Get all subcategories for a category without loading materials (faster)."""
+        result = await self.session.execute(
+            select(AsphaltSubCategory)
             .where(AsphaltSubCategory.category_id == category_id)
             .where(AsphaltSubCategory.is_active == True)
             .order_by(AsphaltSubCategory.name)
@@ -84,6 +103,13 @@ class CategoryService:
         )
         return list(result.scalars().all())
 
+    async def get_material_by_id(self, material_id: int) -> Optional[AsphaltType]:
+        """Get a single material/asphalt type by ID."""
+        result = await self.session.execute(
+            select(AsphaltType).where(AsphaltType.id == material_id)
+        )
+        return result.scalar_one_or_none()
+
     async def create_material(
         self,
         subcategory_id: int,
@@ -101,3 +127,15 @@ class CategoryService:
         self.session.add(material)
         await self.session.flush()
         return material
+
+    async def delete_category(self, category_id: int) -> None:
+        await self.session.execute(delete(AsphaltCategory).where(AsphaltCategory.id == category_id))
+        await self.session.flush()
+
+    async def delete_subcategory(self, subcategory_id: int) -> None:
+        await self.session.execute(delete(AsphaltSubCategory).where(AsphaltSubCategory.id == subcategory_id))
+        await self.session.flush()
+
+    async def delete_material(self, material_id: int) -> None:
+        await self.session.execute(delete(AsphaltType).where(AsphaltType.id == material_id))
+        await self.session.flush()

@@ -18,6 +18,7 @@ class MaterialService:
         usta_id: int,
         amount_tonnes: Decimal,
         notes: Optional[str] = None,
+        asphalt_type_id: Optional[int] = None,
     ) -> MaterialRequest:
         req = MaterialRequest(
             order_id=order_id,
@@ -25,6 +26,7 @@ class MaterialService:
             amount_tonnes=amount_tonnes,
             status=MaterialRequestStatus.ADMIN_PENDING,
             notes=notes,
+            asphalt_type_id=asphalt_type_id,
         )
         self.session.add(req)
         await self.session.flush()
@@ -35,6 +37,9 @@ class MaterialService:
             select(MaterialRequest)
             .options(
                 selectinload(MaterialRequest.order).selectinload(Order.region),
+                selectinload(MaterialRequest.order).selectinload(Order.master),
+                selectinload(MaterialRequest.order).selectinload(Order.tuman_rel),
+                selectinload(MaterialRequest.order).selectinload(Order.viloyat),
                 selectinload(MaterialRequest.usta).selectinload(User.region),
                 selectinload(MaterialRequest.zavod),
                 selectinload(MaterialRequest.assigned_zavod),

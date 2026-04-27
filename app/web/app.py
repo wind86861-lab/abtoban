@@ -10,6 +10,7 @@ from starlette.responses import RedirectResponse, HTMLResponse
 from app.config import settings
 from app.db.session import engine
 from app.web.auth import AdminAuth
+from app.web.web_lang import WebLangMiddleware, patch_admin_i18n, SUPPORTED_LANGS
 from app.web.tma_routes import router as tma_router
 from app.web.marketplace_routes import router as marketplace_router
 from app.web.reports import ReportsView
@@ -18,9 +19,13 @@ from app.web.views import (
     AsphaltSubCategoryAdmin,
     AsphaltTypeAdmin,
     ExpenseAdmin,
+    MarketOrderAdmin,
     MaterialRequestAdmin,
     OrderAdmin,
+    PortfolioAdmin,
+    ProductAdmin,
     RegionAdmin,
+    ShopCategoryAdmin,
     TumanAdmin,
     UserAdmin,
     ViloyatAdmin,
@@ -28,6 +33,44 @@ from app.web.views import (
 )
 
 app = FastAPI(title="Avtoban Admin", docs_url=None, redoc_url=None)
+
+
+class TMAAuthMiddleware:
+    """Pure ASGI middleware. Blocks unauthenticated access to /tma-admin and
+    /tma-api/* routes. Runs innermost so scope['session'] is already set by
+    SessionMiddleware."""
+
+    _PUBLIC = {"/tma-login", "/tma-logout"}
+    _PROTECTED_PREFIXES = ("/tma-api/", "/tma-admin")
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        protected = any(path.startswith(p) for p in self._PROTECTED_PREFIXES)
+        public = path in self._PUBLIC
+
+        if protected and not public:
+            session = scope.get("session") or {}
+            token = session.get("tma_token")
+            if token not in ("admin_ok", "superadmin_ok"):
+                from urllib.parse import urlencode
+                qs = urlencode({"next": path})
+                location = f"/tma-login?{qs}".encode("latin-1")
+                await send({
+                    "type": "http.response.start",
+                    "status": 302,
+                    "headers": [(b"location", location), (b"content-length", b"0")],
+                })
+                await send({"type": "http.response.body", "body": b""})
+                return
+
+        await self.app(scope, receive, send)
 
 
 class RouteMastersAwayMiddleware:
@@ -70,8 +113,11 @@ class RouteMastersAwayMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
-# Middleware order: added LAST wraps OUTERMOST. Session must be outermost so
-# that by the time RouteMastersAway runs, scope['session'] already exists.
+# Middleware order: added LAST = outermost = runs FIRST.
+# Session must be outermost so scope['session'] is set before inner middleware.
+# TMAAuthMiddleware must be innermost (added first) so it can read the session.
+app.add_middleware(TMAAuthMiddleware)
+app.add_middleware(WebLangMiddleware)
 app.add_middleware(RouteMastersAwayMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
@@ -93,6 +139,8 @@ admin = Admin(
     templates_dir=os.path.join(os.path.dirname(__file__), "templates"),
 )
 
+patch_admin_i18n(admin)
+
 admin.add_view(ReportsView)
 admin.add_view(UserAdmin)
 admin.add_view(OrderAdmin)
@@ -105,10 +153,21 @@ admin.add_view(ViloyatAdmin)
 admin.add_view(TumanAdmin)
 admin.add_view(RegionAdmin)
 admin.add_view(ZavodAdmin)
+admin.add_view(ShopCategoryAdmin)
+admin.add_view(ProductAdmin)
+admin.add_view(PortfolioAdmin)
+admin.add_view(MarketOrderAdmin)
 
 # Mount Master Panel
 from app.web.master_app import master_app
 app.mount("/master-panel", master_app)
+
+# ── Language switcher endpoint ──────────────────────────────────────────────
+@app.get("/set-lang")
+async def set_language(request: Request, lang: str = "uz_lat", next: str = "/"):
+    if lang in SUPPORTED_LANGS:
+        request.session["web_lang"] = lang
+    return RedirectResponse(url=next, status_code=303)
 
 # Include TMA routes and redirects AFTER SQLAdmin to override /admin
 app.include_router(tma_router)

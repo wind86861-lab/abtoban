@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">📊 Hisobotlar (Moliyaviy Hisobot)</h1>
-    
+    <h1 class="h3 mb-4 text-gray-800">📊 {{ t('reports') }} ({{ t('financial_report') }})</h1>
+
     <!-- Summary Cards Row -->
     <div class="row">
         <!-- Total Revenue Card -->
@@ -13,10 +13,10 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Jami Daromad
+                                {{ t('total_income') }}
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ "{:,.0f}".format(stats.total_revenue) }} so'm
+                                {{ "{:,.0f}".format(stats.total_revenue) }} {{ t('som') }}
                             </div>
                         </div>
                         <div class="col-auto">
@@ -34,10 +34,10 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Jami Xarajatlar
+                                {{ t('total_expenses') }}
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ "{:,.0f}".format(stats.total_costs) }} so'm
+                                {{ "{:,.0f}".format(stats.total_costs) }} {{ t('som') }}
                             </div>
                         </div>
                         <div class="col-auto">
@@ -55,12 +55,13 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Sof Foyda
+                                {{ t('net_profit') }}
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ "{:,.0f}".format(stats.net_profit) }} so'm
+                                {{ "{:,.0f}".format(stats.net_profit) }} {{ t('som') }}
                             </div>
-                            <small class="text-muted">Foyda darajasi: {{ "{:.1f}".format(stats.profit_margin) }}%</small>
+                            <small class="text-muted">{{ t('profit_margin') }}: {{ "{:.1f}".format(stats.profit_margin)
+                                }}%</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-chart-line fa-2x text-gray-300"></i>
@@ -77,7 +78,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Jami Zakazlar
+                                {{ t('total_orders') }}
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 {{ stats.total_orders }}
@@ -98,22 +99,24 @@
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">🏗 Asfalt Foyda Tahlili</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">🏗 {{ t('asphalt_analysis') }}</h6>
                 </div>
                 <div class="card-body">
                     <table class="table table-sm">
                         <tbody>
                             <tr>
-                                <td><strong>Asfalt sotuv daromadi:</strong></td>
-                                <td class="text-right">{{ "{:,.0f}".format(stats.asphalt_revenue) }} so'm</td>
+                                <td><strong>{{ t('asphalt_revenue') }}:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.asphalt_revenue) }} {{ t('som') }}</td>
                             </tr>
                             <tr>
-                                <td><strong>Asfalt tannarxi:</strong></td>
-                                <td class="text-right text-danger">-{{ "{:,.0f}".format(stats.asphalt_cost) }} so'm</td>
+                                <td><strong>{{ t('asphalt_cost') }}:</strong></td>
+                                <td class="text-right text-danger">-{{ "{:,.0f}".format(stats.asphalt_cost) }} {{
+                                    t('som') }}</td>
                             </tr>
                             <tr class="table-success">
-                                <td><strong>Asfalt foyda:</strong></td>
-                                <td class="text-right"><strong>{{ "{:,.0f}".format(stats.asphalt_profit) }} so'm</strong></td>
+                                <td><strong>{{ t('asphalt_profit') }}:</strong></td>
+                                <td class="text-right"><strong>{{ "{:,.0f}".format(stats.asphalt_profit) }} {{ t('som')
+                                        }}</strong></td>
                             </tr>
                         </tbody>
                     </table>
@@ -125,26 +128,28 @@
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-danger">💸 Xarajatlar Tafsiloti</h6>
+                    <h6 class="m-0 font-weight-bold text-danger">💸 {{ t('cost_breakdown') }}</h6>
                 </div>
                 <div class="card-body">
                     <table class="table table-sm">
                         <tbody>
                             <tr>
-                                <td><strong>Asfalt tannarxi:</strong></td>
-                                <td class="text-right">{{ "{:,.0f}".format(stats.asphalt_cost) }} so'm</td>
+                                <td><strong>{{ t('asphalt_cost') }}:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.asphalt_cost) }} {{ t('som') }}</td>
                             </tr>
                             <tr>
-                                <td><strong>Material xarajatlari:</strong></td>
-                                <td class="text-right">{{ "{:,.0f}".format(stats.total_material_cost) }} so'm</td>
+                                <td><strong>{{ t('material_costs') }}:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.total_material_cost) }} {{ t('som') }}
+                                </td>
                             </tr>
                             <tr>
-                                <td><strong>Boshqa xarajatlar:</strong></td>
-                                <td class="text-right">{{ "{:,.0f}".format(stats.total_expenses) }} so'm</td>
+                                <td><strong>{{ t('other_expenses') }}:</strong></td>
+                                <td class="text-right">{{ "{:,.0f}".format(stats.total_expenses) }} {{ t('som') }}</td>
                             </tr>
                             <tr class="table-danger">
-                                <td><strong>Jami xarajat:</strong></td>
-                                <td class="text-right"><strong>{{ "{:,.0f}".format(stats.total_costs) }} so'm</strong></td>
+                                <td><strong>{{ t('total_cost') }}:</strong></td>
+                                <td class="text-right"><strong>{{ "{:,.0f}".format(stats.total_costs) }} {{ t('som')
+                                        }}</strong></td>
                             </tr>
                         </tbody>
                     </table>
@@ -158,34 +163,34 @@
         <div class="col-xl-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-warning">💰 To'lov Holati</h6>
+                    <h6 class="m-0 font-weight-bold text-warning">💰 {{ t('payment_status') }}</h6>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4">
                             <div class="text-center">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">Oldindan to'lov</div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">{{ t('advance_label') }}</div>
                                 <div class="h5 mb-0 font-weight-bold text-success">
-                                    {{ "{:,.0f}".format(stats.total_advance) }} so'm
+                                    {{ "{:,.0f}".format(stats.total_advance) }} {{ t('som') }}
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="text-center">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">Qarz</div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">{{ t('debt') }}</div>
                                 <div class="h5 mb-0 font-weight-bold text-danger">
-                                    {{ "{:,.0f}".format(stats.total_debt) }} so'm
+                                    {{ "{:,.0f}".format(stats.total_debt) }} {{ t('som') }}
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="text-center">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">To'lov foizi</div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">{{ t('payment_pct') }}</div>
                                 <div class="h5 mb-0 font-weight-bold text-info">
                                     {% if stats.total_revenue > 0 %}
-                                        {{ "{:.1f}".format((stats.total_advance / stats.total_revenue) * 100) }}%
+                                    {{ "{:.1f}".format((stats.total_advance / stats.total_revenue) * 100) }}%
                                     {% else %}
-                                        0%
+                                    0%
                                     {% endif %}
                                 </div>
                             </div>
@@ -201,7 +206,7 @@
         <div class="col-xl-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-info">📋 Zakazlar Holati</h6>
+                    <h6 class="m-0 font-weight-bold text-info">📋 {{ t('order_statuses') }}</h6>
                 </div>
                 <div class="card-body">
                     <div class="row">

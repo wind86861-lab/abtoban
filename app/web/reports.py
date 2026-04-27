@@ -3,6 +3,7 @@ from typing import Any
 
 from sqladmin import BaseView, expose
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import AsphaltType, Expense, MaterialRequest, Order, OrderStatus
@@ -68,6 +69,7 @@ class ReportsView(BaseView):
         # Get all completed orders with asphalt type
         orders_with_asphalt = await session.execute(
             select(Order)
+            .options(selectinload(Order.asphalt_type))
             .where(
                 Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.DONE]),
                 Order.asphalt_type_id.isnot(None),

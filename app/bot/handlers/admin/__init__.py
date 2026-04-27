@@ -16,6 +16,7 @@ from .orders import router as orders_router
 from .reports import router as reports_router
 from .role_management import router as role_mgmt_router
 from .settings import router as settings_router
+from .super_admin_password import router as super_admin_password_router
 
 router = Router()
 
@@ -58,6 +59,7 @@ async def admin_material_requests_entry(message: Message, user: User, session, l
     )
 
 
+router.include_router(super_admin_password_router)
 router.include_router(role_mgmt_router)
 router.include_router(orders_router)
 router.include_router(materials_router)

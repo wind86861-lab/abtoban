@@ -151,14 +151,31 @@ async def pick_zavod_for_material(callback: CallbackQuery, session) -> None:
     # Assign the zavod entity to the material request
     await mat_svc.assign_zavod(req_id, zavod_id)
 
-    usta_name = req_full.usta.full_name if req_full.usta else "?"
-    # Fallback to usta region if order region is NULL
-    if req_full.order and req_full.order.region:
-        region_name = req_full.order.region.name
-    elif req_full.usta and req_full.usta.region:
-        region_name = req_full.usta.region.name
-    else:
-        region_name = "—"
+    from app.bot.i18n.core import location_link
+
+    order = req_full.order
+    usta = req_full.usta
+
+    # Order info
+    order_num = order.order_number if order else "?"
+    address = order.address if order and order.address else "—"
+    viloyat = order.viloyat.name if order and order.viloyat else None
+    tuman = order.tuman_rel.name if order and order.tuman_rel else None
+    if not viloyat and usta and usta.region:
+        viloyat = usta.region.name
+    loc_parts = [p for p in (viloyat, tuman) if p]
+    loc_str = ", ".join(loc_parts) if loc_parts else "—"
+    region_name = viloyat or "—"
+    loc_link = location_link(order.latitude, order.longitude) if order else ""
+
+    # Usta info
+    usta_name = (usta.full_name or str(usta.telegram_id)) if usta else "—"
+    usta_phone = (usta.phone or "—") if usta else "—"
+
+    # Master info
+    master = order.master if order else None
+    master_name = (master.full_name or "—") if master else "—"
+    master_phone = (master.phone or "—") if master else "—"
 
     # Get the selected zavod entity
     user_svc = UserService(session)
@@ -172,11 +189,19 @@ async def pick_zavod_for_material(callback: CallbackQuery, session) -> None:
 
     notify_text = (
         f"📦 <b>Yangi material so'rov!</b>\n\n"
-        f"🔢 So'rov #{req_full.id}\n"
-        f"📍 Viloyat: {region_name}\n"
-        f"👷 Usta: {usta_name}\n"
+        f"🆔 So'rov #{req_full.id}\n"
+        f"� Zakaz: <b>{order_num}</b>\n"
+        f"� Viloyat/Tuman: <b>{loc_str}</b>\n"
+        f"📍 Manzil: <b>{address}</b>\n"
+        f"{loc_link}"
+        f"\n"
         f"📦 Miqdor: <b>{req_full.amount_tonnes} tonna</b>\n"
-        f"📝 Izoh: {req_full.notes or '—'}"
+        f"📝 Izoh: <i>{req_full.notes or '—'}</i>\n\n"
+        f"<b>👥 Aloqa:</b>\n"
+        f"🔨 Usta: <b>{usta_name}</b>\n"
+        f"   📱 <code>{usta_phone}</code>\n"
+        f"👷 Master: <b>{master_name}</b>\n"
+        f"   📱 <code>{master_phone}</code>"
     )
 
     # Notify users linked to the selected zavod

@@ -1,9 +1,10 @@
+import asyncio
 import logging
 
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, MenuButtonWebApp, Message, WebAppInfo
+from aiogram.types import CallbackQuery, MenuButtonWebApp, Message, ReplyKeyboardRemove, WebAppInfo
 
 from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.keyboards.menus import get_language_keyboard, get_main_menu, get_phone_keyboard
@@ -71,8 +72,15 @@ async def cmd_start(message: Message, state: FSMContext, user: User, lang: str) 
         )
         return
 
-    # Returning user
+    # Returning user — force-remove cached keyboard so Telegram client refreshes layout
     role_label = _role_label(user, lang)
+    m = await message.answer(
+        "🔄 ...",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await asyncio.sleep(0.6)
+    await bot.delete_message(chat_id=message.chat.id, message_id=m.message_id)
+    await asyncio.sleep(0.3)
     await message.answer(
         t("welcome_back", lang, name=user.full_name or message.from_user.full_name, role=role_label),
         reply_markup=get_main_menu(user.role, lang),

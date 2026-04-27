@@ -4,6 +4,7 @@ from decimal import Decimal
 from sqladmin import BaseView, expose
 from sqlalchemy import func, select
 from starlette.requests import Request
+from starlette.responses import RedirectResponse
 
 from app.db.models import Order, OrderStatus
 from app.db.session import async_session_maker
@@ -16,14 +17,9 @@ class MasterCommissionView(BaseView):
     @expose("/commission", methods=["GET"])
     async def commission_page(self, request: Request):
         """Master's commission report with detailed breakdown"""
-        user_id = request.session.get('user_id')
-        
+        user_id = request.session.get('user_id') or request.session.get('master_user_id')
         if not user_id:
-            return await self.templates.TemplateResponse(
-                request,
-                "error.html",
-                context={"error": "Unauthorized"}
-            )
+            return RedirectResponse(url="/master-panel/admin/login", status_code=302)
         
         async with async_session_maker() as session:
             # Overall commission stats

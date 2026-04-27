@@ -10,7 +10,9 @@ from app.bot.i18n.core import location_link
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
 from app.bot.keyboards.order import (
     get_admin_order_detail_keyboard,
+    get_asphalt_categories_keyboard,
     get_asphalt_keyboard,
+    get_asphalt_subcategories_keyboard,
     get_order_confirm_keyboard,
     get_regions_keyboard,
     get_status_selection_keyboard,
@@ -39,41 +41,12 @@ router = Router()
 PER_PAGE = 10
 
 
-def _fmt_order_detail(order) -> str:
-    status_label = ORDER_STATUS_LABELS.get(order.status, order.status.value)
-    asphalt = order.asphalt_type.name if order.asphalt_type else "—"
-    master = order.master.full_name if order.master else "Tayinlanmagan"
-    usta = order.usta.full_name if order.usta else "Tayinlanmagan"
-    price = f"{float(order.total_price):,.0f} so'm" if order.total_price else "—"
-    advance = f"{float(order.advance_paid):,.0f}" if order.advance_paid else "0"
-    debt = f"{float(order.debt):,.0f}" if order.debt else "0"
-    work_date = order.work_date.strftime("%d.%m.%Y") if order.work_date else "—"
-    viloyat = getattr(order, 'viloyat', None)
-    tuman = getattr(order, 'tuman_rel', None)
-    loc_parts = []
-    if viloyat:
-        loc_parts.append(viloyat.name)
-    if tuman:
-        loc_parts.append(tuman.name)
-    loc_str = ", ".join(loc_parts) if loc_parts else "—"
-    return (
-        f"📋 <b>Zakaz: {order.order_number}</b>\n\n"
-        f"👤 Klient: <b>{order.client_name}</b>\n"
-        f"📱 Tel: <b>{order.client_phone}</b>\n"
-        f"🗺 Viloyat/Tuman: <b>{loc_str}</b>\n"
-        f"📍 Manzil: <b>{order.address or '—'}</b>\n"
-        f"{location_link(order.latitude, order.longitude)}"
-        f"📐 Maydon: <b>{order.area_m2 or '?'} m²</b>\n"
-        f"🏗 Asfalt: <b>{asphalt}</b>\n"
-        f"💰 Summa: <b>{price}</b>\n"
-        f"💵 Zaklad: <b>{advance}</b>\n"
-        f"💳 Qarz: <b>{debt}</b>\n"
-        f"📅 Ish sanasi: <b>{work_date}</b>\n"
-        f"👷 Master: <b>{master}</b>\n"
-        f"🔨 Usta: <b>{usta}</b>\n"
-        f"📊 Holat: <b>{status_label}</b>\n"
-        f"🕐 Yaratildi: <b>{order.created_at.strftime('%d.%m.%Y %H:%M')}</b>"
-    )
+def _fmt_order_detail(order, viewer_role=None) -> str:
+    """Format order detail for admin view (full info with all contacts)."""
+    from app.bot.handlers._order_view import format_order_full
+    from app.db.models import UserRole
+    role = viewer_role or UserRole.ADMIN
+    return format_order_full(order, role, "uz_lat")
 
 
 # ── All orders list ────────────────────────────────────────────────────────────
@@ -516,14 +489,62 @@ async def admin_order_area(message: Message, state: FSMContext, session) -> None
         return
 
     await state.update_data(area_m2=str(area))
-    asphalt_svc = AsphaltService(session)
-    types = await asphalt_svc.get_all_active()
-    if not types:
-        await message.answer("⚠️ Asfalt turlari yo'q. Avval sozlamalarda qo'shing.")
-        await state.clear()
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_all_categories()
+    if categories:
+        await state.set_state(AdminOrderCreateStates.selecting_asphalt_category)
+        await message.answer("5/6 — Kategoriyani tanlang:", reply_markup=get_asphalt_categories_keyboard(categories))
+    else:
+        asphalt_svc = AsphaltService(session)
+        types = await asphalt_svc.get_all_active()
+        if not types:
+            await message.answer("⚠️ Asfalt turlari yo'q. Avval sozlamalarda qo'shing.")
+            await state.clear()
+            return
+        await state.set_state(AdminOrderCreateStates.selecting_asphalt)
+        await message.answer("5/6 — Asfalt turini tanlang:", reply_markup=get_asphalt_keyboard(types))
+
+
+@router.callback_query(AdminOrderCreateStates.selecting_asphalt_category, F.data.startswith("asfcat:"))
+async def admin_order_select_category(callback: CallbackQuery, state: FSMContext, session) -> None:
+    category_id = int(callback.data.split(":")[1])
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    subcategories = await cat_svc.get_subcategories_by_category(category_id)
+    if subcategories:
+        await state.set_state(AdminOrderCreateStates.selecting_asphalt_subcategory)
+        await callback.message.edit_text("Sub-kategoriyani tanlang:", reply_markup=get_asphalt_subcategories_keyboard(subcategories, category_id))
+    else:
+        asphalt_svc = AsphaltService(session)
+        types = await asphalt_svc.get_all_active()
+        await state.set_state(AdminOrderCreateStates.selecting_asphalt)
+        await callback.message.edit_text("Asfalt turini tanlang:", reply_markup=get_asphalt_keyboard(types))
+    await callback.answer()
+
+
+@router.callback_query(AdminOrderCreateStates.selecting_asphalt_subcategory, F.data.startswith("asfsubcat:"))
+async def admin_order_select_subcategory(callback: CallbackQuery, state: FSMContext, session) -> None:
+    subcategory_id = int(callback.data.split(":")[1])
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    materials = await cat_svc.get_materials_by_subcategory(subcategory_id)
+    if not materials:
+        await callback.answer("⚠️ Bu sub-kategoriyada material yo'q", show_alert=True)
         return
     await state.set_state(AdminOrderCreateStates.selecting_asphalt)
-    await message.answer("5/6 — Asfalt turini tanlang:", reply_markup=get_asphalt_keyboard(types))
+    await callback.message.edit_text("Asfalt turini tanlang:", reply_markup=get_asphalt_keyboard(materials))
+    await callback.answer()
+
+
+@router.callback_query(AdminOrderCreateStates.selecting_asphalt_subcategory, F.data.startswith("asfcat_back:"))
+async def admin_order_back_to_categories(callback: CallbackQuery, state: FSMContext, session) -> None:
+    from app.services.category_service import CategoryService
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_all_categories()
+    await state.set_state(AdminOrderCreateStates.selecting_asphalt_category)
+    await callback.message.edit_text("Kategoriyani tanlang:", reply_markup=get_asphalt_categories_keyboard(categories))
+    await callback.answer()
 
 
 @router.callback_query(AdminOrderCreateStates.selecting_asphalt, F.data.startswith("asphalt:"))

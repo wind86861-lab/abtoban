@@ -9,12 +9,14 @@ from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.keyboards.finance import (
     get_pending_requests_keyboard,
     get_priced_requests_keyboard,
+    get_shofer_narxi_confirm_keyboard,
+    get_shofer_narxi_requests_keyboard,
     get_zavod_confirm_keyboard,
     get_zavod_request_detail_keyboard,
 )
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
-from app.bot.states.finance import ZavodPriceStates
-from app.db.models import User, UserRole
+from app.bot.states.finance import ZavodPriceStates, ZavodShoferNarxiStates
+from app.db.models import MaterialRequest, User, UserRole
 from app.services.material_service import MaterialService
 from app.services.user_service import UserService
 
@@ -65,16 +67,48 @@ async def view_request(callback: CallbackQuery, session, lang: str) -> None:
     if not req:
         await callback.answer(t("request_not_found", lang), show_alert=True)
         return
-    order_num = req.order.order_number if req.order else "?"
-    usta_name = req.usta.full_name or str(req.usta.telegram_id) if req.usta else "?"
+
+    from app.bot.i18n.core import location_link
+    order = req.order
+    order_num = order.order_number if order else "?"
+
+    # Order location info
+    address = order.address if order and order.address else "—"
+    viloyat = order.viloyat.name if order and order.viloyat else None
+    tuman = order.tuman_rel.name if order and order.tuman_rel else None
+    loc_parts = [p for p in (viloyat, tuman) if p]
+    loc_str = ", ".join(loc_parts) if loc_parts else "—"
+    loc_link = location_link(order.latitude, order.longitude) if order else ""
+
+    # Usta info
+    usta = req.usta
+    usta_name = (usta.full_name or str(usta.telegram_id)) if usta else "—"
+    usta_phone = (usta.phone or "—") if usta else "—"
+
+    # Master info (so zavod can call master with questions)
+    master = order.master if order else None
+    master_name = (master.full_name or "—") if master else "—"
+    master_phone = (master.phone or "—") if master else "—"
+
+    text = (
+        f"📦 <b>Material so'rovi #{req.id}</b>\n\n"
+        f"🔢 Zakaz: <b>{order_num}</b>\n"
+        f"🗺 Viloyat/Tuman: <b>{loc_str}</b>\n"
+        f"📍 Manzil: <b>{address}</b>\n"
+        f"{loc_link}"
+        f"\n"
+        f"📦 Miqdor: <b>{req.amount_tonnes} tonna</b>\n"
+        f"📝 Izoh: <i>{req.notes or '—'}</i>\n"
+        f"📅 Sana: {req.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+        f"<b>👥 Aloqa:</b>\n"
+        f"🔨 Usta: <b>{usta_name}</b>\n"
+        f"   📱 <code>{usta_phone}</code>\n"
+        f"👷 Master: <b>{master_name}</b>\n"
+        f"   📱 <code>{master_phone}</code>"
+    )
+
     await callback.message.edit_text(
-        t("material_request_detail", lang,
-          id=req.id,
-          order=order_num,
-          usta=usta_name,
-          amount=req.amount_tonnes,
-          notes=req.notes or '—',
-          date=req.created_at.strftime('%d.%m.%Y %H:%M')),
+        text,
         reply_markup=get_zavod_request_detail_keyboard(req_id),
     )
     await callback.answer()
@@ -273,3 +307,126 @@ async def zavod_deliver(callback: CallbackQuery, user: User, session, lang: str)
     await callback.message.edit_text(
         t("delivered_success", lang, amount=req.amount_tonnes)
     )
+
+
+# ── Shofer Narxi (per-request delivery price) ────────────────────────────────
+
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_shofer_narxi", set())))
+async def shofer_narxi_start(message: Message, user: User, session, state: FSMContext, lang: str) -> None:
+    """Step 1: show active material requests so user picks which project to price."""
+    if not user.zavod_id:
+        await message.answer(t("shofer_narxi_no_zavod", lang))
+        return
+
+    mat_svc = MaterialService(session)
+    requests = await mat_svc.get_priced_for_zavod(user.zavod_id)
+    if not requests:
+        requests = await mat_svc.get_pending_for_zavod(user.zavod_id)
+
+    if not requests:
+        await message.answer(t("shofer_narxi_no_requests", lang))
+        return
+
+    await state.set_state(ZavodShoferNarxiStates.selecting_request)
+    await message.answer(
+        t("shofer_narxi_select_request", lang, count=len(requests)),
+        reply_markup=get_shofer_narxi_requests_keyboard(requests, lang),
+    )
+
+
+@router.callback_query(ZavodShoferNarxiStates.selecting_request, F.data.startswith("shofer_req:"))
+async def shofer_narxi_request_selected(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    """Step 2: user selected a request — ask for the driver price."""
+    req_id = int(callback.data.split(":")[1])
+    mat_svc = MaterialService(session)
+    req = await mat_svc.get_by_id(req_id)
+
+    if not req:
+        await callback.answer(t("not_found", lang), show_alert=True)
+        return
+
+    order_num = req.order.order_number if req.order else f"#{req.order_id}"
+    usta_name = (req.usta.full_name or req.usta.phone) if req.usta else "?"
+    current = f"{float(req.delivery_price):,.0f} so'm" if req.delivery_price else t("shofer_narxi_not_set", lang)
+
+    await state.update_data(req_id=req_id, order_num=order_num, usta_name=usta_name)
+    await state.set_state(ZavodShoferNarxiStates.entering_price)
+
+    await callback.message.edit_text(
+        t("shofer_narxi_current_req", lang,
+          order=order_num, usta=usta_name, price=current),
+    )
+    await callback.answer()
+
+
+@router.message(ZavodShoferNarxiStates.entering_price)
+async def shofer_narxi_enter(message: Message, state: FSMContext, lang: str) -> None:
+    """Step 3: receive price, ask for confirmation."""
+    raw = (message.text or "").strip().replace(" ", "").replace(",", "").replace("'", "")
+    try:
+        from decimal import Decimal, InvalidOperation
+        price = Decimal(raw)
+        if price < 0:
+            raise ValueError
+    except (InvalidOperation, ValueError):
+        await message.answer(t("shofer_narxi_invalid", lang))
+        return
+
+    data = await state.get_data()
+    await state.update_data(price=str(price))
+    await state.set_state(ZavodShoferNarxiStates.confirming)
+
+    order_num = data.get("order_num", "?")
+    usta_name = data.get("usta_name", "?")
+
+    await message.answer(
+        t("shofer_narxi_confirm_req", lang,
+          order=order_num, usta=usta_name, price=f"{float(price):,.0f}"),
+        reply_markup=get_shofer_narxi_confirm_keyboard(lang),
+    )
+
+
+@router.callback_query(ZavodShoferNarxiStates.confirming, F.data == "shofer_narxi_save")
+async def shofer_narxi_save(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    """Step 4: save delivery_price to the specific MaterialRequest."""
+    from decimal import Decimal
+    from sqlalchemy import select
+
+    data = await state.get_data()
+    req_id = data.get("req_id")
+    price_str = data.get("price")
+
+    if not req_id or not price_str:
+        await state.clear()
+        await callback.answer(t("error_occurred", lang), show_alert=True)
+        return
+
+    req = (await session.execute(
+        select(MaterialRequest).where(MaterialRequest.id == req_id)
+    )).scalar_one_or_none()
+
+    if not req:
+        await state.clear()
+        await callback.answer(t("not_found", lang), show_alert=True)
+        return
+
+    req.delivery_price = Decimal(price_str)
+    await session.commit()
+    await state.clear()
+
+    order_num = data.get("order_num", f"#{req_id}")
+    await callback.message.edit_text(
+        t("shofer_narxi_saved_req", lang,
+          order=order_num, price=f"{float(req.delivery_price):,.0f}")
+    )
+    await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.ZAVOD, lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "shofer_narxi_cancel")
+async def shofer_narxi_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    """Cancel at any step."""
+    await state.clear()
+    await callback.message.edit_text(t("shofer_narxi_cancelled", lang))
+    await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.ZAVOD, lang))
+    await callback.answer()

@@ -1,17 +1,20 @@
 """TMA admin API routes — Hududlar, Zavodlar, Orders, Users, Materials."""
+import hashlib
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Form, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import selectinload
 from starlette.requests import Request
 
+from app.config import settings
 from app.db.models import (
-    ROLE_LABELS, MaterialRequest, MaterialRequestStatus, Order, OrderStatus,
+    ROLE_LABELS, AsphaltCategory, AsphaltSubCategory, AsphaltType,
+    MaterialRequest, MaterialRequestStatus, Order, OrderStatus,
     Region, Tuman, User, UserRole, Viloyat, Zavod, zavod_hududlar, user_hududlar,
 )
 from app.db.session import async_session_maker
@@ -20,10 +23,69 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
 
 
+def _hash(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+
+# ─────────────────────────────────────────────────────────────
+# TMA AUTH — Login / Logout
+# ─────────────────────────────────────────────────────────────
+
+@router.get("/tma-login", response_class=HTMLResponse)
+async def tma_login_page(request: Request):
+    return templates.TemplateResponse("tma_login.html", {"request": request, "error": None})
+
+
+@router.post("/tma-login")
+async def tma_login_post(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    next_url = request.query_params.get("next", "/tma-admin")
+
+    # 1) Static admin credentials from settings
+    if username.strip() == settings.ADMIN_USERNAME and password == settings.ADMIN_PASSWORD:
+        request.session["tma_token"] = "admin_ok"
+        request.session["tma_role"] = "admin"
+        return RedirectResponse(url=next_url, status_code=303)
+
+    # 2) Super admin: phone + password_hash from DB
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(User).where(
+                User.phone == username.strip(),
+                User.role == UserRole.SUPER_ADMIN,
+                User.is_active.is_(True),
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user and user.password_hash and user.password_hash == _hash(password):
+            request.session["tma_token"] = "superadmin_ok"
+            request.session["tma_role"] = "super_admin"
+            request.session["tma_user_id"] = user.id
+            return RedirectResponse(url=next_url, status_code=303)
+
+    return templates.TemplateResponse(
+        "tma_login.html",
+        {"request": request, "error": "Foydalanuvchi nomi yoki parol noto'g'ri"},
+        status_code=401,
+    )
+
+
+@router.get("/tma-logout")
+async def tma_logout(request: Request):
+    request.session.pop("tma_token", None)
+    request.session.pop("tma_role", None)
+    request.session.pop("tma_user_id", None)
+    return RedirectResponse(url="/tma-login", status_code=303)
+
+
 @router.get("/tma-admin", response_class=HTMLResponse)
 async def tma_admin_page(request: Request):
     """Lightweight admin dashboard for Telegram Mini App."""
-    return templates.TemplateResponse("tma_admin.html", {"request": request})
+    role = request.session.get("tma_role", "admin")
+    return templates.TemplateResponse("tma_admin.html", {"request": request, "tma_role": role})
 
 
 @router.get("/shop", response_class=HTMLResponse)
@@ -34,24 +96,84 @@ async def tma_shop_page(request: Request):
 
 @router.get("/tma-api/stats")
 async def tma_stats():
-    """Get dashboard statistics."""
+    """Get dashboard statistics with chart data."""
+    from datetime import datetime, timedelta
+    from app.db.models import UserRole
+
     async with async_session_maker() as session:
+        # ── Basic counts ──
         total_orders = (await session.execute(select(func.count(Order.id)))).scalar_one()
         new_orders = (await session.execute(
             select(func.count(Order.id)).where(Order.status == OrderStatus.NEW)
         )).scalar_one()
+        confirmed = (await session.execute(
+            select(func.count(Order.id)).where(Order.status == OrderStatus.CONFIRMED)
+        )).scalar_one()
         in_work = (await session.execute(
             select(func.count(Order.id)).where(Order.status == OrderStatus.IN_WORK)
         )).scalar_one()
+        done = (await session.execute(
+            select(func.count(Order.id)).where(Order.status == OrderStatus.DONE)
+        )).scalar_one()
+        cancelled = (await session.execute(
+            select(func.count(Order.id)).where(Order.status == OrderStatus.CANCELLED)
+        )).scalar_one()
+
         total_users = (await session.execute(
             select(func.count(User.id)).where(User.is_active == True)
         )).scalar_one()
-    
+
+        # ── Revenue ──
+        revenue = (await session.execute(
+            select(func.sum(Order.total_price)).where(Order.status != OrderStatus.CANCELLED)
+        )).scalar_one() or 0
+        advance = (await session.execute(
+            select(func.sum(Order.advance_paid)).where(Order.status != OrderStatus.CANCELLED)
+        )).scalar_one() or 0
+        debt = (await session.execute(
+            select(func.sum(Order.debt)).where(Order.status != OrderStatus.CANCELLED)
+        )).scalar_one() or 0
+
+        # ── Monthly orders (last 6 months) ──
+        months = []
+        now = datetime.utcnow()
+        for i in range(5, -1, -1):
+            start = (now - timedelta(days=30 * i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end = (start + timedelta(days=32)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            label = start.strftime("%b %Y")
+            cnt = (await session.execute(
+                select(func.count(Order.id)).where(
+                    Order.created_at >= start, Order.created_at < end
+                )
+            )).scalar_one()
+            rev = (await session.execute(
+                select(func.coalesce(func.sum(Order.total_price), 0)).where(
+                    Order.created_at >= start, Order.created_at < end,
+                    Order.status != OrderStatus.CANCELLED,
+                )
+            )).scalar_one()
+            months.append({"label": label, "orders": cnt, "revenue": float(rev)})
+
+        # ── User role breakdown ──
+        role_counts = {}
+        for role in UserRole:
+            role_counts[role.value] = (await session.execute(
+                select(func.count(User.id)).where(User.role == role, User.is_active == True)
+            )).scalar_one()
+
     return {
         "total_orders": total_orders,
         "new_orders": new_orders,
+        "confirmed": confirmed,
         "in_work": in_work,
+        "done": done,
+        "cancelled": cancelled,
         "total_users": total_users,
+        "revenue": float(revenue),
+        "advance": float(advance),
+        "debt": float(debt),
+        "months": months,
+        "role_counts": role_counts,
     }
 
 
@@ -123,6 +245,151 @@ async def update_order_status(order_id: int, body: UpdateStatusRequest):
             order.completed_at = datetime.utcnow()
         await session.commit()
     return {"ok": True}
+
+
+@router.get("/tma-api/orders/{order_id}/expenses")
+async def tma_order_expenses(order_id: int):
+    """Get all extra expenses for a given order with creator names."""
+    from app.db.models import Expense, ExpenseType, User
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(Expense, User.full_name)
+            .outerjoin(User, User.id == Expense.created_by)
+            .where(Expense.order_id == order_id)
+            .order_by(Expense.created_at.asc())
+        )
+        rows = result.all()
+        total = sum(float(e.amount) for e, _ in rows)
+        return {
+            "order_id": order_id,
+            "total": total,
+            "count": len(rows),
+            "items": [
+                {
+                    "id": e.id,
+                    "type": e.expense_type.value,
+                    "amount": float(e.amount),
+                    "description": e.description or "—",
+                    "created_at": e.created_at.strftime("%d.%m.%Y %H:%M") if e.created_at else "—",
+                    "created_by_name": name or f"#{e.created_by}",
+                }
+                for e, name in rows
+            ],
+        }
+
+
+# ─────────────────────────────────────────────────────────────
+# CREATE ORDER (Admin / Super-admin from TMA panel)
+# ─────────────────────────────────────────────────────────────
+
+class CreateOrderRequest(BaseModel):
+    client_name: str
+    client_phone: str
+    address: str
+    viloyat_id: Optional[int] = None
+    tuman_id: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    area_m2: Optional[float] = None
+    asphalt_type_id: Optional[int] = None
+    total_price: Optional[float] = None
+    advance_paid: Optional[float] = None
+    usta_wage: Optional[float] = None
+    master_commission: Optional[float] = None
+    work_date: Optional[str] = None  # YYYY-MM-DD
+    notes: Optional[str] = None
+    master_id: Optional[int] = None
+    usta_id: Optional[int] = None
+
+
+@router.post("/tma-api/orders")
+async def create_order_admin(body: CreateOrderRequest, request: Request):
+    """Admin creates a new order from the web panel."""
+    from decimal import Decimal
+    role = request.session.get("tma_role")
+    if role not in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Validate phone
+    phone = (body.client_phone or "").replace("+", "").replace(" ", "").replace("-", "")
+    if not phone.isdigit() or len(phone) < 9:
+        raise HTTPException(status_code=400, detail="Noto'g'ri telefon raqam")
+    if not body.client_name or len(body.client_name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Klient ismini kiriting")
+    if not body.address or len(body.address.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Manzilni kiriting")
+
+    async with async_session_maker() as session:
+        # Generate order number
+        today = datetime.now().strftime("%Y%m%d")
+        cnt_res = await session.execute(
+            select(func.count(Order.id)).where(Order.order_number.like(f"AVT-{today}-%"))
+        )
+        count = cnt_res.scalar_one() + 1
+        order_number = f"AVT-{today}-{count:04d}"
+
+        # Resolve client_id by phone
+        existing = (await session.execute(
+            select(User).where(User.phone == phone, User.role == UserRole.KLIENT)
+        )).scalar_one_or_none()
+        client_id = existing.id if existing else None
+
+        # If no klient match, fall back to current admin user_id (or any user)
+        if client_id is None:
+            admin_uid = request.session.get("tma_user_id")
+            if admin_uid:
+                client_id = admin_uid
+            else:
+                # Fall back to first super_admin in DB
+                fallback = (await session.execute(
+                    select(User).where(User.role == UserRole.SUPER_ADMIN).limit(1)
+                )).scalar_one_or_none()
+                if not fallback:
+                    raise HTTPException(status_code=500, detail="Klient topilmadi")
+                client_id = fallback.id
+
+        # Parse work_date
+        work_dt = None
+        if body.work_date:
+            try:
+                work_dt = datetime.strptime(body.work_date, "%Y-%m-%d")
+            except ValueError:
+                pass
+
+        # Compute debt
+        total = Decimal(str(body.total_price)) if body.total_price else Decimal("0")
+        advance = Decimal(str(body.advance_paid)) if body.advance_paid else Decimal("0")
+        debt = total - advance if total > advance else Decimal("0")
+
+        order = Order(
+            order_number=order_number,
+            client_id=client_id,
+            client_name=body.client_name.strip(),
+            client_phone=phone,
+            address=body.address.strip(),
+            latitude=body.latitude,
+            longitude=body.longitude,
+            viloyat_id=body.viloyat_id,
+            tuman_id=body.tuman_id,
+            asphalt_type_id=body.asphalt_type_id,
+            area_m2=Decimal(str(body.area_m2)) if body.area_m2 else None,
+            total_price=total if total > 0 else None,
+            advance_paid=advance,
+            debt=debt,
+            usta_wage=Decimal(str(body.usta_wage)) if body.usta_wage else None,
+            master_commission=Decimal(str(body.master_commission)) if body.master_commission else None,
+            status=OrderStatus.CONFIRMED if total > 0 else OrderStatus.NEW,
+            work_date=work_dt,
+            notes=body.notes,
+            master_id=body.master_id,
+            usta_id=body.usta_id,
+            discount=Decimal("0"),
+        )
+        session.add(order)
+        await session.commit()
+        await session.refresh(order)
+
+    return {"ok": True, "id": order.id, "number": order.order_number}
 
 
 @router.get("/tma-api/users")
@@ -585,6 +852,227 @@ async def tma_roles():
 
 
 # ─────────────────────────────────────────────────────────────
+# VILOYATLAR / TUMANLAR CRUD
+# ─────────────────────────────────────────────────────────────
+
+class ViloyatRequest(BaseModel):
+    name: str
+
+class TumanRequest(BaseModel):
+    name: str
+    viloyat_id: int
+
+@router.post("/tma-api/viloyatlar")
+async def create_viloyat(body: ViloyatRequest):
+    async with async_session_maker() as session:
+        v = Viloyat(name=body.name.strip())
+        session.add(v)
+        await session.commit()
+        await session.refresh(v)
+    return {"ok": True, "id": v.id, "name": v.name}
+
+@router.patch("/tma-api/viloyatlar/{vid}")
+async def update_viloyat(vid: int, body: ViloyatRequest):
+    async with async_session_maker() as session:
+        v = (await session.execute(select(Viloyat).where(Viloyat.id == vid))).scalar_one_or_none()
+        if not v:
+            raise HTTPException(status_code=404, detail="Viloyat topilmadi")
+        v.name = body.name.strip()
+        await session.commit()
+    return {"ok": True}
+
+@router.delete("/tma-api/viloyatlar/{vid}")
+async def delete_viloyat(vid: int):
+    async with async_session_maker() as session:
+        await session.execute(delete(Viloyat).where(Viloyat.id == vid))
+        await session.commit()
+    return {"ok": True}
+
+@router.post("/tma-api/tumanlar")
+async def create_tuman(body: TumanRequest):
+    async with async_session_maker() as session:
+        t = Tuman(name=body.name.strip(), viloyat_id=body.viloyat_id)
+        session.add(t)
+        await session.commit()
+        await session.refresh(t)
+    return {"ok": True, "id": t.id, "name": t.name}
+
+@router.patch("/tma-api/tumanlar/{tid}")
+async def update_tuman(tid: int, body: TumanRequest):
+    async with async_session_maker() as session:
+        t = (await session.execute(select(Tuman).where(Tuman.id == tid))).scalar_one_or_none()
+        if not t:
+            raise HTTPException(status_code=404, detail="Tuman topilmadi")
+        t.name = body.name.strip()
+        t.viloyat_id = body.viloyat_id
+        await session.commit()
+    return {"ok": True}
+
+@router.delete("/tma-api/tumanlar/{tid}")
+async def delete_tuman(tid: int):
+    async with async_session_maker() as session:
+        await session.execute(delete(Tuman).where(Tuman.id == tid))
+        await session.commit()
+    return {"ok": True}
+
+
+# ─────────────────────────────────────────────────────────────
+# ASFALT KATEGORIYALARI CRUD
+# ─────────────────────────────────────────────────────────────
+
+class AsphaltCategoryRequest(BaseModel):
+    name: str
+
+class AsphaltSubCategoryRequest(BaseModel):
+    name: str
+    category_id: int
+
+class AsphaltMaterialRequest(BaseModel):
+    name: str
+    subcategory_id: int
+    price_per_m2: float
+    cost_price_per_m2: Optional[float] = None
+
+class AsphaltMaterialUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    price_per_m2: Optional[float] = None
+    cost_price_per_m2: Optional[float] = None
+
+@router.get("/tma-api/asphalt-categories")
+async def get_asphalt_categories():
+    async with async_session_maker() as session:
+        result = await session.execute(
+            select(AsphaltCategory)
+            .options(
+                selectinload(AsphaltCategory.subcategories)
+                .selectinload(AsphaltSubCategory.asphalt_types)
+            )
+            .order_by(AsphaltCategory.name)
+        )
+        cats = result.scalars().all()
+    return [
+        {
+            "id": c.id, "name": c.name, "is_active": c.is_active,
+            "subcategories": [
+                {
+                    "id": s.id, "name": s.name, "is_active": s.is_active,
+                    "materials": [
+                        {"id": m.id, "name": m.name,
+                         "price_per_m2": float(m.price_per_m2),
+                         "cost_price_per_m2": float(m.cost_price_per_m2) if m.cost_price_per_m2 else 0,
+                         "is_active": m.is_active}
+                        for m in sorted(s.asphalt_types, key=lambda x: x.name)
+                    ]
+                }
+                for s in sorted(c.subcategories, key=lambda x: x.name)
+            ]
+        }
+        for c in cats
+    ]
+
+@router.post("/tma-api/asphalt-categories")
+async def create_asphalt_category(body: AsphaltCategoryRequest):
+    async with async_session_maker() as session:
+        c = AsphaltCategory(name=body.name.strip())
+        session.add(c)
+        await session.commit()
+        await session.refresh(c)
+    return {"ok": True, "id": c.id}
+
+@router.patch("/tma-api/asphalt-categories/{cid}")
+async def update_asphalt_category(cid: int, body: AsphaltCategoryRequest):
+    async with async_session_maker() as session:
+        c = (await session.execute(select(AsphaltCategory).where(AsphaltCategory.id == cid))).scalar_one_or_none()
+        if not c:
+            raise HTTPException(status_code=404, detail="Topilmadi")
+        c.name = body.name.strip()
+        await session.commit()
+    return {"ok": True}
+
+@router.delete("/tma-api/asphalt-categories/{cid}")
+async def delete_asphalt_category(cid: int):
+    async with async_session_maker() as session:
+        await session.execute(delete(AsphaltCategory).where(AsphaltCategory.id == cid))
+        await session.commit()
+    return {"ok": True}
+
+@router.post("/tma-api/asphalt-subcategories")
+async def create_asphalt_subcategory(body: AsphaltSubCategoryRequest):
+    async with async_session_maker() as session:
+        s = AsphaltSubCategory(name=body.name.strip(), category_id=body.category_id)
+        session.add(s)
+        await session.commit()
+        await session.refresh(s)
+    return {"ok": True, "id": s.id}
+
+@router.patch("/tma-api/asphalt-subcategories/{sid}")
+async def update_asphalt_subcategory(sid: int, body: AsphaltSubCategoryRequest):
+    async with async_session_maker() as session:
+        s = (await session.execute(select(AsphaltSubCategory).where(AsphaltSubCategory.id == sid))).scalar_one_or_none()
+        if not s:
+            raise HTTPException(status_code=404, detail="Topilmadi")
+        s.name = body.name.strip()
+        s.category_id = body.category_id
+        await session.commit()
+    return {"ok": True}
+
+@router.delete("/tma-api/asphalt-subcategories/{sid}")
+async def delete_asphalt_subcategory(sid: int):
+    async with async_session_maker() as session:
+        await session.execute(delete(AsphaltSubCategory).where(AsphaltSubCategory.id == sid))
+        await session.commit()
+    return {"ok": True}
+
+@router.post("/tma-api/asphalt-materials")
+async def create_asphalt_material(body: AsphaltMaterialRequest):
+    from decimal import Decimal
+    async with async_session_maker() as session:
+        m = AsphaltType(
+            name=body.name.strip(),
+            subcategory_id=body.subcategory_id,
+            price_per_m2=Decimal(str(body.price_per_m2)),
+            cost_price_per_m2=Decimal(str(body.cost_price_per_m2 or 0)),
+        )
+        session.add(m)
+        await session.commit()
+        await session.refresh(m)
+    return {"ok": True, "id": m.id}
+
+@router.patch("/tma-api/asphalt-materials/{mid}")
+async def update_asphalt_material(mid: int, body: AsphaltMaterialUpdateRequest):
+    from decimal import Decimal
+    async with async_session_maker() as session:
+        m = (await session.execute(select(AsphaltType).where(AsphaltType.id == mid))).scalar_one_or_none()
+        if not m:
+            raise HTTPException(status_code=404, detail="Topilmadi")
+        if body.name is not None:
+            m.name = body.name.strip()
+        if body.price_per_m2 is not None:
+            m.price_per_m2 = Decimal(str(body.price_per_m2))
+        if body.cost_price_per_m2 is not None:
+            m.cost_price_per_m2 = Decimal(str(body.cost_price_per_m2))
+        await session.commit()
+    return {"ok": True}
+
+@router.patch("/tma-api/asphalt-materials/{mid}/toggle")
+async def toggle_asphalt_material(mid: int):
+    async with async_session_maker() as session:
+        m = (await session.execute(select(AsphaltType).where(AsphaltType.id == mid))).scalar_one_or_none()
+        if not m:
+            raise HTTPException(status_code=404, detail="Topilmadi")
+        m.is_active = not m.is_active
+        await session.commit()
+    return {"ok": True, "is_active": m.is_active}
+
+@router.delete("/tma-api/asphalt-materials/{mid}")
+async def delete_asphalt_material(mid: int):
+    async with async_session_maker() as session:
+        await session.execute(delete(AsphaltType).where(AsphaltType.id == mid))
+        await session.commit()
+    return {"ok": True}
+
+
+# ─────────────────────────────────────────────────────────────
 # HUDUDLAR (Regions) CRUD
 # ─────────────────────────────────────────────────────────────
 
@@ -688,6 +1176,7 @@ async def list_zavodlar():
             "id": z.id,
             "name": z.name,
             "tafsif": z.tafsif or "",
+            "shofer_narxi": float(z.shofer_narxi) if z.shofer_narxi is not None else None,
             "is_active": z.is_active,
             "hududlar": [
                 {"id": h.id, "name": h.name, "viloyat": h.viloyat or "", "tuman": h.tuman or ""}
@@ -726,6 +1215,24 @@ async def update_zavod(zavod_id: int, body: ZavodCreateRequest):
         zavod.tafsif = body.tafsif
         await session.commit()
     return {"ok": True}
+
+
+class ShoferNarxiRequest(BaseModel):
+    shofer_narxi: Optional[float] = None
+
+
+@router.patch("/tma-api/zavodlar/{zavod_id}/shofer-narxi")
+async def set_shofer_narxi(zavod_id: int, body: ShoferNarxiRequest):
+    """Set/update the shofer narxi for a zavod. Called by zavod users or admin."""
+    async with async_session_maker() as session:
+        zavod = (await session.execute(
+            select(Zavod).where(Zavod.id == zavod_id)
+        )).scalar_one_or_none()
+        if not zavod:
+            raise HTTPException(status_code=404, detail="Zavod topilmadi")
+        zavod.shofer_narxi = body.shofer_narxi
+        await session.commit()
+    return {"ok": True, "shofer_narxi": float(body.shofer_narxi) if body.shofer_narxi is not None else None}
 
 
 @router.patch("/tma-api/zavodlar/{zavod_id}/toggle")
@@ -820,3 +1327,26 @@ async def get_bot_info():
     from app.config import settings
     base_url = settings.WEB_URL.rsplit("/", 1)[0]
     return {"shop_url": f"{base_url}/shop", "web_url": settings.WEB_URL}
+
+
+# ─────────────────────────────────────────────────────────────
+# APP SETTINGS (consultation / about company / etc.)
+# ─────────────────────────────────────────────────────────────
+
+@router.get("/tma-api/app-settings")
+async def tma_get_app_settings():
+    """Return all editable app settings, merged with defaults."""
+    from app.services.app_settings_service import get_all_settings
+    return await get_all_settings()
+
+
+class UpdateAppSettingsRequest(BaseModel):
+    settings: Dict[str, str]
+
+
+@router.put("/tma-api/app-settings")
+async def tma_update_app_settings(body: UpdateAppSettingsRequest):
+    """Bulk-upsert app settings."""
+    from app.services.app_settings_service import set_settings
+    await set_settings(body.settings or {})
+    return {"ok": True, "count": len(body.settings or {})}

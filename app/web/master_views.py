@@ -1,6 +1,6 @@
 from sqladmin import ModelView
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 from starlette.requests import Request
 
 from app.db.models import Order, User, UserRole, OrderStatus, Region, AsphaltType
@@ -58,26 +58,6 @@ class MasterOrderAdmin(ModelView, model=Order):
         "material_requests",
     ]
     
-    form_columns = [
-        Order.client_name,
-        Order.client_phone,
-        Order.viloyat_id,
-        Order.tuman_id,
-        Order.region,
-        Order.address,
-        Order.latitude,
-        Order.longitude,
-        Order.area_m2,
-        Order.asphalt_type,
-        Order.total_price,
-        Order.advance_paid,
-        Order.master_commission,
-        Order.usta_wage,
-        Order.work_date,
-        Order.notes,
-        Order.status,
-    ]
-
     column_searchable_list = [Order.order_number, Order.client_name, Order.client_phone, Order.address]
     column_sortable_list = [Order.id, Order.status, Order.total_price, Order.created_at, Order.work_date]
     column_filters = [
@@ -89,7 +69,6 @@ class MasterOrderAdmin(ModelView, model=Order):
         Order.created_at,
     ]
 
-    column_select_related_list = ["viloyat", "tuman_rel", "usta", "asphalt_type", "region"]
     
     column_labels = {
         Order.order_number: "Zakaz №",
@@ -133,66 +112,48 @@ class MasterOrderAdmin(ModelView, model=Order):
             f"#{mr.id} {mr.amount_tonnes}t {mr.status}" for mr in items[:20]
         )
 
-    column_formatters = {
-        Order.viloyat_id: lambda m, a: m.viloyat.name if m.viloyat else "-",
-        Order.tuman_id: lambda m, a: m.tuman_rel.name if m.tuman_rel else "-",
-        Order.usta_id: _fmt_usta,
-    }
+    column_formatters = {}
 
     column_formatters_detail = {
-        Order.viloyat_id: lambda m, a: m.viloyat.name if m.viloyat else "-",
-        Order.tuman_id: lambda m, a: m.tuman_rel.name if m.tuman_rel else "-",
-        Order.usta_id: _fmt_usta,
         "expenses": _fmt_expenses,
         "material_requests": _fmt_materials,
     }
     
-    # Allow Masters to create and edit their own orders
-    can_create = True
-    can_edit = True
+    # Security: Masters can only VIEW their orders. All mutations go through
+    # dedicated custom pages (confirm, status change, usta assign, expenses).
+    can_create = False
+    can_edit = False
     can_delete = False
+    can_export = False
     can_view_details = True
     page_size = 25
-    
-    async def insert_model(self, request: Request, data: dict) -> Order:
-        """Override to set master_id automatically"""
-        user_id = request.session.get('user_id')
-        if user_id:
-            data['master_id'] = user_id
-        
-        # Calculate debt
-        total_price = data.get('total_price', 0)
-        advance_paid = data.get('advance_paid', 0)
-        data['debt'] = total_price - advance_paid
-        
-        return await super().insert_model(request, data)
-    
-    async def update_model(self, request: Request, pk: str, data: dict) -> Order:
-        """Override to recalculate debt"""
-        total_price = data.get('total_price', 0)
-        advance_paid = data.get('advance_paid', 0)
-        if total_price is not None and advance_paid is not None:
-            data['debt'] = total_price - advance_paid
-        
-        return await super().update_model(request, pk, data)
     
     def is_accessible(self, request: Request) -> bool:
         """Check if user is a master"""
         user_role = request.session.get('user_role')
         return user_role == 'master'
     
-    def get_query(self, request: Request):
-        """Filter to show only this master's orders"""
-        query = super().get_query(request)
-        user_id = request.session.get('user_id')
+    def list_query(self, request: Request):
+        """Filter to show only this master's orders, with eager-loaded relationships."""
+        user_id = request.session.get('user_id') or request.session.get('master_user_id')
+        q = (
+            select(Order)
+            .options(
+                selectinload(Order.viloyat),
+                selectinload(Order.tuman_rel),
+                selectinload(Order.usta),
+                selectinload(Order.asphalt_type),
+                selectinload(Order.region),
+            )
+        )
         if user_id:
-            query = query.where(Order.master_id == user_id)
-        return query
-    
-    def get_count_query(self, request: Request):
-        """Filter count to show only this master's orders"""
-        query = super().get_count_query(request)
-        user_id = request.session.get('user_id')
+            q = q.where(Order.master_id == user_id)
+        return q
+
+    def count_query(self, request: Request):
+        """Count only this master's orders."""
+        user_id = request.session.get('user_id') or request.session.get('master_user_id')
+        q = select(func.count(Order.id))
         if user_id:
-            query = query.where(Order.master_id == user_id)
-        return query
+            q = q.where(Order.master_id == user_id)
+        return q
