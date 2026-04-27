@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-GROUP_CHAT_ID = "@EVRO_ASFALT"
+GROUP_CHAT_ID = "-1003980849177"
 
 
 async def notify_new_order(bot, order) -> None:
