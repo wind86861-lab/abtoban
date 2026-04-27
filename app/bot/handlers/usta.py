@@ -296,6 +296,29 @@ async def _notify_zavod_payment(session, order, transfer, usta_user) -> None:
                 except Exception:
                     pass
 
+    admin_text = (
+        f"📣 <b>Usta to'lovni yubordi</b>\n\n"
+        f"📋 Zakaz: {order.order_number}\n"
+        f"👷 Usta: {usta_user.full_name or '—'}\n"
+        f"📍 {order.address or '—'}\n\n"
+        f"💰 Klientdan olingan: {float(transfer.usta_collected):,.0f} so'm\n"
+        f"🔧 Usta haqi: {float(transfer.usta_wage_taken):,.0f} so'm\n"
+        f"🏭 Zavodga yuborilmoqda: <b>{float(transfer.usta_sent):,.0f} so'm</b>\n\n"
+        f"⏳ Zavod tasdiqlashini kutmoqda..."
+    )
+    result = await session.execute(
+        _select(_User).where(
+            _User.role.in_([_UserRole.ADMIN, _UserRole.SUPER_ADMIN]),
+            _User.is_active.is_(True),
+        )
+    )
+    for admin in result.scalars().all():
+        if admin.telegram_id:
+            try:
+                await _bot.send_message(admin.telegram_id, admin_text)
+            except Exception:
+                pass
+
 
 # ── Complete task flow ────────────────────────────────────────────────────────
 
