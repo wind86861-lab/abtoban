@@ -132,6 +132,10 @@ async def usta_payment_start(callback: CallbackQuery, user: User, session, state
     await state.update_data(order_id=order_id, usta_wage=wage, debt=debt)
     await state.set_state(UstaPaymentStates.entering_collected)
 
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    cancel_kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"usta_view_mine:{order_id}")
+    ]])
     await callback.message.edit_text(
         f"💸 <b>Summani tasdiqlash</b>\n\n"
         f"📋 {order.order_number}\n"
@@ -140,7 +144,7 @@ async def usta_payment_start(callback: CallbackQuery, user: User, session, state
         f"📌 Qoldiq (taxminiy): <b>{debt:,.0f} so'm</b>\n\n"
         f"<b>Klientdan qancha pul oldingiz?</b>\n"
         f"<i>Raqamni kiriting (masalan: {int(debt):,}):</i>",
-        reply_markup=get_usta_order_detail_keyboard(order_id),
+        reply_markup=cancel_kb,
     )
     await callback.answer()
 
