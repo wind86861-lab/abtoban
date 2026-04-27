@@ -607,15 +607,24 @@ async def _finalize_zavod_payment(event, session, transfer, received: Decimal, z
     total_expenses = sum(float(e.amount) for e in expenses)
     expenses_detail = ""
     if expenses:
-        lines = [f"  • {EXPENSE_LABELS.get(e.expense_type, e.expense_type)}: {float(e.amount):,.0f}" for e in expenses]
+        lines = [f"    • {EXPENSE_LABELS.get(e.expense_type, e.expense_type)}: {float(e.amount):,.0f}" for e in expenses]
         expenses_detail = "\n" + "\n".join(lines)
+
+    # Material (tan) cost from line items — actual cost price of asphalt
+    material_cost = sum(
+        float(item.cost_price_per_m2 or 0) * float(item.area_m2 or 0)
+        for item in (order.line_items or [])
+    )
 
     total = float(order.total_price or 0)
     advance = float(order.advance_paid or 0)
     usta_haqi = float(transfer.usta_wage_taken)
     master_kom = float(order.master_commission or 0)
+    zavod_yuborilgan = float(transfer.usta_sent)
     zavod_oldi = float(received)
-    foyda = total - usta_haqi - master_kom - total_expenses - zavod_oldi
+
+    # Profit = revenue - labor - commissions - material cost - extra expenses
+    foyda = total - usta_haqi - master_kom - material_cost - total_expenses
 
     master_name = order.master.full_name if order.master else "—"
     usta_name = order.usta.full_name if order.usta else "—"
@@ -623,24 +632,28 @@ async def _finalize_zavod_payment(event, session, transfer, received: Decimal, z
     viloyat = order.viloyat.name if order.viloyat else "—"
 
     admin_text = (
-        f"� <b>To'lov hisob-kitobi yakunlandi</b>\n\n"
+        f"📊 <b>To'lov hisob-kitobi yakunlandi</b>\n\n"
         f"📋 <b>{order.order_number}</b>\n"
-        f"� {order.address or '—'} ({viloyat})\n"
+        f"📍 {order.address or '—'} ({viloyat})\n"
         f"🏗 Asfalt: {asphalt} | {float(order.area_m2 or 0):,.1f} m²\n\n"
         f"👥 <b>Ishtirokchilar:</b>\n"
         f"  👤 Klient: {order.client_name}\n"
         f"  👷 Usta: {usta_name}\n"
         f"  🧑‍💼 Master: {master_name}\n"
         f"  🏭 Zavod: {zavod_user.full_name or '—'}\n\n"
-        f"� <b>Moliyaviy hisobot:</b>\n"
-        f"  �💰 Klient jami: {total:,.0f} so'm\n"
+        f"💵 <b>Klient to'lovi:</b>\n"
+        f"  � Shartnoma: {total:,.0f} so'm\n"
         f"  ✅ Avans: {advance:,.0f} so'm\n"
-        f"  💵 Klientdan olingan: {float(transfer.usta_collected):,.0f} so'm\n\n"
+        f"  � Usta olingan: {float(transfer.usta_collected):,.0f} so'm\n\n"
+        f"💸 <b>Pul oqimi (Zavod):</b>\n"
+        f"  📤 Zavodga yuborilgan: {zavod_yuborilgan:,.0f} so'm\n"
+        f"  📥 Zavod qabul qildi: {zavod_oldi:,.0f} so'm\n\n"
+        f"📉 <b>Harajatlar:</b>\n"
         f"  🔧 Usta haqi: {usta_haqi:,.0f} so'm\n"
         f"  🧑‍💼 Master komissiya: {master_kom:,.0f} so'm\n"
-        f"  🏭 Zavodga ketdi: {zavod_oldi:,.0f} so'm\n"
-        f"  📦 Qo'shimcha harajatlar: {total_expenses:,.0f} so'm{expenses_detail}\n\n"
-        f"  � <b>Umumiy foyda: {foyda:,.0f} so'm</b>"
+        f"  🏭 Material (tan narxi): {material_cost:,.0f} so'm\n"
+        f"  📦 Qo'shimcha: {total_expenses:,.0f} so'm{expenses_detail}\n\n"
+        f"  📈 <b>Umumiy foyda: {foyda:,.0f} so'm</b>"
     )
 
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
