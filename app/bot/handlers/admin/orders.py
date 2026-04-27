@@ -737,7 +737,7 @@ async def admin_close_order(callback: CallbackQuery, user: User, session, lang: 
     order = await order_svc.get_by_id_full(order_id)
     from app.bot.loader import bot as _bot
     from app.bot.utils.group_notify import notify_order_done
-    await notify_order_done(_bot, order)
+    await notify_order_done(_bot, order, session)
     await callback.message.edit_text(
         callback.message.text + "\n\n🔒 <b>Zakaz yopildi!</b>",
     )

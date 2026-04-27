@@ -395,7 +395,7 @@ async def _send_completion_notifications(session, order) -> None:
     from app.services.expense_service import ExpenseService
     from app.services.user_service import UserService
     from app.bot.utils.group_notify import notify_order_done
-    await notify_order_done(bot, order)
+    await notify_order_done(bot, order, session)
 
     # Load expenses
     try:
