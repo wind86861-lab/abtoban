@@ -18,3 +18,8 @@ postgres_data/
 redis_data/
 exports/
 *.xlsx
+
+# Cloudflare tunnel binaries
+cloudflared
+cloudflared-linux-amd64.deb
+cloudflared.log
