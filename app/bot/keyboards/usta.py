@@ -68,9 +68,34 @@ def get_ustas_for_reassignment_keyboard(
     return builder.as_markup()
 
 
-def get_usta_order_detail_keyboard(order_id: int) -> InlineKeyboardMarkup:
+def get_usta_order_detail_keyboard(order_id: int, status: Optional[str] = None) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="📦 Material so'rash", callback_data=f"request_material:{order_id}")
+    if status in ("confirmed", "in_work"):
+        builder.button(text="✅ Ishni tugatish", callback_data=f"usta_complete:{order_id}")
     builder.button(text="⬅️ Orqaga", callback_data="usta_my_orders")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_usta_my_orders_keyboard(orders: List[Order]) -> InlineKeyboardMarkup:
+    """Inline list of usta's own orders \u2014 each row opens that order's detail."""
+    builder = InlineKeyboardBuilder()
+    for o in orders:
+        addr = (o.address or "\u2014").strip()
+        if len(addr) > 35:
+            addr = addr[:32] + "\u2026"
+        builder.button(
+            text=f"\ud83d\udd22 {o.order_number} | {addr}",
+            callback_data=f"usta_view_mine:{o.id}",
+        )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_usta_complete_confirm_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="\u2705 Ha, tugatish", callback_data=f"usta_complete_confirm:{order_id}")
+    builder.button(text="\u274c Bekor qilish", callback_data=f"usta_view_mine:{order_id}")
     builder.adjust(1)
     return builder.as_markup()

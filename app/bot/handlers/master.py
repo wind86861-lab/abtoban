@@ -10,10 +10,13 @@ from app.bot.i18n import t, ALL_BUTTON_TEXTS
 from app.bot.i18n.core import location_link
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu, get_skip_keyboard
 from app.bot.keyboards.order import (
+    get_asphalt_categories_keyboard,
     get_asphalt_keyboard,
+    get_asphalt_subcategories_keyboard,
     get_confirm_summary_keyboard,
+    get_extras_keyboard,
     get_keep_address_keyboard,
-    get_master_confirmed_order_keyboard,
+    get_master_my_order_keyboard,
     get_master_order_detail_keyboard,
     get_order_confirm_keyboard,
     get_orders_list_keyboard,
@@ -23,6 +26,7 @@ from app.bot.keyboards.order import (
     get_viloyatlar_keyboard,
 )
 from app.bot.keyboards.finance import (
+    get_exp_mat_categories_keyboard,
     get_expense_type_keyboard,
     get_master_orders_for_expense_keyboard,
 )
@@ -36,6 +40,7 @@ from app.bot.states.order import MasterConfirmStates, MasterOrderCreateStates
 from app.db.models import ORDER_STATUS_LABELS, OrderStatus, User, UserRole
 from app.services.expense_service import EXPENSE_LABELS, ExpenseService
 from app.services.asphalt_service import AsphaltService
+from app.services.category_service import CategoryService
 from app.services.order_service import OrderService
 from app.services.usta_service import UstaService
 from app.services.user_service import UserService
@@ -78,26 +83,17 @@ async def new_orders(message: Message, session, lang: str) -> None:
 
 
 @router.callback_query(F.data.startswith("master_view_new:"))
-async def view_new_order(callback: CallbackQuery, session, lang: str) -> None:
+async def view_new_order(callback: CallbackQuery, user: User, session, lang: str) -> None:
     order_id = int(callback.data.split(":")[1])
     order_svc = OrderService(session)
     order = await order_svc.get_by_id_full(order_id)
     if not order:
         await callback.answer(t("order_not_found", lang), show_alert=True)
         return
-    asphalt = order.asphalt_type.name if order.asphalt_type else "—"
-    loc = location_link(order.latitude, order.longitude)
-    text = (
-        f"📋 <b>{t('order', lang)}: {order.order_number}</b>\n\n"
-        f"👤 {t('client', lang)}: <b>{order.client_name}</b>\n"
-        f"📱 {t('phone', lang)}: <b>{order.client_phone}</b>\n"
-        f"📍 {t('address', lang)}: <b>{order.address or '—'}</b>\n"
-        f"{loc}"
-        f"📐 {t('area', lang)}: <b>{order.area_m2 or '?'} m²</b>\n"
-        f"🏗 {t('asphalt', lang)}: <b>{asphalt}</b>\n"
-        f"📅 {t('created', lang)}: <b>{order.created_at.strftime('%d.%m.%Y %H:%M')}</b>\n\n"
-        f"<i>{t('press_to_confirm', lang)}</i>"
-    )
+
+    from app.bot.handlers._order_view import format_order_full
+    text = format_order_full(order, user.role, lang)
+    text += f"\n\n<i>{t('press_to_confirm', lang)}</i>"
     await callback.message.edit_text(text, reply_markup=get_master_order_detail_keyboard(order_id))
     await callback.answer()
 
@@ -117,23 +113,49 @@ async def back_to_new_orders(callback: CallbackQuery, session, lang: str) -> Non
 
 
 # ── Master order creation ─────────────────────────────────────────────────────
+# Flow: phone → name → viloyat → tuman → address → location → CREATE order →
+#       transition to MasterConfirmStates for full details (area, asphalt,
+#       extras, sum, advance, date, wage, commission, notes, usta).
 
 @router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_add_order", set())))
 async def master_create_order_start(message: Message, state: FSMContext, lang: str) -> None:
+    from app.bot.keyboards.menus import get_share_contact_keyboard
     await state.set_state(MasterOrderCreateStates.entering_client_phone)
     await message.answer(
         t("master_order_start", lang),
-        reply_markup=get_cancel_keyboard(lang),
+        reply_markup=get_share_contact_keyboard(lang),
     )
 
 
 @router.message(MasterOrderCreateStates.entering_client_phone)
 async def master_order_client_phone(message: Message, state: FSMContext, lang: str) -> None:
-    text = (message.text or "").strip()
-    if text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
+    if message.text and message.text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
         await state.clear()
         await message.answer(t("action_cancelled", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
         return
+
+    # Accept shared contact (gives phone + maybe name)
+    if message.contact:
+        phone = (message.contact.phone_number or "").replace("+", "").replace(" ", "").replace("-", "")
+        contact_name = " ".join(filter(None, [message.contact.first_name, message.contact.last_name])).strip()
+        if not phone or len(phone) < 9:
+            await message.answer(t("invalid_phone", lang))
+            return
+        update = {"client_phone": phone}
+        if contact_name:
+            update["client_name"] = contact_name
+        await state.update_data(**update)
+        # Move to name step (let master confirm/edit name)
+        await state.set_state(MasterOrderCreateStates.entering_client_name)
+        prefill = f"\n\n<i>Avtomatik: {contact_name}</i>" if contact_name else ""
+        await message.answer(
+            t("enter_client_name", lang) + prefill,
+            reply_markup=get_cancel_keyboard(lang),
+        )
+        return
+
+    # Text input fallback
+    text = (message.text or "").strip()
     phone = text.replace("+", "").replace(" ", "").replace("-", "")
     if not phone.isdigit() or len(phone) < 9:
         await message.answer(t("invalid_phone", lang))
@@ -178,10 +200,10 @@ async def master_order_viloyat(callback: CallbackQuery, state: FSMContext, sessi
         user_svc = UserService(session)
         tumanlar = await user_svc.get_tumanlar(viloyat_id)
         if not tumanlar:
-            await state.set_state(MasterOrderCreateStates.entering_street)
+            await state.set_state(MasterOrderCreateStates.entering_address)
             await callback.message.edit_text(t("region_selected", lang))
             await callback.message.answer(
-                t("enter_street", lang),
+                t("master_create_address", lang),
                 reply_markup=get_cancel_keyboard(lang),
             )
         else:
@@ -200,136 +222,98 @@ async def master_order_viloyat(callback: CallbackQuery, state: FSMContext, sessi
 async def master_order_tuman(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     tuman_id = int(callback.data.split(":")[1])
     await state.update_data(tuman_id=tuman_id)
-    await state.set_state(MasterOrderCreateStates.entering_street)
+    await state.set_state(MasterOrderCreateStates.entering_address)
     await callback.message.edit_text(t("region_selected", lang))
-    await callback.answer()
-
-
-@router.message(MasterOrderCreateStates.entering_street)
-async def master_order_street(message: Message, state: FSMContext, lang: str) -> None:
-    text = (message.text or "").strip()
-    if text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
-        await state.clear()
-        await message.answer(t("action_cancelled", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
-        return
-    if len(text) < 3:
-        await message.answer(t("street_too_short", lang))
-        return
-    await state.update_data(street=text)
-    await state.set_state(MasterOrderCreateStates.entering_target)
-    await message.answer(
-        t("enter_target", lang),
+    await callback.message.answer(
+        t("master_create_address", lang),
         reply_markup=get_cancel_keyboard(lang),
-    )
-
-
-@router.message(MasterOrderCreateStates.entering_target)
-async def master_order_target(message: Message, state: FSMContext, lang: str) -> None:
-    text = (message.text or "").strip()
-    if text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
-        await state.clear()
-        await message.answer(t("action_cancelled", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
-        return
-    if len(text) < 3:
-        await message.answer(t("target_too_short", lang))
-        return
-    data = await state.get_data()
-    full_address = f"{data.get('district', '')}, {data.get('street', '')}, {text}"
-    await state.update_data(address=full_address, target=text)
-    await state.set_state(MasterOrderCreateStates.entering_area)
-    await message.answer(
-        t("enter_area", lang),
-        reply_markup=get_cancel_keyboard(lang),
-    )
-
-
-@router.message(MasterOrderCreateStates.entering_area)
-async def master_order_area(message: Message, state: FSMContext, session, lang: str) -> None:
-    text = (message.text or "").strip()
-    if text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
-        await state.clear()
-        await message.answer(t("action_cancelled", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
-        return
-    raw = text.replace(",", ".")
-    try:
-        area = Decimal(raw)
-        if area <= 0:
-            raise ValueError
-    except (InvalidOperation, ValueError):
-        await message.answer(t("invalid_area", lang))
-        return
-    await state.update_data(area_m2=str(area))
-    asphalt_svc = AsphaltService(session)
-    asphalt_types = await asphalt_svc.get_all_active()
-    if not asphalt_types:
-        await message.answer(t("no_asphalt_types", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
-        await state.clear()
-        return
-    await state.set_state(MasterOrderCreateStates.selecting_asphalt)
-    await message.answer(t("select_asphalt", lang), reply_markup=get_asphalt_keyboard(asphalt_types))
-
-
-@router.callback_query(MasterOrderCreateStates.selecting_asphalt, F.data.startswith("asphalt:"))
-async def master_order_asphalt(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
-    asphalt_id = int(callback.data.split(":")[1])
-    asphalt_svc = AsphaltService(session)
-    asphalt = await asphalt_svc.get_by_id(asphalt_id)
-    if not asphalt:
-        await callback.answer(t("asphalt_not_found", lang), show_alert=True)
-        return
-    data = await state.get_data()
-    area = Decimal(data["area_m2"])
-    estimated = area * asphalt.price_per_m2
-    await state.update_data(asphalt_type_id=asphalt_id, asphalt_name=asphalt.name, estimated_price=str(estimated))
-    await state.set_state(MasterOrderCreateStates.confirming)
-    await callback.message.edit_text(
-        t("order_summary", lang,
-          district=data.get('district', '—'),
-          street=data.get('street', '—'),
-          target=data.get('target', '—'),
-          location_link=location_link(data.get('latitude'), data.get('longitude')),
-          area=area,
-          asphalt=asphalt.name,
-          price=f"{float(estimated):,.0f}"),
-        reply_markup=get_order_confirm_keyboard(),
     )
     await callback.answer()
 
 
-@router.callback_query(MasterOrderCreateStates.confirming, F.data == "confirm_order")
-async def master_order_submit(callback: CallbackQuery, state: FSMContext, user: User, session, lang: str) -> None:
+@router.message(MasterOrderCreateStates.entering_address)
+async def master_order_address(message: Message, state: FSMContext, lang: str) -> None:
+    from app.bot.keyboards.menus import get_share_location_keyboard
+    text = (message.text or "").strip()
+    if text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
+        await state.clear()
+        await message.answer(t("action_cancelled", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
+        return
+    if len(text) < 5:
+        await message.answer(t("address_too_short", lang))
+        return
+    await state.update_data(address=text)
+    await state.set_state(MasterOrderCreateStates.sharing_location)
+    await message.answer(
+        t("master_create_location", lang),
+        reply_markup=get_share_location_keyboard(lang),
+    )
+
+
+@router.message(MasterOrderCreateStates.sharing_location, F.location)
+async def master_order_location(message: Message, state: FSMContext, user: User, session, lang: str) -> None:
+    await state.update_data(
+        latitude=message.location.latitude,
+        longitude=message.location.longitude,
+    )
+    await _master_create_finalize(message, state, user, session, lang)
+
+
+@router.message(MasterOrderCreateStates.sharing_location)
+async def master_order_location_text(message: Message, state: FSMContext, user: User, session, lang: str) -> None:
+    text = (message.text or "").strip()
+    if text in ALL_BUTTON_TEXTS.get("btn_cancel", set()):
+        await state.clear()
+        await message.answer(t("action_cancelled", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
+        return
+    if text in ALL_BUTTON_TEXTS.get("btn_skip", set()):
+        await _master_create_finalize(message, state, user, session, lang)
+        return
+    # Anything else: prompt again
+    from app.bot.keyboards.menus import get_share_location_keyboard
+    await message.answer(
+        t("master_create_location", lang),
+        reply_markup=get_share_location_keyboard(lang),
+    )
+
+
+async def _master_create_finalize(message: Message, state: FSMContext, user: User, session, lang: str) -> None:
+    """Create order skeleton, then transition into MasterConfirmStates for full details."""
     data = await state.get_data()
-    await state.clear()
     order_svc = OrderService(session)
     order = await order_svc.create_by_master(
         master_id=user.id,
-        client_name=data["client_name"],
-        client_phone=data["client_phone"],
-        address=data["address"],
-        area_m2=Decimal(data["area_m2"]),
-        region_id=data.get("region_id"),
-        asphalt_type_id=data.get("asphalt_type_id"),
+        client_name=data.get("client_name", ""),
+        client_phone=data.get("client_phone", ""),
+        address=data.get("address", ""),
         viloyat_id=data.get("viloyat_id"),
         tuman_id=data.get("tuman_id"),
+        latitude=data.get("latitude"),
+        longitude=data.get("longitude"),
     )
-    await callback.message.edit_text(
-        t("master_order_created", lang,
+    await session.commit()
+
+    # Show skeleton confirmation
+    await message.answer(
+        t("master_create_done", lang,
           number=order.order_number,
-          name=data['client_name'],
-          address=data['address'],
-          location_link=location_link(data.get('latitude'), data.get('longitude')),
-          area=data['area_m2']),
+          name=data.get("client_name", "—"),
+          phone=data.get("client_phone", "—"),
+          address=data.get("address", "—")),
     )
-    await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
-    await callback.answer()
 
-
-@router.callback_query(MasterOrderCreateStates.confirming, F.data == "cancel_order")
-async def master_order_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    # Transition to confirm flow on the new order
     await state.clear()
-    await callback.message.edit_text(t("order_cancelled", lang))
-    await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.MASTER, lang))
-    await callback.answer()
+    await state.update_data(
+        order_id=order.id,
+        existing_address=order.address or "",
+        order_number=order.order_number,
+    )
+    await state.set_state(MasterConfirmStates.entering_area)
+    await message.answer(
+        t("confirm_step_area", lang, number=order.order_number),
+        reply_markup=get_cancel_keyboard(lang),
+    )
 
 
 # ── My (confirmed) orders ─────────────────────────────────────────────────────
@@ -348,32 +332,18 @@ async def my_orders(message: Message, user: User, session, lang: str) -> None:
 
 
 @router.callback_query(F.data.startswith("master_view_mine:"))
-async def view_my_order(callback: CallbackQuery, session, lang: str) -> None:
+async def view_my_order(callback: CallbackQuery, user: User, session, lang: str) -> None:
     order_id = int(callback.data.split(":")[1])
     order_svc = OrderService(session)
     order = await order_svc.get_by_id_full(order_id)
     if not order:
         await callback.answer(t("order_not_found", lang), show_alert=True)
         return
-    status_label = ORDER_STATUS_LABELS.get(order.status, order.status.value)
-    asphalt = order.asphalt_type.name if order.asphalt_type else "—"
-    usta_name = order.usta.full_name if order.usta else t("not_assigned", lang)
-    loc = location_link(order.latitude, order.longitude)
-    text = (
-        f"📋 <b>{t('order', lang)}: {order.order_number}</b>\n\n"
-        f"👤 {t('client', lang)}: <b>{order.client_name}</b> | {order.client_phone}\n"
-        f"📍 {t('address', lang)}: <b>{order.address or '—'}</b>\n"
-        f"{loc}"
-        f"📐 {t('area', lang)}: <b>{order.area_m2 or '?'} m²</b>\n"
-        f"🏗 {t('asphalt', lang)}: <b>{asphalt}</b>\n"
-        f"💰 {t('total', lang)}: <b>{float(order.total_price):,.0f}</b>\n"
-        f"💵 {t('advance', lang)}: <b>{float(order.advance_paid):,.0f}</b>\n"
-        f"💳 {t('debt', lang)}: <b>{float(order.debt):,.0f}</b>\n"
-        f"👷 {t('usta', lang)}: <b>{usta_name}</b>\n"
-        f"📅 {t('status', lang)}: <b>{status_label}</b>"
-    )
+
+    from app.bot.handlers._order_view import format_order_full
+    text = format_order_full(order, user.role, lang)
     await callback.message.edit_text(
-        text, reply_markup=get_master_confirmed_order_keyboard(order_id)
+        text, reply_markup=get_master_my_order_keyboard(order_id, order.status.value)
     )
     await callback.answer()
 
@@ -421,17 +391,294 @@ async def start_confirm_fsm(callback: CallbackQuery, state: FSMContext, session,
 
 
 @router.message(MasterConfirmStates.entering_area)
-async def confirm_area(message: Message, state: FSMContext, lang: str) -> None:
+async def confirm_area(message: Message, state: FSMContext, session, lang: str) -> None:
     val = _parse_decimal(message.text or "")
     if val is None or val <= 0:
         await message.answer(t("invalid_area", lang))
         return
     await state.update_data(area_m2=str(val))
-    await state.set_state(MasterConfirmStates.entering_sum)
+    # Go to main asphalt category selection (use light query for speed)
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_categories_light()
+    if not categories:
+        await message.answer("❌ Kategoriyalar mavjud emas. Admin bilan bog'laning.")
+        return
+    await state.set_state(MasterConfirmStates.selecting_main_category)
     await message.answer(
-        t("confirm_step_sum", lang),
-        reply_markup=get_cancel_keyboard(lang),
+        t("confirm_step_main_cat", lang),
+        reply_markup=get_asphalt_categories_keyboard(categories),
     )
+
+
+# ─── Main asphalt selection handlers ───
+@router.callback_query(MasterConfirmStates.selecting_main_category, F.data.startswith("asfcat:"))
+async def confirm_main_cat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    cat_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    subcats = await cat_svc.get_subcategories_light(cat_id)
+    await state.update_data(main_cat_id=cat_id)
+    await state.set_state(MasterConfirmStates.selecting_main_subcategory)
+    await callback.message.edit_text(
+        t("confirm_step_main_subcat", lang),
+        reply_markup=get_asphalt_subcategories_keyboard(subcats, cat_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_main_subcategory, F.data.startswith("asfsubcat:"))
+async def confirm_main_subcat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    sub_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    materials = await cat_svc.get_materials_by_subcategory(sub_id)
+    if not materials:
+        await callback.answer("❌ Materiallar mavjud emas", show_alert=True)
+        return
+    await state.update_data(main_sub_id=sub_id)
+    await state.set_state(MasterConfirmStates.selecting_main_material)
+    await callback.message.edit_text(
+        t("confirm_step_main_mat", lang),
+        reply_markup=get_asphalt_keyboard(materials, subcat_id=sub_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_main_material, F.data.startswith("asfsubcat_back:"))
+async def confirm_main_back_to_subcat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    """Go back from material to subcategory selection for main asphalt."""
+    data = await state.get_data()
+    cat_id = data.get("main_cat_id")
+    if not cat_id:
+        await callback.answer("❌ Xatolik", show_alert=True)
+        return
+    cat_svc = CategoryService(session)
+    subcats = await cat_svc.get_subcategories_light(cat_id)
+    await state.set_state(MasterConfirmStates.selecting_main_subcategory)
+    await callback.message.edit_text(
+        t("confirm_step_main_subcat", lang),
+        reply_markup=get_asphalt_subcategories_keyboard(subcats, cat_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_main_subcategory, F.data.startswith("asfcat_back:"))
+async def confirm_main_back_to_cat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    """Go back from subcategory to category selection for main asphalt."""
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_categories_light()
+    await state.set_state(MasterConfirmStates.selecting_main_category)
+    await callback.message.edit_text(
+        t("confirm_step_main_cat", lang),
+        reply_markup=get_asphalt_categories_keyboard(categories),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_main_material, F.data.startswith("asphalt:"))
+async def confirm_main_material(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    mat_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    material = await cat_svc.get_material_by_id(mat_id)
+    if not material:
+        await callback.answer(t("asphalt_not_found", lang), show_alert=True)
+        return
+
+    data = await state.get_data()
+    area = Decimal(data["area_m2"])
+    subtotal = area * material.price_per_m2
+
+    # Store main asphalt info
+    await state.update_data(
+        main_asphalt_id=mat_id,
+        main_asphalt_name=material.name,
+        main_asphalt_price=str(material.price_per_m2),
+        main_asphalt_cost=str(material.cost_price_per_m2 or 0),
+        main_subtotal=str(subtotal),
+    )
+    # Initialize extras list
+    await state.update_data(extras=[], extras_total="0")
+
+    await state.set_state(MasterConfirmStates.adding_extras)
+    await _show_extras_step(callback.message, state, lang, edit=True)
+    await callback.answer()
+
+
+async def _show_extras_step(message, state: FSMContext, lang: str, edit: bool = False) -> None:
+    data = await state.get_data()
+    area = Decimal(data["area_m2"])
+    main_name = data.get("main_asphalt_name", "—")
+    main_sub = float(data.get("main_subtotal", 0))
+    extras = data.get("extras", [])
+    extras_total = sum(float(e.get("subtotal", 0)) for e in extras)
+    calc_total = main_sub + extras_total
+
+    extras_text = ""
+    for i, e in enumerate(extras, 1):
+        extras_text += f"➕ {i}. {e['name']}: {e.get('area_m2', area)} m² × {e['price_per_m2']:,.0f} = {float(e['subtotal']):,.0f} so'm\n"
+
+    text = t("confirm_step_extras", lang,
+             area=area,
+             main_name=main_name,
+             main_sub=f"{main_sub:,.0f}",
+             extras_text=extras_text,
+             calc_total=f"{calc_total:,.0f}")
+
+    if edit:
+        await message.edit_text(text, reply_markup=get_extras_keyboard())
+    else:
+        await message.answer(text, reply_markup=get_extras_keyboard())
+
+
+# ─── Extra services handlers ───
+@router.callback_query(MasterConfirmStates.adding_extras, F.data == "add_extra_service")
+async def add_extra_service(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    data = await state.get_data()
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_categories_light()
+    await state.set_state(MasterConfirmStates.selecting_extra_category)
+    await callback.message.edit_text(
+        t("confirm_step_extra_cat", lang, area=data.get("area_m2", "—")),
+        reply_markup=get_asphalt_categories_keyboard(categories),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.adding_extras, F.data == "extras_done")
+async def extras_done(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    data = await state.get_data()
+    extras = data.get("extras", [])
+    extras_total = sum(float(e.get("subtotal", 0)) for e in extras)
+    main_sub = float(data.get("main_subtotal", 0))
+    calc_total = main_sub + extras_total
+
+    await state.set_state(MasterConfirmStates.entering_sum)
+    await callback.message.edit_text(
+        t("confirm_step_sum", lang, calc_total=f"{calc_total:,.0f}"),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_extra_category, F.data.startswith("asfcat:"))
+async def confirm_extra_cat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    cat_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    subcats = await cat_svc.get_subcategories_light(cat_id)
+    await state.update_data(extra_cat_id=cat_id)
+    await state.set_state(MasterConfirmStates.selecting_extra_subcategory)
+    await callback.message.edit_text(
+        t("confirm_step_extra_subcat", lang),
+        reply_markup=get_asphalt_subcategories_keyboard(subcats, cat_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_extra_subcategory, F.data.startswith("asfsubcat:"))
+async def confirm_extra_subcat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    sub_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    materials = await cat_svc.get_materials_by_subcategory(sub_id)
+    if not materials:
+        await callback.answer("❌ Materiallar mavjud emas", show_alert=True)
+        return
+    await state.update_data(extra_sub_id=sub_id)
+    await state.set_state(MasterConfirmStates.selecting_extra_material)
+    await callback.message.edit_text(
+        t("confirm_step_extra_mat", lang),
+        reply_markup=get_asphalt_keyboard(materials, subcat_id=sub_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_extra_material, F.data.startswith("asfsubcat_back:"))
+async def confirm_extra_back_to_subcat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    """Go back from material to subcategory for extra services."""
+    data = await state.get_data()
+    cat_id = data.get("extra_cat_id")
+    if not cat_id:
+        await callback.answer("❌ Xatolik", show_alert=True)
+        return
+    cat_svc = CategoryService(session)
+    subcats = await cat_svc.get_subcategories_light(cat_id)
+    await state.set_state(MasterConfirmStates.selecting_extra_subcategory)
+    await callback.message.edit_text(
+        t("confirm_step_extra_subcat", lang),
+        reply_markup=get_asphalt_subcategories_keyboard(subcats, cat_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_extra_subcategory, F.data.startswith("asfcat_back:"))
+async def confirm_extra_back_to_cat(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    """Go back from extra subcategory to category selection."""
+    data = await state.get_data()
+    cat_svc = CategoryService(session)
+    categories = await cat_svc.get_categories_light()
+    await state.set_state(MasterConfirmStates.selecting_extra_category)
+    await callback.message.edit_text(
+        t("confirm_step_extra_cat", lang, area=data.get("area_m2", "—")),
+        reply_markup=get_asphalt_categories_keyboard(categories),
+    )
+    await callback.answer()
+
+
+@router.callback_query(MasterConfirmStates.selecting_extra_material, F.data.startswith("asphalt:"))
+async def confirm_extra_material(callback: CallbackQuery, state: FSMContext, session, lang: str) -> None:
+    mat_id = int(callback.data.split(":")[1])
+    cat_svc = CategoryService(session)
+    material = await cat_svc.get_material_by_id(mat_id)
+    if not material:
+        await callback.answer(t("asphalt_not_found", lang), show_alert=True)
+        return
+
+    data = await state.get_data()
+    # Store pending extra and ask for area
+    await state.update_data(
+        pending_extra_id=mat_id,
+        pending_extra_name=material.name,
+        pending_extra_price=str(material.price_per_m2),
+        pending_extra_cost=str(material.cost_price_per_m2 or 0),
+    )
+
+    await state.set_state(MasterConfirmStates.entering_extra_area)
+    await callback.message.edit_text(
+        t("confirm_step_extra_area", lang),
+    )
+    await callback.answer()
+
+
+@router.message(MasterConfirmStates.entering_extra_area)
+async def confirm_extra_area(message: Message, state: FSMContext, lang: str) -> None:
+    val = _parse_decimal(message.text or "")
+    if val is None or val <= 0:
+        await message.answer(t("invalid_area", lang))
+        return
+
+    data = await state.get_data()
+    area = val
+    price = float(data.get("pending_extra_price", 0))
+    subtotal = float(area) * price
+
+    # Add to extras
+    extras = data.get("extras", [])
+    extras.append({
+        "asphalt_type_id": data.get("pending_extra_id"),
+        "name": data.get("pending_extra_name"),
+        "price_per_m2": price,
+        "cost_price_per_m2": float(data.get("pending_extra_cost", 0)),
+        "area_m2": float(area),
+        "subtotal": subtotal,
+    })
+    await state.update_data(extras=extras)
+
+    # Clear pending extra
+    await state.update_data(
+        pending_extra_id=None,
+        pending_extra_name=None,
+        pending_extra_price=None,
+        pending_extra_cost=None,
+    )
+
+    await state.set_state(MasterConfirmStates.adding_extras)
+    await _show_extras_step(message, state, lang, edit=False)
 
 
 @router.message(MasterConfirmStates.entering_sum)
@@ -574,10 +821,23 @@ async def _show_confirm_summary(message, state: FSMContext, lang: str) -> None:
     debt = max(Decimal("0"), Decimal(data["total_price"]) - Decimal(data["advance_paid"]))
     usta_name = data.get("selected_usta_name") or "—"
 
+    # Build line items text
+    extras = data.get("extras", [])
+    extras_total = sum(float(e.get("subtotal", 0)) for e in extras)
+    main_sub = float(data.get("main_subtotal", 0))
+    calc_total = main_sub + extras_total
+    main_area = float(data.get('area_m2', 0))
+
+    line_items_text = f"🏗 {data.get('main_asphalt_name', '—')}: {main_area:,.0f} m² = {main_sub:,.0f} so'm\n"
+    for i, e in enumerate(extras, 1):
+        line_items_text += f"➕ {i}. {e['name']}: {e.get('area_m2', main_area):,.0f} m² × {e['price_per_m2']:,.0f} = {float(e['subtotal']):,.0f} so'm\n"
+
     await message.answer(
         t("confirm_summary", lang,
           number=data['order_number'],
           area=data['area_m2'],
+          line_items_text=line_items_text,
+          calc_total=f"{calc_total:,.0f}",
           total=f"{float(Decimal(data['total_price'])):,.0f}",
           advance=f"{float(Decimal(data['advance_paid'])):,.0f}",
           debt=f"{float(debt):,.0f}",
@@ -595,6 +855,34 @@ async def submit_confirmation(callback: CallbackQuery, state: FSMContext, user: 
     data = await state.get_data()
     await state.clear()
 
+    # Build line items for DB
+    extras = data.get("extras", [])
+    extras_total = sum(float(e.get("subtotal", 0)) for e in extras)
+    main_sub = float(data.get("main_subtotal", 0))
+    calc_total = main_sub + extras_total
+
+    line_items = []
+    # Main asphalt
+    if data.get("main_asphalt_id"):
+        line_items.append({
+            "asphalt_type_id": int(data["main_asphalt_id"]),
+            "description": data.get("main_asphalt_name", ""),
+            "area_m2": float(data["area_m2"]),
+            "price_per_m2": float(data.get("main_asphalt_price", 0)),
+            "cost_price_per_m2": float(data.get("main_asphalt_cost", 0)),
+            "is_main": True,
+        })
+    # Extras (use individual area for each extra)
+    for e in extras:
+        line_items.append({
+            "asphalt_type_id": e["asphalt_type_id"],
+            "description": e["name"],
+            "area_m2": e.get("area_m2", float(data["area_m2"])),
+            "price_per_m2": e["price_per_m2"],
+            "cost_price_per_m2": e["cost_price_per_m2"],
+            "is_main": False,
+        })
+
     order_svc = OrderService(session)
     order = await order_svc.confirm(
         order_id=data["order_id"],
@@ -607,6 +895,8 @@ async def submit_confirmation(callback: CallbackQuery, state: FSMContext, user: 
         usta_wage=Decimal(data["usta_wage"]),
         master_commission=Decimal(data["master_commission"]),
         notes=data.get("notes"),
+        line_items=line_items,
+        calculated_total=Decimal(str(calc_total)),
     )
 
     if not order:
@@ -739,8 +1029,16 @@ async def master_set_status(callback: CallbackQuery, user: User, session, lang: 
             f"📅 {t('work_date', lang)}: {work_date}\n"
             f"👷 {t('usta', lang)}: {usta_name}\n"
             f"📊 {t('status', lang)}: {status_label}",
-            reply_markup=get_master_order_detail_keyboard(order),
+            reply_markup=get_master_my_order_keyboard(order.id, new_status.value),
         )
+
+        # On completion, dispatch comprehensive notifications to admins, master, klient
+        if new_status == OrderStatus.DONE:
+            try:
+                from app.bot.handlers.usta import _send_completion_notifications
+                await _send_completion_notifications(session, order)
+            except Exception:
+                pass
 
 
 # ── Usta tayinlash ────────────────────────────────────────────────────────────
@@ -972,25 +1270,11 @@ async def back_to_order_detail(callback: CallbackQuery, user: User, session, lan
         await callback.message.edit_text(t("order_not_found", lang))
         await callback.answer()
         return
-    status_label = ORDER_STATUS_LABELS.get(order.status, order.status.value)
-    asphalt = order.asphalt_type.name if order.asphalt_type else "—"
-    usta_name = order.usta.full_name if order.usta else t("not_assigned", lang)
-    loc = location_link(order.latitude, order.longitude)
-    text = (
-        f"📋 <b>{t('order', lang)}: {order.order_number}</b>\n\n"
-        f"👤 {t('client', lang)}: <b>{order.client_name}</b> | {order.client_phone}\n"
-        f"📍 {t('address', lang)}: <b>{order.address or '—'}</b>\n"
-        f"{loc}"
-        f"📐 {t('area', lang)}: <b>{order.area_m2 or '?'} m²</b>\n"
-        f"🏗 {t('asphalt', lang)}: <b>{asphalt}</b>\n"
-        f"💰 {t('total', lang)}: <b>{float(order.total_price):,.0f}</b>\n"
-        f"💵 {t('advance', lang)}: <b>{float(order.advance_paid):,.0f}</b>\n"
-        f"💳 {t('debt', lang)}: <b>{float(order.debt):,.0f}</b>\n"
-        f"👷 {t('usta', lang)}: <b>{usta_name}</b>\n"
-        f"📅 {t('status', lang)}: <b>{status_label}</b>"
-    )
+
+    from app.bot.handlers._order_view import format_order_full
+    text = format_order_full(order, user.role, lang)
     await callback.message.edit_text(
-        text, reply_markup=get_master_confirmed_order_keyboard(order_id)
+        text, reply_markup=get_master_my_order_keyboard(order_id, order.status.value)
     )
     await callback.answer()
 
@@ -1013,23 +1297,40 @@ async def expense_start(message: Message, user: User, session, lang: str) -> Non
 
 @router.callback_query(F.data.startswith("expense_pick_order:"))
 async def expense_pick_order(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    from app.db.models import ExpenseType
     order_id = int(callback.data.split(":")[1])
-    await state.update_data(order_id=order_id)
-    await state.set_state(ExpenseAddStates.selecting_type)
-    await callback.message.edit_text(
-        t("expense_select_type", lang),
-        reply_markup=get_expense_type_keyboard(),
-    )
-    await callback.answer()
-
-
-@router.callback_query(ExpenseAddStates.selecting_type, F.data.startswith("expense_type:"))
-async def expense_pick_type(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    exp_type = callback.data.split(":")[1]
-    await state.update_data(expense_type=exp_type)
+    # Simplified flow: no type/category selection — always EXTRA,
+    # ask amount first, then require a description.
+    await state.update_data(order_id=order_id, expense_type=ExpenseType.EXTRA.value)
     await state.set_state(ExpenseAddStates.entering_amount)
     await callback.message.edit_text(t("expense_enter_amount", lang))
     await callback.answer()
+
+
+@router.message(ExpenseAddStates.entering_mat_volume)
+async def master_expense_mat_volume(message: Message, state: FSMContext, lang: str) -> None:
+    raw = (message.text or "").strip().replace(",", ".").replace(" ", "")
+    try:
+        volume = Decimal(raw)
+        if volume <= 0:
+            raise ValueError
+    except (InvalidOperation, ValueError):
+        await message.answer(t("expense_mat_invalid_volume", lang))
+        return
+    data = await state.get_data()
+    price_per_m2 = Decimal(str(data.get("exp_mat_price_per_m2", "0")))
+    amount = price_per_m2 * volume
+    type_name = data.get("exp_mat_type_name", "—")
+    await state.update_data(amount=str(amount), exp_mat_volume=str(volume))
+    await state.set_state(ExpenseAddStates.entering_description)
+    await message.answer(
+        t("expense_mat_auto_amount", lang,
+          name=type_name,
+          volume=volume,
+          price=f"{float(price_per_m2):,.0f}",
+          amount=f"{float(amount):,.0f}"),
+        reply_markup=get_cancel_keyboard(lang),
+    )
 
 
 @router.message(ExpenseAddStates.entering_amount)
@@ -1054,8 +1355,12 @@ async def expense_amount(message: Message, state: FSMContext, lang: str) -> None
 async def expense_description(
     message: Message, state: FSMContext, user: User, session, lang: str
 ) -> None:
-    text = message.text or ""
-    description = None if text.startswith("⏩") else text.strip() or None
+    text = (message.text or "").strip()
+    # Description is required — reject empty or skip.
+    if not text or text.startswith("⏩"):
+        await message.answer(t("expense_desc_required", lang))
+        return
+    description = text
     data = await state.get_data()
     await state.clear()
 
