@@ -256,8 +256,12 @@ async def submit_order(callback: CallbackQuery, state: FSMContext, user: User, s
         tuman_id=data.get("tuman_id"),
     )
 
-    # Notify all masters
+    # Notify group
     from app.bot.loader import bot
+    from app.bot.utils.group_notify import notify_new_order
+    await notify_new_order(bot, order)
+
+    # Notify all masters
     from app.bot.i18n import get_lang as _gl
     user_svc = UserService(session)
     masters = await user_svc.get_all(role=UserRole.MASTER)

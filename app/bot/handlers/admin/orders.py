@@ -596,8 +596,12 @@ async def admin_order_submit(callback: CallbackQuery, state: FSMContext, user: U
         tuman_id=data.get("tuman_id"),
     )
 
-    # Notify masters
+    # Notify group
     from app.bot.loader import bot
+    from app.bot.utils.group_notify import notify_new_order
+    await notify_new_order(bot, order)
+
+    # Notify masters
     user_svc = UserService(session)
     masters = await user_svc.get_all(role=UserRole.MASTER)
     notify_text = (
@@ -730,6 +734,10 @@ async def admin_close_order(callback: CallbackQuery, user: User, session, lang: 
         await callback.answer("✅ Zakaz allaqachon yopilgan.", show_alert=True)
         return
     await order_svc.update_status(order_id, OrderStatus.DONE, user.id)
+    order = await order_svc.get_by_id_full(order_id)
+    from app.bot.loader import bot as _bot
+    from app.bot.utils.group_notify import notify_order_done
+    await notify_order_done(_bot, order)
     await callback.message.edit_text(
         callback.message.text + "\n\n🔒 <b>Zakaz yopildi!</b>",
     )
