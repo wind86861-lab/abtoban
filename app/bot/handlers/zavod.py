@@ -16,8 +16,11 @@ from app.bot.keyboards.finance import (
 )
 from app.bot.keyboards.menus import get_cancel_keyboard, get_main_menu
 from app.bot.states.finance import ZavodPriceStates, ZavodShoferNarxiStates
+from app.bot.states.payment import ZavodPaymentStates
 from app.db.models import MaterialRequest, User, UserRole
 from app.services.material_service import MaterialService
+from app.services.order_service import OrderService
+from app.services.payment_transfer_service import PaymentTransferService
 from app.services.user_service import UserService
 
 router = Router()
@@ -430,3 +433,157 @@ async def shofer_narxi_cancel(callback: CallbackQuery, state: FSMContext, lang: 
     await callback.message.edit_text(t("shofer_narxi_cancelled", lang))
     await callback.message.answer(t("main_menu", lang), reply_markup=get_main_menu(UserRole.ZAVOD, lang))
     await callback.answer()
+
+
+# ── Payment confirmation flow ───────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("zavod_confirm_payment:"))
+async def zavod_confirm_payment_start(
+    callback: CallbackQuery, user: User, session, state: FSMContext, lang: str
+) -> None:
+    transfer_id = int(callback.data.split(":")[1])
+    payment_svc = PaymentTransferService(session)
+    transfer = await payment_svc.get_by_id(transfer_id)
+
+    if not transfer:
+        await callback.answer("To'lov topilmadi", show_alert=True)
+        return
+    if transfer.status == "zavod_confirmed":
+        await callback.answer("✅ Allaqachon tasdiqlangan", show_alert=True)
+        return
+
+    await state.update_data(transfer_id=transfer_id)
+    await state.set_state(ZavodPaymentStates.entering_received)
+
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text=f"✅ To'liq qabul ({float(transfer.usta_sent):,.0f} so'm)",
+            callback_data=f"zavod_payment_full:{transfer_id}",
+        )
+    ]])
+
+    await callback.message.edit_text(
+        f"💸 <b>Shofyordan qabul qilingan summani tasdiqlang</b>\n\n"
+        f"🏭 Usta yuborgan: <b>{float(transfer.usta_sent):,.0f} so'm</b>\n\n"
+        f"Nechta pul qabul qildingiz?\n"
+        f"<i>To'liq summani tasdiqlash uchun pastdagi tugmani bosing,\n"
+        f"yoki boshqa miqdor kiriting:</i>",
+        reply_markup=kb,
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("zavod_payment_full:"))
+async def zavod_payment_full(
+    callback: CallbackQuery, user: User, session, state: FSMContext, lang: str
+) -> None:
+    transfer_id = int(callback.data.split(":")[1])
+    payment_svc = PaymentTransferService(session)
+    transfer = await payment_svc.get_by_id(transfer_id)
+    if not transfer:
+        await callback.answer("Topilmadi", show_alert=True)
+        return
+
+    received = transfer.usta_sent
+    await _finalize_zavod_payment(callback, session, transfer, received, user)
+    await state.clear()
+
+
+@router.message(ZavodPaymentStates.entering_received)
+async def zavod_payment_received(
+    message: Message, user: User, session, state: FSMContext, lang: str
+) -> None:
+    raw = message.text.strip().replace(",", "").replace(" ", "").replace("_", "")
+    try:
+        received = Decimal(raw)
+        if received <= 0:
+            raise ValueError
+    except (InvalidOperation, ValueError):
+        await message.answer("❌ Noto'g'ri miqdor. Raqam kiriting:")
+        return
+
+    data = await state.get_data()
+    transfer_id = data["transfer_id"]
+    payment_svc = PaymentTransferService(session)
+    transfer = await payment_svc.get_by_id(transfer_id)
+    if not transfer:
+        await message.answer("❌ To'lov topilmadi")
+        await state.clear()
+        return
+
+    await state.clear()
+    await _finalize_zavod_payment(message, session, transfer, received, user)
+
+
+async def _finalize_zavod_payment(event, session, transfer, received: Decimal, zavod_user) -> None:
+    from app.bot.loader import bot as _bot
+    from sqlalchemy import select as _select
+    from app.db.models import User as _User
+
+    payment_svc = PaymentTransferService(session)
+    transfer = await payment_svc.confirm_by_zavod(
+        transfer_id=transfer.id,
+        zavod_user_id=zavod_user.id,
+        received=received,
+    )
+
+    diff = float(received) - float(transfer.usta_sent)
+    diff_text = ""
+    if diff > 0:
+        diff_text = f"\n➕ Farq: +{diff:,.0f} so'm"
+    elif diff < 0:
+        diff_text = f"\n➖ Farq: {diff:,.0f} so'm"
+
+    confirm_text = (
+        f"✅ <b>To'lov tasdiqlandi!</b>\n\n"
+        f"💰 Qabul qilindi: <b>{float(received):,.0f} so'm</b>{diff_text}\n"
+        f"🏭 Kutilgan: {float(transfer.usta_sent):,.0f} so'm\n\n"
+        f"Usta va Adminga bildirishnoma yuborildi."
+    )
+
+    if hasattr(event, "message"):
+        await event.message.edit_text(confirm_text)
+        await event.answer("✅ Tasdiqlandi")
+    else:
+        await event.answer(confirm_text)
+
+    order_svc = OrderService(session)
+    order = await order_svc.get_by_id_full(transfer.order_id)
+    if not order:
+        return
+
+    usta_text = (
+        f"✅ <b>Zavod to'lovni tasdiqladi!</b>\n\n"
+        f"📋 {order.order_number}\n"
+        f"🏭 Zavod qabul qildi: <b>{float(received):,.0f} so'm</b>\n\n"
+        f"Endi <b>✅ Ishni tugatish</b> tugmasini bosa olasiz."
+    )
+    if order.usta and order.usta.telegram_id:
+        try:
+            await _bot.send_message(order.usta.telegram_id, usta_text)
+        except Exception:
+            pass
+
+    admin_text = (
+        f"💸 <b>To'lov hisob-kitobi tugallandi</b>\n\n"
+        f"📋 {order.order_number}\n"
+        f"👷 Usta: {order.usta.full_name if order.usta else '—'}\n"
+        f"🏭 Zavod: {zavod_user.full_name or '—'}\n\n"
+        f"💰 Klientdan olingan: {float(transfer.usta_collected):,.0f} so'm\n"
+        f"🔧 Usta haqi: {float(transfer.usta_wage_taken):,.0f} so'm\n"
+        f"📤 Zavodga yuborilgan: {float(transfer.usta_sent):,.0f} so'm\n"
+        f"📥 Zavod qabul qildi: {float(received):,.0f} so'm"
+    )
+    result = await session.execute(
+        _select(_User).where(
+            _User.role.in_(["admin", "super_admin"]),
+            _User.is_active.is_(True),
+        )
+    )
+    for admin in result.scalars().all():
+        if admin.telegram_id:
+            try:
+                await _bot.send_message(admin.telegram_id, admin_text)
+            except Exception:
+                pass

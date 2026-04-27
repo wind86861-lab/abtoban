@@ -68,13 +68,36 @@ def get_ustas_for_reassignment_keyboard(
     return builder.as_markup()
 
 
-def get_usta_order_detail_keyboard(order_id: int, status: Optional[str] = None) -> InlineKeyboardMarkup:
+def get_usta_order_detail_keyboard(
+    order_id: int,
+    status: Optional[str] = None,
+    payment_done: bool = False,
+) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="📦 Material so'rash", callback_data=f"request_material:{order_id}")
     if status in ("confirmed", "in_work"):
+        if payment_done:
+            builder.button(
+                text="✅ To'lov tasdiqlandi ✓",
+                callback_data=f"usta_payment_view:{order_id}",
+            )
+        else:
+            builder.button(
+                text="💸 Summani tasdiqlash",
+                callback_data=f"usta_payment:{order_id}",
+            )
         builder.button(text="✅ Ishni tugatish", callback_data=f"usta_complete:{order_id}")
     builder.button(text="⬅️ Orqaga", callback_data="usta_my_orders")
     builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_usta_payment_confirm_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Tasdiqlash", callback_data=f"usta_payment_confirm:{order_id}")
+    builder.button(text="✏️ Qayta kiritish", callback_data=f"usta_payment:{order_id}")
+    builder.button(text="❌ Bekor", callback_data=f"usta_view_mine:{order_id}")
+    builder.adjust(2, 1)
     return builder.as_markup()
 
 

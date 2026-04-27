@@ -26,14 +26,17 @@ from app.bot.keyboards.usta import (
     get_usta_my_orders_keyboard,
     get_usta_notification_keyboard,
     get_usta_order_detail_keyboard,
+    get_usta_payment_confirm_keyboard,
 )
 from app.bot.states.finance import ExpenseAddStates, MaterialRequestStates
+from app.bot.states.payment import UstaPaymentStates
 from app.db.models import ORDER_STATUS_LABELS, OrderStatus, User, UserRole
 from app.services.expense_service import EXPENSE_LABELS, ExpenseService
 from app.services.asphalt_service import AsphaltService
 from app.services.category_service import CategoryService
 from app.services.material_service import MaterialService
 from app.services.order_service import OrderService
+from app.services.payment_transfer_service import PaymentTransferService
 from app.services.usta_service import UstaService
 
 router = Router()
@@ -83,13 +86,211 @@ async def usta_view_mine(callback: CallbackQuery, user: User, session, lang: str
         await callback.answer(t("order_not_found", lang), show_alert=True)
         return
 
+    payment_svc = PaymentTransferService(session)
+    payment_done = await payment_svc.is_confirmed(order_id)
+
     from app.bot.handlers._order_view import format_order_full
     text = format_order_full(order, user.role, lang)
     await callback.message.edit_text(
         text,
-        reply_markup=get_usta_order_detail_keyboard(order_id, order.status.value),
+        reply_markup=get_usta_order_detail_keyboard(order_id, order.status.value, payment_done=payment_done),
     )
     await callback.answer()
+
+
+# ── Payment settlement flow ──────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("usta_payment:"))
+async def usta_payment_start(callback: CallbackQuery, user: User, session, state: FSMContext, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    order_svc = OrderService(session)
+    order = await order_svc.get_by_id_full(order_id)
+    if not order or order.usta_id != user.id:
+        await callback.answer(t("order_not_found", lang), show_alert=True)
+        return
+    if order.status not in (OrderStatus.CONFIRMED, OrderStatus.IN_WORK):
+        await callback.answer(t("invalid_status", lang), show_alert=True)
+        return
+
+    payment_svc = PaymentTransferService(session)
+    existing = await payment_svc.get_by_order(order_id)
+    if existing:
+        if existing.status == "zavod_confirmed":
+            await callback.answer("✅ To'lov allaqachon tasdiqlangan", show_alert=True)
+            return
+        await callback.answer(
+            f"⏳ Zavod tasdiqlashini kutmoqda ({float(existing.usta_sent):,.0f} so'm)",
+            show_alert=True,
+        )
+        return
+
+    total = float(order.total_price or 0)
+    advance = float(order.advance_paid or 0)
+    debt = float(order.debt or 0) or (total - advance)
+    wage = float(order.usta_wage or 0)
+
+    await state.update_data(order_id=order_id, usta_wage=wage, debt=debt)
+    await state.set_state(UstaPaymentStates.entering_collected)
+
+    await callback.message.edit_text(
+        f"💸 <b>Summani tasdiqlash</b>\n\n"
+        f"📋 {order.order_number}\n"
+        f"💰 Jami: <b>{total:,.0f} so'm</b>\n"
+        f"✅ Avans: {advance:,.0f} so'm\n"
+        f"📌 Qoldiq (taxminiy): <b>{debt:,.0f} so'm</b>\n\n"
+        f"<b>Klientdan qancha pul oldingiz?</b>\n"
+        f"<i>Raqamni kiriting (masalan: {int(debt):,}):</i>",
+        reply_markup=get_usta_order_detail_keyboard(order_id),
+    )
+    await callback.answer()
+
+
+@router.message(UstaPaymentStates.entering_collected)
+async def usta_payment_collected(message: Message, user: User, state: FSMContext, lang: str) -> None:
+    raw = message.text.strip().replace(",", "").replace(" ", "").replace("_", "")
+    try:
+        collected = Decimal(raw)
+        if collected <= 0:
+            raise ValueError
+    except (InvalidOperation, ValueError):
+        await message.answer("❌ Noto'g'ri miqdor. Raqam kiriting (masalan: 500000)")
+        return
+
+    data = await state.get_data()
+    order_id = data["order_id"]
+    wage = Decimal(str(data["usta_wage"]))
+    sent = collected - wage
+
+    if sent < 0:
+        await message.answer(
+            f"❌ Kiritilgan summa ({float(collected):,.0f} so'm) "
+            f"usta haqidan ({float(wage):,.0f} so'm) kam.\nQayta kiriting:"
+        )
+        return
+
+    await state.update_data(collected=str(collected), sent=str(sent))
+    await state.set_state(UstaPaymentStates.confirming)
+
+    await message.answer(
+        f"📊 <b>To'lov hisobi:</b>\n\n"
+        f"💰 Klientdan olindi: <b>{float(collected):,.0f} so'm</b>\n"
+        f"🔧 Usta haqi (siz): <b>{float(wage):,.0f} so'm</b>\n"
+        f"🏭 Zavodga yuboriladi: <b>{float(sent):,.0f} so'm</b>\n\n"
+        f"Tasdiqlaysizmi?",
+        reply_markup=get_usta_payment_confirm_keyboard(order_id),
+    )
+
+
+@router.callback_query(F.data.startswith("usta_payment_confirm:"))
+async def usta_payment_do_confirm(callback: CallbackQuery, user: User, session, state: FSMContext, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    data = await state.get_data()
+    if not data or "collected" not in data:
+        await callback.answer("⚠️ Ma'lumot topilmadi. Qaytadan boshlang.", show_alert=True)
+        await state.clear()
+        return
+
+    collected = Decimal(data["collected"])
+    wage = Decimal(str(data["usta_wage"]))
+    sent = Decimal(data["sent"])
+
+    payment_svc = PaymentTransferService(session)
+    existing = await payment_svc.get_by_order(order_id)
+    if existing:
+        await callback.answer("⚠️ To'lov allaqachon kiritilgan", show_alert=True)
+        await state.clear()
+        return
+
+    transfer = await payment_svc.create(
+        order_id=order_id,
+        usta_id=user.id,
+        collected=collected,
+        wage=wage,
+        sent=sent,
+    )
+    await state.clear()
+
+    await callback.message.edit_text(
+        f"✅ <b>To'lov ma'lumotlari yuborildi!</b>\n\n"
+        f"💰 Klientdan olindi: {float(collected):,.0f} so'm\n"
+        f"🔧 Usta haqi: {float(wage):,.0f} so'm\n"
+        f"🏭 Zavodga: <b>{float(sent):,.0f} so'm</b>\n\n"
+        f"⏳ Zavod shofyordan pul qabul qilib tasdiqlashini kuting."
+    )
+    await callback.answer("✅ Yuborildi")
+
+    order_svc = OrderService(session)
+    order = await order_svc.get_by_id_full(order_id)
+    if order:
+        await _notify_zavod_payment(session, order, transfer, user)
+
+
+@router.callback_query(F.data.startswith("usta_payment_view:"))
+async def usta_payment_view(callback: CallbackQuery, user: User, session, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    payment_svc = PaymentTransferService(session)
+    transfer = await payment_svc.get_by_order(order_id)
+    if not transfer:
+        await callback.answer("To'lov ma'lumoti topilmadi", show_alert=True)
+        return
+    status_text = "✅ Zavod tasdiqladi" if transfer.status == "zavod_confirmed" else "⏳ Zavod tasdiqlashini kutmoqda"
+    await callback.answer(
+        f"{status_text}\n"
+        f"Olingan: {float(transfer.usta_collected):,.0f}\n"
+        f"Zavodga: {float(transfer.usta_sent):,.0f} so'm",
+        show_alert=True,
+    )
+
+
+async def _notify_zavod_payment(session, order, transfer, usta_user) -> None:
+    from app.bot.loader import bot as _bot
+    from sqlalchemy import select as _select
+    from app.db.models import User as _User, UserRole as _UserRole
+
+    text = (
+        f"💸 <b>To'lov keldi!</b>\n\n"
+        f"📋 Zakaz: {order.order_number}\n"
+        f"👷 Usta: {usta_user.full_name or '—'}\n"
+        f"📍 {order.address or '—'}\n\n"
+        f"💰 Usta olingan: {float(transfer.usta_collected):,.0f} so'm\n"
+        f"🔧 Usta haqi: {float(transfer.usta_wage_taken):,.0f} so'm\n"
+        f"🏭 Zavodga kelmoqda: <b>{float(transfer.usta_sent):,.0f} so'm</b>\n\n"
+        f"Shofyor orqali pul qabul qiling va tasdiqlang."
+    )
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    confirm_kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text=f"✅ Qabul qildim ({float(transfer.usta_sent):,.0f} so'm)",
+            callback_data=f"zavod_confirm_payment:{transfer.id}",
+        )
+    ]])
+
+    notified = set()
+    if order.zavod_id:
+        result = await session.execute(
+            _select(_User).where(_User.id == order.zavod_id)
+        )
+        z = result.scalar_one_or_none()
+        if z and z.telegram_id:
+            try:
+                await _bot.send_message(z.telegram_id, text, reply_markup=confirm_kb)
+                notified.add(z.id)
+            except Exception:
+                pass
+
+    if not notified:
+        result = await session.execute(
+            _select(_User).where(
+                _User.role == _UserRole.ZAVOD,
+                _User.is_active.is_(True),
+            )
+        )
+        for z in result.scalars().all():
+            if z.telegram_id and z.id not in notified:
+                try:
+                    await _bot.send_message(z.telegram_id, text, reply_markup=confirm_kb)
+                except Exception:
+                    pass
 
 
 # ── Complete task flow ────────────────────────────────────────────────────────
@@ -104,6 +305,15 @@ async def usta_complete_prompt(callback: CallbackQuery, user: User, session, lan
         return
     if order.status not in (OrderStatus.CONFIRMED, OrderStatus.IN_WORK):
         await callback.answer(t("invalid_status", lang), show_alert=True)
+        return
+
+    payment_svc = PaymentTransferService(session)
+    if not await payment_svc.is_confirmed(order_id):
+        await callback.answer(
+            "⚠️ Avval summani tasdiqlang!\n"
+            "💸 'Summani tasdiqlash' tugmasini bosing va Zavod tasdiqlaguncha kuting.",
+            show_alert=True,
+        )
         return
 
     text = (

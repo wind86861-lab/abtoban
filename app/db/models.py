@@ -674,3 +674,38 @@ class Portfolio(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
+
+
+class PaymentTransfer(Base):
+    """Final payment settlement: Usta collects from Client, sends balance to Zavod via Shafor."""
+
+    __tablename__ = "payment_transfers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("orders.id"), unique=True, nullable=False
+    )
+    usta_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+
+    usta_collected: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    usta_wage_taken: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    usta_sent: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    usta_submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    zavod_received: Mapped[Optional[Decimal]] = mapped_column(Numeric(15, 2), nullable=True)
+    zavod_confirmed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    zavod_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(30), server_default="usta_submitted", nullable=False
+    )
+
+    order: Mapped["Order"] = relationship("Order", foreign_keys=[order_id])
+    usta: Mapped["User"] = relationship("User", foreign_keys=[usta_id])
+    zavod_user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[zavod_user_id])
