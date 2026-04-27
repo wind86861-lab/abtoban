@@ -718,6 +718,24 @@ async def payment_amount(message: Message, state: FSMContext, user: User, sessio
     )
 
 
+@router.callback_query(F.data.startswith("admin_close_order:"), RoleFilter(*MANAGEMENT_ROLES))
+async def admin_close_order(callback: CallbackQuery, user: User, session, lang: str) -> None:
+    order_id = int(callback.data.split(":")[1])
+    order_svc = OrderService(session)
+    order = await order_svc.get_by_id_full(order_id)
+    if not order:
+        await callback.answer("❌ Zakaz topilmadi.", show_alert=True)
+        return
+    if order.status == OrderStatus.DONE:
+        await callback.answer("✅ Zakaz allaqachon yopilgan.", show_alert=True)
+        return
+    await order_svc.update_status(order_id, OrderStatus.DONE, user.id)
+    await callback.message.edit_text(
+        callback.message.text + "\n\n🔒 <b>Zakaz yopildi!</b>",
+    )
+    await callback.answer("✅ Zakaz yopildi!")
+
+
 @router.callback_query(F.data.startswith("payment_full:"), RoleFilter(*MANAGEMENT_ROLES))
 async def payment_full(callback: CallbackQuery, user: User, session, lang: str) -> None:
     order_id = int(callback.data.split(":")[1])

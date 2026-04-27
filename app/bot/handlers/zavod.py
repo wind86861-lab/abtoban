@@ -601,16 +601,56 @@ async def _finalize_zavod_payment(event, session, transfer, received: Decimal, z
         except Exception:
             pass
 
+    from app.services.expense_service import ExpenseService, EXPENSE_LABELS
+    expense_svc = ExpenseService(session)
+    expenses = await expense_svc.get_by_order(order.id)
+    total_expenses = sum(float(e.amount) for e in expenses)
+    expenses_detail = ""
+    if expenses:
+        lines = [f"  • {EXPENSE_LABELS.get(e.expense_type, e.expense_type)}: {float(e.amount):,.0f}" for e in expenses]
+        expenses_detail = "\n" + "\n".join(lines)
+
+    total = float(order.total_price or 0)
+    advance = float(order.advance_paid or 0)
+    usta_haqi = float(transfer.usta_wage_taken)
+    master_kom = float(order.master_commission or 0)
+    zavod_oldi = float(received)
+    foyda = total - usta_haqi - master_kom - total_expenses - zavod_oldi
+
+    master_name = order.master.full_name if order.master else "—"
+    usta_name = order.usta.full_name if order.usta else "—"
+    asphalt = order.asphalt_type.name if order.asphalt_type else "—"
+    viloyat = order.viloyat.name if order.viloyat else "—"
+
     admin_text = (
-        f"💸 <b>To'lov hisob-kitobi tugallandi</b>\n\n"
-        f"📋 {order.order_number}\n"
-        f"👷 Usta: {order.usta.full_name if order.usta else '—'}\n"
-        f"🏭 Zavod: {zavod_user.full_name or '—'}\n\n"
-        f"💰 Klientdan olingan: {float(transfer.usta_collected):,.0f} so'm\n"
-        f"🔧 Usta haqi: {float(transfer.usta_wage_taken):,.0f} so'm\n"
-        f"📤 Zavodga yuborilgan: {float(transfer.usta_sent):,.0f} so'm\n"
-        f"📥 Zavod qabul qildi: {float(received):,.0f} so'm"
+        f"� <b>To'lov hisob-kitobi yakunlandi</b>\n\n"
+        f"📋 <b>{order.order_number}</b>\n"
+        f"� {order.address or '—'} ({viloyat})\n"
+        f"🏗 Asfalt: {asphalt} | {float(order.area_m2 or 0):,.1f} m²\n\n"
+        f"👥 <b>Ishtirokchilar:</b>\n"
+        f"  👤 Klient: {order.client_name}\n"
+        f"  👷 Usta: {usta_name}\n"
+        f"  🧑‍💼 Master: {master_name}\n"
+        f"  🏭 Zavod: {zavod_user.full_name or '—'}\n\n"
+        f"� <b>Moliyaviy hisobot:</b>\n"
+        f"  �💰 Klient jami: {total:,.0f} so'm\n"
+        f"  ✅ Avans: {advance:,.0f} so'm\n"
+        f"  💵 Klientdan olingan: {float(transfer.usta_collected):,.0f} so'm\n\n"
+        f"  🔧 Usta haqi: {usta_haqi:,.0f} so'm\n"
+        f"  🧑‍💼 Master komissiya: {master_kom:,.0f} so'm\n"
+        f"  🏭 Zavodga ketdi: {zavod_oldi:,.0f} so'm\n"
+        f"  📦 Qo'shimcha harajatlar: {total_expenses:,.0f} so'm{expenses_detail}\n\n"
+        f"  � <b>Umumiy foyda: {foyda:,.0f} so'm</b>"
     )
+
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    close_kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text="🔒 Zakazni yopish (DONE)",
+            callback_data=f"admin_close_order:{order.id}",
+        )
+    ]])
+
     result = await session.execute(
         _select(_User).where(
             _User.role.in_(["admin", "super_admin"]),
@@ -620,6 +660,6 @@ async def _finalize_zavod_payment(event, session, transfer, received: Decimal, z
     for admin in result.scalars().all():
         if admin.telegram_id:
             try:
-                await _bot.send_message(admin.telegram_id, admin_text)
+                await _bot.send_message(admin.telegram_id, admin_text, reply_markup=close_kb)
             except Exception:
                 pass
