@@ -86,7 +86,7 @@ def get_usta_my_orders_keyboard(orders: List[Order]) -> InlineKeyboardMarkup:
         if len(addr) > 35:
             addr = addr[:32] + "\u2026"
         builder.button(
-            text=f"\ud83d\udd22 {o.order_number} | {addr}",
+            text=f"🔢 {o.order_number} | {addr}",
             callback_data=f"usta_view_mine:{o.id}",
         )
     builder.adjust(1)

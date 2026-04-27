@@ -107,11 +107,11 @@ async def usta_complete_prompt(callback: CallbackQuery, user: User, session, lan
         return
 
     text = (
-        f"\u2705 <b>Ishni tugatishni tasdiqlang</b>\n\n"
-        f"\ud83d\udd22 #{order.order_number}\n"
-        f"\ud83d\udccd {order.address or '\u2014'}\n"
-        f"\ud83d\udcd0 {order.area_m2 or '?'} m\u00b2\n"
-        f"\ud83d\udcb0 Usta haqi: <b>{float(order.usta_wage or 0):,.0f} so'm</b>\n\n"
+        f"✅ <b>Ishni tugatishni tasdiqlang</b>\n\n"
+        f"🔢 #{order.order_number}\n"
+        f"📍 {order.address or '—'}\n"
+        f"📐 {order.area_m2 or '?'} m²\n"
+        f"💰 Usta haqi: <b>{float(order.usta_wage or 0):,.0f} so'm</b>\n\n"
         f"Bu zakaz tugatilganini tasdiqlaysizmi?\n"
         f"<i>Tasdiqlasangiz Admin, Master va Klientga bildirishnoma yuboriladi.</i>"
     )
@@ -128,7 +128,7 @@ async def usta_complete_confirm(callback: CallbackQuery, user: User, session, la
         await callback.answer(t("order_not_found", lang), show_alert=True)
         return
     if order.status == OrderStatus.DONE:
-        await callback.answer("\u26a0\ufe0f Allaqachon tugatilgan", show_alert=True)
+        await callback.answer("⚠️ Allaqachon tugatilgan", show_alert=True)
         return
     if order.status not in (OrderStatus.CONFIRMED, OrderStatus.IN_WORK):
         await callback.answer(t("invalid_status", lang), show_alert=True)
@@ -141,9 +141,9 @@ async def usta_complete_confirm(callback: CallbackQuery, user: User, session, la
 
     # Acknowledge to usta
     await callback.message.edit_text(
-        f"\u2705 <b>Zakaz tugatildi!</b>\n\n"
-        f"\ud83d\udd22 #{order.order_number}\n"
-        f"\ud83d\udcc5 {order.completed_at.strftime('%d.%m.%Y %H:%M') if order.completed_at else '\u2014'}\n\n"
+        f"✅ <b>Zakaz tugatildi!</b>\n\n"
+        f"🔢 #{order.order_number}\n"
+        f"📅 {order.completed_at.strftime('%d.%m.%Y %H:%M') if order.completed_at else '—'}\n\n"
         f"Admin, Master va Klientga bildirishnoma yuborildi."
     )
     await callback.answer("\u2705 Tugatildi")
