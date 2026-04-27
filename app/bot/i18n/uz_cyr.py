@@ -78,6 +78,7 @@ STRINGS = {
     "btn_zavod_price": "✅ Нарх киритиш",
     "btn_zavod_history": "📋 Тарихи",
     "btn_shofer_narxi": "🚛 Шофёр нархи",
+    "btn_zavod_payments": "💸 Келган тўловлар",
 
     # ── Shofer buttons ──
     "btn_my_deliveries": "🚗 Менинг етказилмаларим",

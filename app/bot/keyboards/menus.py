@@ -122,6 +122,9 @@ def get_main_menu(role: UserRole, lang: str = "uz_lat") -> ReplyKeyboardMarkup:
             KeyboardButton(text=t("btn_zavod_history", lang)),
             KeyboardButton(text=t("btn_shofer_narxi", lang)),
         )
+        builder.row(
+            KeyboardButton(text=t("btn_zavod_payments", lang)),
+        )
 
     elif role == UserRole.SHOFER:
         builder.row(

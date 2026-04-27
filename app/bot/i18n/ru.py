@@ -78,6 +78,7 @@ STRINGS = {
     "btn_zavod_price": "✅ Указать цену",
     "btn_zavod_history": "📋 История",
     "btn_shofer_narxi": "🚛 Цена водителя",
+    "btn_zavod_payments": "💸 Входящие оплаты",
 
     # ── Shofer buttons ──
     "btn_my_deliveries": "🚗 Мои доставки",

@@ -437,6 +437,42 @@ async def shofer_narxi_cancel(callback: CallbackQuery, state: FSMContext, lang: 
 
 # ── Payment confirmation flow ───────────────────────────────────────────
 
+@router.message(F.text.in_(ALL_BUTTON_TEXTS.get("btn_zavod_payments", set())))
+async def zavod_payments_list(message: Message, user: User, session, lang: str) -> None:
+    from sqlalchemy import select as _select
+    from app.db.models import PaymentTransfer, Order, User as _User
+
+    result = await session.execute(
+        _select(PaymentTransfer).where(
+            PaymentTransfer.status == "usta_submitted"
+        ).order_by(PaymentTransfer.usta_submitted_at.desc())
+    )
+    transfers = result.scalars().all()
+
+    if not transfers:
+        await message.answer("✅ Tasdiqlash kutayotgan to'lov yo'q.")
+        return
+
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    buttons = []
+    for tr in transfers:
+        order_result = await session.execute(
+            _select(Order).where(Order.id == tr.order_id)
+        )
+        order = order_result.scalar_one_or_none()
+        order_num = order.order_number if order else f"#{tr.order_id}"
+        buttons.append([InlineKeyboardButton(
+            text=f"💸 {order_num} — {float(tr.usta_sent):,.0f} so'm",
+            callback_data=f"zavod_confirm_payment:{tr.id}",
+        )])
+
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await message.answer(
+        f"💸 <b>Tasdiqlash kutayotgan to'lovlar ({len(transfers)} ta):</b>\n\n"
+        f"<i>Tasdiqlash uchun bosing:</i>",
+        reply_markup=kb,
+    )
+
 @router.callback_query(F.data.startswith("zavod_confirm_payment:"))
 async def zavod_confirm_payment_start(
     callback: CallbackQuery, user: User, session, state: FSMContext, lang: str
