@@ -257,7 +257,6 @@ async def _notify_zavod_payment(session, order, transfer, usta_user) -> None:
         f"👷 Usta: {usta_user.full_name or '—'}\n"
         f"📍 {order.address or '—'}\n\n"
         f"💰 Usta olingan: {float(transfer.usta_collected):,.0f} so'm\n"
-        f"🔧 Usta haqi: {float(transfer.usta_wage_taken):,.0f} so'm\n"
         f"🏭 Zavodga kelmoqda: <b>{float(transfer.usta_sent):,.0f} so'm</b>\n\n"
         f"Shofyor orqali pul qabul qiling va tasdiqlang."
     )
