@@ -106,7 +106,11 @@ async def tma_logout(request: Request):
 async def tma_admin_page(request: Request):
     """Lightweight admin dashboard for Telegram Mini App."""
     role = request.session.get("tma_role", "admin")
-    return templates.TemplateResponse("tma_admin.html", {"request": request, "tma_role": role})
+    response = templates.TemplateResponse("tma_admin.html", {"request": request, "tma_role": role})
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @router.get("/shop", response_class=HTMLResponse)
