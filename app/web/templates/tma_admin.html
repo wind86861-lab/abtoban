@@ -1515,6 +1515,18 @@
     </div>
   </div>
 
+  <!-- ZAVOD ORDERS HISTORY -->
+  <div class="modal-overlay" id="zavod-orders-modal" style="display:none"
+    onclick="if(event.target===this)closeModal('zavod-orders-modal')">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title" id="zoh-title">Zavod tarixi</div>
+        <button class="modal-close" onclick="closeModal('zavod-orders-modal')">✕</button>
+      </div>
+      <div class="modal-body" id="zoh-body"></div>
+    </div>
+  </div>
+
   <!-- CATEGORY FORM -->
   <div class="modal-ov" id="cat-modal" onclick="bgClose(event,'cat-modal')">
     <div class="modal-box">
@@ -2960,7 +2972,8 @@
     <div class="hudud-grid">${hc}</div>
     <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="saveZDetH(${z.id})">💾 Hududlarni saqlash</button>
     <div class="divider"></div>
-    <div style="display:flex;gap:8px">
+    <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="loadZavodHistory(${z.id})">📋 Zakazlar tarixi</button>
+    <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn btn-ghost" style="flex:1" onclick="editZInfo(${z.id})">✏️ Tahrirlash</button>
       <button class="btn btn-ghost" style="flex:1" onclick="toggleZavod(${z.id})">${z.is_active ? '🔴 O\'chirish' : '🟢 Yoqish'}</button>
     </div>`;
@@ -2983,6 +2996,28 @@
       const r = await fetch(`/tma-api/zavodlar/${id}/toggle`, { method: 'PATCH' });
       if (r.ok) { notify(); closeModal('zavod-det-modal'); loadZavodlar(); } else notify('error');
     }
+    async function loadZavodHistory(zId) {
+      try {
+        closeModal('zavod-det-modal');
+        const data = await fetch(`/tma-api/zavodlar/${zId}/orders`).then(r => r.json());
+        document.getElementById('zoh-title').textContent = `🏭 Zavod zakazlari (${data.orders.length})`;
+        const usersHtml = data.users.length ? `<div style="margin-bottom:12px"><div class="sub-sec">👷 Foydalanuvchilar</div>${data.users.map(u => `<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)">${u.name} ${u.phone ? '— ' + esc(u.phone) : ''} <span class="badge badge-sm">${u.role}</span></div>`).join('')}</div>` : '';
+        const ordersHtml = data.orders.length ? data.orders.map(o => {
+          const statusBadge = `<span class="badge badge-${o.status}">${STATUS_FULL[o.status] || o.status}</span>`;
+          return `<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="showOrderDetail(${o.id})">
+            <div class="card-head">
+              <div><div class="card-title">🔢 #${esc(o.number)}</div><div style="font-size:12px;color:var(--hint);margin-top:2px">${esc(o.client)} ${o.phone ? '— ' + esc(o.phone) : ''}</div></div>
+              ${statusBadge}
+            </div>
+            <div class="card-sub">📍 ${esc(o.address || '—')} | 📐 ${fmt(o.area)} m² | 💰 ${fmt(o.total)} so'm</div>
+            <div style="font-size:12px;color:var(--hint);margin-top:4px">🏭 Zavod: ${fmt(o.zavod_cost)} so'm | 📅 ${esc(o.work_date || o.created_at || '')}</div>
+          </div>`;
+        }).join('') : empty('📋', 'Zakazlar topilmadi');
+        document.getElementById('zoh-body').innerHTML = usersHtml + ordersHtml;
+        openModal('zavod-orders-modal');
+      } catch (e) { console.error(e); alert('Xatolik yuz berdi'); }
+    }
+
     async function saveZavodShoferNarxi(zavodId) {
       const price = document.getElementById('zdm-shofer-narxi').value;
       const body = price ? { shofer_narxi: parseFloat(price) } : { shofer_narxi: null };

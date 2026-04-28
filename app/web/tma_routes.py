@@ -37,6 +37,17 @@ def _line_item_cost(li) -> float:
     return 0.0
 
 
+def _material_cost(o) -> float:
+    """Material cost from line items, or fallback to order's main asphalt type × area."""
+    if o.line_items:
+        return sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items)
+    if o.asphalt_type and o.area_m2:
+        cost = float(o.asphalt_type.cost_price_per_m2 or 0)
+        if cost > 0:
+            return cost * float(o.area_m2)
+    return 0.0
+
+
 # ─────────────────────────────────────────────────────────────
 # TMA AUTH — Login / Logout
 # ─────────────────────────────────────────────────────────────
@@ -222,9 +233,9 @@ async def tma_orders(limit: int = 10, status: Optional[str] = None, viloyat_id: 
             "debt": float(o.debt) if o.debt else 0,
             "usta_wage": float(o.usta_wage) if o.usta_wage else None,
             "master_commission": float(o.master_commission) if o.master_commission else None,
-            "material_cost": sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
+            "material_cost": _material_cost(o),
             "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
-            "zavod_cost": (sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
+            "zavod_cost": _material_cost(o) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
             "status": o.status.value,
             "latitude": o.latitude,
             "longitude": o.longitude,
@@ -641,9 +652,9 @@ async def tma_usta_orders(usta_id: int):
             "debt": float(o.debt) if o.debt else 0,
             "usta_wage": float(o.usta_wage) if o.usta_wage else None,
             "master_commission": float(o.master_commission) if o.master_commission else None,
-            "material_cost": sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
+            "material_cost": _material_cost(o),
             "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
-            "zavod_cost": (sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
+            "zavod_cost": _material_cost(o) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
             "status": o.status.value,
             "master_name": o.master.full_name if o.master else None,
             "usta_name": o.usta.full_name if o.usta else None,
@@ -1315,6 +1326,90 @@ async def update_user_zavod(user_id: int, body: UpdateZavodRequest):
         user.zavod_id = zavod_id
         await session.commit()
     return {"ok": True}
+
+
+@router.get("/tma-api/zavodlar/{zavod_id}/orders")
+async def zavod_orders(zavod_id: int):
+    """Get all orders linked to a zavod (via assigned users or material requests)."""
+    from sqlalchemy import or_
+    async with async_session_maker() as session:
+        # Users that belong to this zavod
+        user_ids = [
+            u for u in (await session.execute(
+                select(User.id).where(User.zavod_id == zavod_id)
+            )).scalars().all()
+        ]
+
+        order_ids_from_mr = [
+            r for r in (await session.execute(
+                select(MaterialRequest.order_id).where(MaterialRequest.assigned_zavod_id == zavod_id)
+            )).scalars().all()
+        ]
+
+        filters = []
+        if user_ids:
+            filters.append(Order.zavod_id.in_(user_ids))
+        if order_ids_from_mr:
+            filters.append(Order.id.in_(order_ids_from_mr))
+
+        if not filters:
+            return {"zavod_id": zavod_id, "users": [], "orders": []}
+
+        result = await session.execute(
+            select(Order)
+            .options(
+                selectinload(Order.viloyat), selectinload(Order.tuman_rel),
+                selectinload(Order.master), selectinload(Order.usta),
+                selectinload(Order.asphalt_type),
+                selectinload(Order.line_items).selectinload(OrderLineItem.asphalt_type),
+                selectinload(Order.material_requests),
+            )
+            .where(or_(*filters))
+            .order_by(Order.created_at.desc())
+            .limit(100)
+        )
+        orders = result.scalars().all()
+
+        # Get zavod users for display
+        users_result = await session.execute(
+            select(User).where(User.zavod_id == zavod_id)
+        )
+        zavod_users = users_result.scalars().all()
+
+    return {
+        "zavod_id": zavod_id,
+        "users": [
+            {"id": u.id, "name": u.full_name, "phone": u.phone, "role": u.role.value}
+            for u in zavod_users
+        ],
+        "orders": [
+            {
+                "id": o.id,
+                "number": o.order_number,
+                "client": o.client_name,
+                "phone": o.client_phone,
+                "address": o.address,
+                "area": float(o.area_m2) if o.area_m2 else None,
+                "total": float(o.total_price) if o.total_price else None,
+                "advance": float(o.advance_paid) if o.advance_paid else 0,
+                "debt": float(o.debt) if o.debt else 0,
+                "usta_wage": float(o.usta_wage) if o.usta_wage else None,
+                "master_commission": float(o.master_commission) if o.master_commission else None,
+                "material_cost": _material_cost(o),
+                "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
+                "zavod_cost": _material_cost(o) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
+                "status": o.status.value,
+                "master_name": o.master.full_name if o.master else None,
+                "usta_name": o.usta.full_name if o.usta else None,
+                "asphalt": o.asphalt_type.name if o.asphalt_type else None,
+                "work_date": o.work_date.strftime("%d.%m.%Y") if o.work_date else None,
+                "created_at": o.created_at.strftime("%d.%m.%Y %H:%M") if o.created_at else None,
+                "viloyat_name": o.viloyat.name if o.viloyat else None,
+                "tuman_name": o.tuman_rel.name if o.tuman_rel else None,
+            }
+            for o in orders
+        ],
+    }
 
 
 # ─────────────────────────────────────────────────────────────
