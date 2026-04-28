@@ -14,7 +14,7 @@ from starlette.requests import Request
 from app.config import settings
 from app.db.models import (
     ROLE_LABELS, AsphaltCategory, AsphaltSubCategory, AsphaltType,
-    MaterialRequest, MaterialRequestStatus, Order, OrderStatus,
+    MaterialRequest, MaterialRequestStatus, Order, OrderLineItem, OrderStatus,
     Region, Tuman, User, UserRole, Viloyat, Zavod, zavod_hududlar, user_hududlar,
 )
 from app.db.session import async_session_maker
@@ -25,6 +25,16 @@ templates = Jinja2Templates(directory="app/web/templates")
 
 def _hash(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
+
+
+def _line_item_cost(li) -> float:
+    """Return effective cost price per m²: use snapshot if available, else current asphalt type cost."""
+    snapshot = float(li.cost_price_per_m2 or 0)
+    if snapshot > 0:
+        return snapshot
+    if li.asphalt_type:
+        return float(li.asphalt_type.cost_price_per_m2 or 0)
+    return 0.0
 
 
 # ─────────────────────────────────────────────────────────────
@@ -187,7 +197,7 @@ async def tma_orders(limit: int = 10, status: Optional[str] = None, viloyat_id: 
                 selectinload(Order.viloyat), selectinload(Order.tuman_rel),
                 selectinload(Order.master), selectinload(Order.usta),
                 selectinload(Order.asphalt_type),
-                selectinload(Order.line_items), selectinload(Order.material_requests),
+                selectinload(Order.line_items).selectinload(OrderLineItem.asphalt_type), selectinload(Order.material_requests),
             )
             .order_by(Order.created_at.desc())
             .limit(limit)
@@ -212,9 +222,9 @@ async def tma_orders(limit: int = 10, status: Optional[str] = None, viloyat_id: 
             "debt": float(o.debt) if o.debt else 0,
             "usta_wage": float(o.usta_wage) if o.usta_wage else None,
             "master_commission": float(o.master_commission) if o.master_commission else None,
-            "material_cost": sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
+            "material_cost": sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
             "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
-            "zavod_cost": (sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
+            "zavod_cost": (sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
             "status": o.status.value,
             "latitude": o.latitude,
             "longitude": o.longitude,
@@ -611,7 +621,7 @@ async def tma_usta_orders(usta_id: int):
                 selectinload(Order.master), selectinload(Order.usta),
                 selectinload(Order.asphalt_type), selectinload(Order.client),
                 selectinload(Order.viloyat), selectinload(Order.tuman_rel),
-                selectinload(Order.line_items), selectinload(Order.material_requests),
+                selectinload(Order.line_items).selectinload(OrderLineItem.asphalt_type), selectinload(Order.material_requests),
             )
             .where(Order.usta_id == usta_id)
             .order_by(Order.created_at.desc())
@@ -631,9 +641,9 @@ async def tma_usta_orders(usta_id: int):
             "debt": float(o.debt) if o.debt else 0,
             "usta_wage": float(o.usta_wage) if o.usta_wage else None,
             "master_commission": float(o.master_commission) if o.master_commission else None,
-            "material_cost": sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
+            "material_cost": sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
             "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
-            "zavod_cost": (sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
+            "zavod_cost": (sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
             "status": o.status.value,
             "master_name": o.master.full_name if o.master else None,
             "usta_name": o.usta.full_name if o.usta else None,
@@ -681,7 +691,7 @@ async def tma_user_orders(user_id: int):
                 selectinload(Order.master), selectinload(Order.usta),
                 selectinload(Order.asphalt_type), selectinload(Order.client),
                 selectinload(Order.viloyat), selectinload(Order.tuman_rel),
-                selectinload(Order.line_items), selectinload(Order.material_requests),
+                selectinload(Order.line_items).selectinload(OrderLineItem.asphalt_type), selectinload(Order.material_requests),
             )
             .where(filt)
             .order_by(Order.created_at.desc())
@@ -706,9 +716,9 @@ async def tma_user_orders(user_id: int):
                 "debt": float(o.debt) if o.debt else 0,
                 "usta_wage": float(o.usta_wage) if o.usta_wage else None,
                 "master_commission": float(o.master_commission) if o.master_commission else None,
-                "material_cost": sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
+                "material_cost": sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
                 "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
-                "zavod_cost": (sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
+                "zavod_cost": (sum(_line_item_cost(li) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
                 "status": o.status.value,
                 "master_name": o.master.full_name if o.master else None,
                 "usta_name": o.usta.full_name if o.usta else None,
