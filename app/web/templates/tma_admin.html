@@ -1945,6 +1945,7 @@
       <tr><td>Jami narx</td><td><strong>${fmt(o.total)} so'm</strong></td></tr>
       <tr><td>Zaklad (oldindan)</td><td>${fmt(o.advance)} so'm</td></tr>
       <tr><td>Qarz</td><td><strong style="color:${o.debt > 0 ? 'var(--red)' : 'var(--green)'}">${fmt(o.debt)} so'm</strong></td></tr>
+      <tr><td>🏭 Zavod (material + yetkazish)</td><td>${o.zavod_cost ? fmt(o.zavod_cost) + " so'm" : '—'}</td></tr>
       <tr><td>Usta haqi</td><td>${o.usta_wage ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
       <tr><td>Master komissiya</td><td>${o.master_commission ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
       <tr><td>Qo'shimcha xarajatlar</td><td id="om-exp-total">—</td></tr>
