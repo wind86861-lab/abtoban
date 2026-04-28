@@ -261,6 +261,44 @@ class UpdateStatusRequest(BaseModel):
     status: str
 
 
+class UpdateOrderLocationRequest(BaseModel):
+    viloyat_id: Optional[int] = None
+    tuman_id: Optional[int] = None
+
+
+@router.patch("/tma-api/orders/{order_id}/location")
+async def update_order_location(order_id: int, body: UpdateOrderLocationRequest, request: Request):
+    """Assign or update viloyat/tuman on an existing order (admin only)."""
+    role = request.session.get("tma_role")
+    if role not in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if not body.viloyat_id:
+        raise HTTPException(status_code=400, detail="Viloyatni tanlang")
+    if not body.tuman_id:
+        raise HTTPException(status_code=400, detail="Tumanni tanlang")
+    async with async_session_maker() as session:
+        order = (await session.execute(
+            select(Order).where(Order.id == order_id)
+        )).scalar_one_or_none()
+        if not order:
+            raise HTTPException(status_code=404, detail="Zakaz topilmadi")
+        # Validate viloyat/tuman exist and tuman belongs to viloyat
+        v = (await session.execute(
+            select(Viloyat).where(Viloyat.id == body.viloyat_id)
+        )).scalar_one_or_none()
+        if not v:
+            raise HTTPException(status_code=400, detail="Viloyat topilmadi")
+        t = (await session.execute(
+            select(Tuman).where(Tuman.id == body.tuman_id, Tuman.viloyat_id == body.viloyat_id)
+        )).scalar_one_or_none()
+        if not t:
+            raise HTTPException(status_code=400, detail="Tuman bu viloyatga tegishli emas")
+        order.viloyat_id = body.viloyat_id
+        order.tuman_id = body.tuman_id
+        await session.commit()
+    return {"ok": True}
+
+
 @router.patch("/tma-api/orders/{order_id}/status")
 async def update_order_status(order_id: int, body: UpdateStatusRequest):
     """Update order status."""
@@ -347,6 +385,10 @@ async def create_order_admin(body: CreateOrderRequest, request: Request):
         raise HTTPException(status_code=400, detail="Klient ismini kiriting")
     if not body.address or len(body.address.strip()) < 3:
         raise HTTPException(status_code=400, detail="Manzilni kiriting")
+    if not body.viloyat_id:
+        raise HTTPException(status_code=400, detail="Viloyatni tanlang")
+    if not body.tuman_id:
+        raise HTTPException(status_code=400, detail="Tumanni tanlang")
 
     async with async_session_maker() as session:
         # Generate order number

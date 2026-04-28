@@ -1938,7 +1938,7 @@
     <table class="info-tbl">
       <tr><td>Mijoz</td><td>${o.client}</td></tr>
       <tr><td>Telefon</td><td>${o.phone || '—'}</td></tr>
-      <tr><td>Viloyat / Tuman</td><td>${oLoc}</td></tr>
+      <tr><td>Viloyat / Tuman</td><td>${oLoc} <button class="btn btn-ghost btn-sm" style="margin-left:6px;padding:2px 8px" onclick="editOrderLocation(${o.id})">✏️</button></td></tr>
       <tr><td>Manzil</td><td>${o.address || '—'}</td></tr>
       <tr><td>📍 Lokatsiya</td><td>${o.latitude ? `<a href="https://www.google.com/maps?q=${o.latitude},${o.longitude}" target="_blank" style="color:#3563e9;text-decoration:underline">🗺 Xaritada ko'rish</a>` : '—'}</td></tr>
       <tr><td>🏗 Asfalt turi</td><td>${o.asphalt || '—'}</td></tr>
@@ -2000,6 +2000,28 @@
     async function setOrderStatus(id, status) {
       const r = await fetch(`/tma-api/orders/${id}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
       if (r.ok) { notify(); closeModal('order-modal'); loadOrders(); if (S.tab === 'dashboard') loadDashboard(); } else notify('error');
+    }
+
+    async function editOrderLocation(orderId) {
+      try {
+        if (!S.viloyatlar.length) S.viloyatlar = await fetch('/tma-api/viloyatlar').then(r => r.json());
+        const vList = S.viloyatlar.map(v => `${v.id}: ${v.name}`).join('\n');
+        const vId = prompt('Viloyat ID kiriting:\n\n' + vList);
+        if (!vId) return;
+        const v = S.viloyatlar.find(x => x.id === parseInt(vId));
+        if (!v) { alert('Viloyat topilmadi'); return; }
+        const tList = (v.tumans || []).map(t => `${t.id}: ${t.name}`).join('\n');
+        if (!tList) { alert('Bu viloyatda tumanlar yo\'q'); return; }
+        const tId = prompt(`${v.name} — Tuman ID kiriting:\n\n` + tList);
+        if (!tId) return;
+        const r = await fetch(`/tma-api/orders/${orderId}/location`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ viloyat_id: parseInt(vId), tuman_id: parseInt(tId) })
+        });
+        if (r.ok) { notify(); closeModal('order-modal'); loadOrders(); }
+        else { const d = await r.json().catch(() => ({})); alert(d.detail || 'Xatolik'); }
+      } catch (e) { console.error(e); alert('Xatolik yuz berdi'); }
     }
 
     /* ══ CREATE ORDER (Admin/Super-admin) ══ */
@@ -3644,7 +3666,7 @@
 
     async function init() {
       await loadDashboard();
-      document.getElementById('loading').style.display = 'none';
+      document.geteme'loading').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
     }
     init();

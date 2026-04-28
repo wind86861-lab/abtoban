@@ -361,20 +361,19 @@ async def admin_order_phone(message: Message, state: FSMContext, session) -> Non
         )
         user_svc2 = UserService(session)
         viloyatlar = await user_svc2.get_viloyatlar()
-        if viloyatlar:
-            await state.set_state(AdminOrderCreateStates.selecting_viloyat)
+        if not viloyatlar:
+            await state.clear()
             await message.answer(
-                f"✅ Klient topildi: <b>{found_user.full_name or 'Nomsiz'}</b>\n\n"
-                f"2/6 — Viloyatni tanlang:",
-                reply_markup=get_viloyatlar_keyboard(viloyatlar),
+                "❌ Viloyatlar mavjud emas. Avval sozlamalarda viloyat qo'shing.\n"
+                "Zakaz yaratish uchun viloyat va tuman tanlash majburiy."
             )
-        else:
-            await state.set_state(AdminOrderCreateStates.entering_address)
-            await message.answer(
-                f"✅ Klient topildi: <b>{found_user.full_name or 'Nomsiz'}</b>\n\n"
-                f"3/6 — Manzilni kiriting:",
-                reply_markup=get_cancel_keyboard(),
-            )
+            return
+        await state.set_state(AdminOrderCreateStates.selecting_viloyat)
+        await message.answer(
+            f"✅ Klient topildi: <b>{found_user.full_name or 'Nomsiz'}</b>\n\n"
+            f"2/6 — Viloyatni tanlang:",
+            reply_markup=get_viloyatlar_keyboard(viloyatlar),
+        )
     else:
         await state.update_data(client_phone=phone)
         await state.set_state(AdminOrderCreateStates.entering_client_name)
@@ -410,20 +409,19 @@ async def admin_order_name(message: Message, state: FSMContext, session) -> None
     await state.update_data(client_id=new_user.id, client_name=name)
     user_svc2 = UserService(session)
     viloyatlar = await user_svc2.get_viloyatlar()
-    if viloyatlar:
-        await state.set_state(AdminOrderCreateStates.selecting_viloyat)
+    if not viloyatlar:
+        await state.clear()
         await message.answer(
-            f"✅ Klient yaratildi: <b>{name}</b>\n\n"
-            f"2/6 — Viloyatni tanlang:",
-            reply_markup=get_viloyatlar_keyboard(viloyatlar),
+            "❌ Viloyatlar mavjud emas. Avval sozlamalarda viloyat qo'shing.\n"
+            "Zakaz yaratish uchun viloyat va tuman tanlash majburiy."
         )
-    else:
-        await state.set_state(AdminOrderCreateStates.entering_address)
-        await message.answer(
-            f"✅ Klient yaratildi: <b>{name}</b>\n\n"
-            f"3/6 — Manzilni kiriting:",
-            reply_markup=get_cancel_keyboard(),
-        )
+        return
+    await state.set_state(AdminOrderCreateStates.selecting_viloyat)
+    await message.answer(
+        f"✅ Klient yaratildi: <b>{name}</b>\n\n"
+        f"2/6 — Viloyatni tanlang:",
+        reply_markup=get_viloyatlar_keyboard(viloyatlar),
+    )
 
 
 @router.callback_query(AdminOrderCreateStates.selecting_viloyat, F.data.startswith("viloyat:"), RoleFilter(*MANAGEMENT_ROLES))
@@ -434,17 +432,13 @@ async def admin_order_viloyat(callback: CallbackQuery, state: FSMContext, sessio
         user_svc = UserService(session)
         tumanlar = await user_svc.get_tumanlar(viloyat_id)
         if not tumanlar:
-            await state.set_state(AdminOrderCreateStates.entering_address)
-            await callback.message.edit_text(
-                "✅ Viloyat tanlandi!\n\n"
-                "3/6 — Manzilni kiriting:",
-            )
-        else:
-            await state.set_state(AdminOrderCreateStates.selecting_tuman)
-            await callback.message.edit_text(
-                "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
-                reply_markup=get_tumanlar_keyboard(tumanlar),
-            )
+            await callback.answer("❌ Bu viloyatda tumanlar yo'q. Boshqa viloyat tanlang.", show_alert=True)
+            return
+        await state.set_state(AdminOrderCreateStates.selecting_tuman)
+        await callback.message.edit_text(
+            "✅ Viloyat tanlandi!\n\n🏘 Tumanni tanlang:",
+            reply_markup=get_tumanlar_keyboard(tumanlar),
+        )
         await callback.answer()
     except Exception as e:
         print(f"Error in admin viloyat select: {e}")
