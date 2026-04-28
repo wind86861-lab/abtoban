@@ -3004,7 +3004,7 @@
         const usersHtml = data.users.length ? `<div style="margin-bottom:12px"><div class="sub-sec">👷 Foydalanuvchilar</div>${data.users.map(u => `<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)">${u.name} ${u.phone ? '— ' + esc(u.phone) : ''} <span class="badge badge-sm">${u.role}</span></div>`).join('')}</div>` : '';
         const ordersHtml = data.orders.length ? data.orders.map(o => {
           const statusBadge = `<span class="badge badge-${o.status}">${STATUS_FULL[o.status] || o.status}</span>`;
-          return `<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="showOrderDetail(${o.id})">
+          return `<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="showOrder(${o.id})">
             <div class="card-head">
               <div><div class="card-title">🔢 #${esc(o.number)}</div><div style="font-size:12px;color:var(--hint);margin-top:2px">${esc(o.client)} ${o.phone ? '— ' + esc(o.phone) : ''}</div></div>
               ${statusBadge}
