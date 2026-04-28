@@ -1945,9 +1945,9 @@
       <tr><td>Jami narx</td><td><strong>${fmt(o.total)} so'm</strong></td></tr>
       <tr><td>Zaklad (oldindan)</td><td>${fmt(o.advance)} so'm</td></tr>
       <tr><td>Qarz</td><td><strong style="color:${o.debt > 0 ? 'var(--red)' : 'var(--green)'}">${fmt(o.debt)} so'm</strong></td></tr>
-      <tr><td>🏭 Zavod (material + yetkazish)</td><td>${o.zavod_cost ? fmt(o.zavod_cost) + " so'm" : '—'}</td></tr>
-      <tr><td>Usta haqi</td><td>${o.usta_wage ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
-      <tr><td>Master komissiya</td><td>${o.master_commission ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
+      <tr><td>🏭 Zavod (material + yetkazish)</td><td>${o.zavod_cost != null ? fmt(o.zavod_cost) + " so'm" : '—'}</td></tr>
+      <tr><td>Usta haqi</td><td>${o.usta_wage != null ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
+      <tr><td>Master komissiya</td><td>${o.master_commission != null ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
       <tr><td>Qo'shimcha xarajatlar</td><td id="om-exp-total">—</td></tr>
     </table>
     <div id="om-exp-list" style="margin-top:8px"></div>
@@ -2432,8 +2432,9 @@
           <tr><td>Jami narx</td><td><strong>${fmt(o.total)} so'm</strong></td></tr>
           <tr><td>Zaklad</td><td>${fmt(o.advance)} so'm</td></tr>
           <tr><td>Qarz</td><td><strong style="color:${o.debt > 0 ? 'var(--red,#e53935)' : 'var(--green,#43a047)'}">${fmt(o.debt)} so'm</strong></td></tr>
-          <tr><td>Usta haqi</td><td>${o.usta_wage ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
-          <tr><td>Master komissiya</td><td>${o.master_commission ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
+          <tr><td>🏭 Zavod (material + yetkazish)</td><td>${o.zavod_cost != null ? fmt(o.zavod_cost) + " so'm" : '—'}</td></tr>
+          <tr><td>Usta haqi</td><td>${o.usta_wage != null ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
+          <tr><td>Master komissiya</td><td>${o.master_commission != null ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
         </table>
         <div class="divider"></div>
         <div style="text-align:center">
@@ -2689,7 +2690,7 @@
                 <div class="card-sub">
                   👤 ${o.client} · 👷 Master: ${o.master_name || '—'}<br>
                   ${o.asphalt ? '🏗 ' + o.asphalt + ' · ' : ''}📐 ${o.area || '—'} m²${o.work_date ? ' · 📅 ' + o.work_date : ''}<br>
-                  💰 ${fmt(o.total)} so'm · 🔨 Usta haqi: ${o.usta_wage ? fmt(o.usta_wage) + " so'm" : '—'}
+                  💰 ${fmt(o.total)} so'm · 🔨 Usta haqi: ${o.usta_wage != null ? fmt(o.usta_wage) + " so'm" : '—'}
                 </div>
               </div>
             `).join('')}</div>`;
@@ -2725,8 +2726,9 @@
           <tr><td>Jami narx</td><td><strong>${fmt(o.total)} so'm</strong></td></tr>
           <tr><td>Zaklad</td><td>${fmt(o.advance)} so'm</td></tr>
           <tr><td>Qarz</td><td><strong style="color:${o.debt > 0 ? 'var(--red,#e53935)' : 'var(--green,#43a047)'}">${fmt(o.debt)} so'm</strong></td></tr>
-          <tr><td>Usta haqi</td><td>${o.usta_wage ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
-          <tr><td>Master komissiya</td><td>${o.master_commission ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
+          <tr><td>🏭 Zavod (material + yetkazish)</td><td>${o.zavod_cost != null ? fmt(o.zavod_cost) + " so'm" : '—'}</td></tr>
+          <tr><td>Usta haqi</td><td>${o.usta_wage != null ? fmt(o.usta_wage) + " so'm" : '—'}</td></tr>
+          <tr><td>Master komissiya</td><td>${o.master_commission != null ? fmt(o.master_commission) + " so'm" : '—'}</td></tr>
         </table>
         <div class="divider"></div>
         <div style="text-align:center">

@@ -611,6 +611,7 @@ async def tma_usta_orders(usta_id: int):
                 selectinload(Order.master), selectinload(Order.usta),
                 selectinload(Order.asphalt_type), selectinload(Order.client),
                 selectinload(Order.viloyat), selectinload(Order.tuman_rel),
+                selectinload(Order.line_items), selectinload(Order.material_requests),
             )
             .where(Order.usta_id == usta_id)
             .order_by(Order.created_at.desc())
@@ -630,6 +631,9 @@ async def tma_usta_orders(usta_id: int):
             "debt": float(o.debt) if o.debt else 0,
             "usta_wage": float(o.usta_wage) if o.usta_wage else None,
             "master_commission": float(o.master_commission) if o.master_commission else None,
+            "material_cost": sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
+            "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
+            "zavod_cost": (sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
             "status": o.status.value,
             "master_name": o.master.full_name if o.master else None,
             "usta_name": o.usta.full_name if o.usta else None,
@@ -677,6 +681,7 @@ async def tma_user_orders(user_id: int):
                 selectinload(Order.master), selectinload(Order.usta),
                 selectinload(Order.asphalt_type), selectinload(Order.client),
                 selectinload(Order.viloyat), selectinload(Order.tuman_rel),
+                selectinload(Order.line_items), selectinload(Order.material_requests),
             )
             .where(filt)
             .order_by(Order.created_at.desc())
@@ -701,6 +706,9 @@ async def tma_user_orders(user_id: int):
                 "debt": float(o.debt) if o.debt else 0,
                 "usta_wage": float(o.usta_wage) if o.usta_wage else None,
                 "master_commission": float(o.master_commission) if o.master_commission else None,
+                "material_cost": sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0,
+                "delivery_cost": sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0,
+                "zavod_cost": (sum(float(li.cost_price_per_m2 or 0) * float(li.area_m2 or 0) for li in o.line_items) if o.line_items else 0) + (sum(float(mr.delivery_price or 0) for mr in o.material_requests) if o.material_requests else 0),
                 "status": o.status.value,
                 "master_name": o.master.full_name if o.master else None,
                 "usta_name": o.usta.full_name if o.usta else None,
